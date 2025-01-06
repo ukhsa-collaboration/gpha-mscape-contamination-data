@@ -1,1 +1,393 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import io
+import base64
+from mako.template import Template
+import math
+import numpy as np
 
+ # Read bacteria load
+data = pd.read_csv(r"/Users/angelasun/Downloads/bacteria_load.csv")
+df = pd.DataFrame(data)
+
+name = df['Dataset']
+average = df['Average']
+
+# Figure Size
+fig, ax = plt.subplots(figsize =(6, 4))
+# convert y-axis to Logarithmic scale
+plt.xscale("log")
+# Horizontal Bar Plot
+ax.barh(name, average)
+
+# Save the figure as a Base64 string
+bacteria_buf = io.BytesIO()
+plt.savefig(bacteria_buf, format='png', bbox_inches='tight')
+bacteria_buf.seek(0)
+bacteria_load = base64.b64encode(bacteria_buf.read()).decode('utf-8')
+bacteria_buf.close()
+plt.close(fig)
+
+#read fungi load
+data = pd.read_csv(r"/Users/angelasun/Downloads/fungi_load.csv")
+df = pd.DataFrame(data)
+
+name = df['Dataset']
+average = df['Average']
+
+# Figure Size
+fig, ax = plt.subplots(figsize =(6, 4))
+# convert y-axis to Logarithmic scale
+plt.xscale("log")
+# Horizontal Bar Plot
+ax.barh(name, average, color='orange')
+
+# Save the figure as a Base64 string
+fungi_buf = io.BytesIO()
+plt.savefig(fungi_buf, format='png', bbox_inches='tight')
+fungi_buf.seek(0)
+fungi_load = base64.b64encode(fungi_buf.read()).decode('utf-8')
+fungi_buf.close()
+plt.close(fig)
+
+# Read CSV for genus bargraph into pandas
+data = pd.read_csv(r"/Users/angelasun/Downloads/no_genus.csv")
+df = pd.DataFrame(data)
+
+# Generate the plot
+fig, ax = plt.subplots(figsize=(8, 6))
+df.plot(
+    x='Dataset', kind='bar', stacked=True,
+    title='Number of Microbial Genera', ax=ax
+)
+
+# Save the figure as a Base64 string
+genus_buf = io.BytesIO()
+plt.savefig(genus_buf, format='png', bbox_inches='tight')
+genus_buf.seek(0)
+genus_number = base64.b64encode(genus_buf.read()).decode('utf-8')
+genus_buf.close()
+plt.close(fig)
+
+#shannon plots from R (in html code)
+with open('/Users/angelasun/Desktop/plots/DNA_shannon.png', "rb") as image_file:
+    shannon = base64.b64encode(image_file.read()).decode('utf-8')
+
+#heatmap
+ntc = "/Users/angelasun/Desktop/gstt/ntc_perc.txt"
+ntc = pd.read_csv(ntc, delimiter='\t')
+ntc = ntc.drop(columns=['Perc_Seqs_Overall'])
+n2 = "/Users/angelasun/Desktop/gstt/n2_perc.txt"
+n2 = pd.read_csv(n2, delimiter='\t')
+n2 = n2.drop(columns=['Perc_Seqs_Overall'])
+
+merge_df = ntc.merge(n2, on='Scientific_Name', how='outer')
+merge_df.fillna(value=0.0, inplace=True)
+
+top_genus = ['Homo','Pseudomonas', 'Cutibacterium', 'Acinetobacter', 'Stenotrophomonas', 'Streptococcus', 'Schaalia',
+                       'Staphylococcus', 'Prevotella', 'Vibrio', 'Cupriavidus', 'Rothia', 'Corynebacterium', 'Veillonella',
+                       'Moraxella', 'Bacillus', 'Ralstonia', 'Delftia', 'Burkholderia', 'Microbacterium']
+
+# Filter the DataFrame based on keywords in column one
+filtered_df = merge_df[merge_df['Scientific_Name'].isin(top_genus)]
+filtered_df.set_index('Scientific_Name', inplace=True)
+
+genus = filtered_df.index.tolist()
+samples = filtered_df.columns.tolist()
+matrix = filtered_df.to_numpy()
+
+heatmap = np.reshape(matrix, (len(genus), len(samples)))
+
+fig, ax = plt.subplots(figsize=(18,6))
+
+plot = ax.pcolormesh(samples, genus, heatmap)
+fig.colorbar(plot, ax=ax, aspect=40)
+
+plt.yticks(genus, rotation=0,fontsize='10')
+plt.xticks([])
+plt.ylabel('GSTT', fontweight='bold', horizontalalignment='center')
+
+# Save the figure as a Base64 string
+heat_buf = io.BytesIO()
+plt.savefig(heat_buf, format='png', bbox_inches='tight')
+heat_buf.seek(0)
+heatmap = base64.b64encode(heat_buf.read()).decode('utf-8')
+heat_buf.close()
+plt.close(fig)
+
+# Mako template
+html_template = """
+<!DOCTYPE html>
+<html>
+<head>
+<title>Report</title>
+<style>
+
+body {
+    padding-top: 10px;
+    font-family: "ArialNova-Light","HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+    min-width: 210px !important;
+    -webkit-print-color-adjust:exact;
+    padding: 10px 500px 500px !important;
+}
+
+.container {
+    min-width: 210px !important;
+}
+            
+table text{
+    font-family: "ArialNova-Light","HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+}
+
+header {
+    display: block;
+    text-align: right;
+
+}
+
+svg {width: 90%; height: auto;}
+
+.row {
+    display: flex;
+}
+
+.column {
+    padding: 10px;
+    flex: 50%;
+}
+
+.accordion {
+    background-color: #eee;
+    color: #444;
+    cursor: pointer;
+    padding: 13px;
+    width: 100%;
+    border: none;
+    text-align: left;
+    outline: none;
+    transition: 0.4s;
+}
+
+.active, .accordion:hover {
+    background-color: #e68781;
+    color: white;
+}
+
+.accordion:after {
+    content: '\002B';
+    color: white;
+    font-weight: bold;
+    float: right;
+    margin-left: 5px;
+}
+
+.active:after {
+    content: "\2212";
+}
+
+.panel {
+    padding: 0 13px;
+    background-color: white;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.2s ease-out;
+}
+
+.center {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    width: 50%;
+}
+
+    ul {
+    margin: 30px auto;
+    padding: 0 20px;
+    text-align: center;
+}
+
+    li {
+    color: #FFF;
+    font-family: 'Oswald', sans-serif;
+    font-size: 16px;
+    font-weight: 300;
+    text-transform: uppercase;
+    display: inline-block;
+    width: 80px;
+}
+
+    li:hover {
+    color: #DBE9EE;
+}
+
+    h1 {
+    color: #466995;
+    font-family: 'Oswald', sans-serif;
+    font-size: 32px;
+    font-weight: 300;
+    text-transform: uppercase;
+    text-align: center;
+}
+
+    h2 {
+    color: #333;
+    font-family: 'Varela Round', sans-serif;
+    font-size: 26px;
+    font-weight: 100;
+    margin: 0 auto 20px auto;
+}
+
+.svg-icon {
+    display: inline-flex;
+    align-self: center;
+}
+
+    h3 {
+        font-size: 1em;
+        margin: 0;
+        padding: 15px 0 15px 0;
+        font-family: inherit;
+        font-weight: 500;
+        line-height: 1.1;
+}
+
+    h4 {
+    color: #466995;
+    font-family: inherit;
+    font-size: 18px;
+    font-weight: 300;
+    letter-spacing: 2px;
+    text-align: center;
+    text-transform: uppercase
+}
+
+    p {
+    color: #333;
+    font-family: inherit;
+    font-size: 18px;
+    text-align: left;
+    padding: 15px 0 15px 0;
+}
+
+    .figures {
+    height: 100px;
+    width: 200px;
+    margin: 0 auto;
+}
+
+    footer {
+        position: relative;
+        bottom: 50px;
+        right: 0px;
+        width: 100%;
+        height: 50px;
+}
+
+    .content {
+    background-color: #FFFFFF;
+    box-sizing: border-box;
+    margin: 10px 10px 10px 250px;
+    text-align: left;
+    width: 100%;
+    position: relative;
+    left: 40px;
+    display: inline-block;
+    height: 100%;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+#toTopBtn {
+    position: fixed;
+    bottom: 26px;
+    right: 39px;
+    z-index: 98;
+    padding: 21px;
+    background-color: #e68781
+}
+
+    </style>
+</head>
+
+<body>
+<script>
+    $(document).ready(function() {
+        $(window).scroll(function() {
+            if ($(this).scrollTop() > 20) {
+                $('#toTopBtn').fadeIn();
+            } else {
+                $('#toTopBtn').fadeOut();
+            }
+        });
+
+        $('#toTopBtn').click(function() {
+            $("html, body").animate({
+                scrollTop: 0
+            }, 400);
+            return false;
+        });
+    });
+</script>
+
+<div class='container'>
+    <a href="#" id="toTopBtn" class="cd-top text-replace js-cd-top cd-top--is-visible cd-top--fade-out" data-abc="true"></a>
+    <header>
+        <div class="col-sm-8" style="text-align: left;">
+            <img class="mscape-logo" src="https://raw.githubusercontent.com/artic-network/scylla/main/docs/mscape.svg" vertical-align="left" width="30" height="30"></img>
+            mSCAPE | <small>metagenomics Surveillance Collaboraton and Analysis Programme</small>
+        </div>
+        <div class="col-sm-4" style="text-align: right;">
+            Negative Controls | <small>Summary report</small>
+        </div>
+        <br>
+        <hr>
+        <div class="spacer">
+            
+        </div>
+    </header>
+
+<h1>Summary report</h1>
+<p>This report summarises metagenomics-level data found in negative control samples, comparing GSTT controls with other publicly available datasets found on NCBI. These datasets are denoted by their BioProject accession numbers. Reads were classified against Kraken2 using the wf-metagenomics pipeline. </p>
+
+<section>
+<h3>Read counts per average single sample </h3>
+<label for="Taxon">Select taxonomy</label>
+<h4><select name="Taxon">
+  <option value="bac">Bacteria</option>
+  <option value="fungi">Fungi</option>
+  <option value="virus">Viruses</option>
+  <option value="arch">Archaea</option>
+  <option value="protist">Protists</option>
+</select></h4>
+
+
+<img src="data:image/png;base64,${load}" height="400" width="700"
+alt="Embedded Bar Graph depicting the average read count found for all bacteria in each dataset.">
+
+<h3>Number of genus-level microbial taxa</h3>
+
+<img src="data:image/png;base64,${genus_number}" alt="Embedded Bar Graph Two">
+<br>
+<h3>Shannon's diversity index</h3>
+<img src="data:image/png;base64,${shannon}" height="600" width="800" alt="Boxplot depicting Shannon's Diversity Index for 11 datasets."/>
+<br>
+<h3>Heatmap</h3>
+<p>Read counts were normalised as percentages of counts across each independent sample. Averages of percentages were taken for each genus within each dataset, and then compared across all datasets to find the top 20 genera with the highest average percentages of reads. </p> 
+<img src="data:image/png;base64,${heatmap}" height="400" width="1000" 
+alt="Heatmap depicting the top 20 most abundant microbial genera across all datasets."/>
+
+</section>
+</div>
+</body>
+</html>
+"""
+
+# Render the template with the Base64 string
+template = Template(html_template)
+html_content = template.render(load=bacteria_load, genus_number=genus_number, shannon=shannon, heatmap=heatmap)
+
+# Save the rendered HTML to a file
+output_path = "/Users/angelasun/Downloads/plot.html"
+with open(output_path, "w") as f:
+    f.write(html_content)
+
+print(f"HTML file generated: {output_path}")
