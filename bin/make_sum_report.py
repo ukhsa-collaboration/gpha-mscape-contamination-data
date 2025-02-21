@@ -12,9 +12,6 @@ from natsort import natsorted
 import os
 import sys
 
-plots_dir = sys.argv[1] # Import R plots
-output_path = sys.argv[2]
-
 # Creating the dataframe
 #microbe type entail "bacteria", "fungi", "viruses", "archaea", and "protists"
 
@@ -554,11 +551,27 @@ def get_heatmap(mscape_directories, all_other_directories):
     return sort_by_average, sort_by_mscape, mscape_dataset_names, both_counts 
 
 sns.set_style("whitegrid")
-mscape_directories = ['/Users/angelasun/Downloads/neg_control_reports/reports/GSTT_NTC/kraken2', '/Users/angelasun/Downloads/neg_control_reports/reports/GSTT_N2/kraken2', '/Users/angelasun/Downloads/neg_control_reports/reports/BIRM/kraken2']
-all_other_directories = ['/Users/angelasun/Downloads/neg_control_reports/reports/PRJNA595703_sputum/kraken2', '/Users/angelasun/Downloads/neg_control_reports/reports/PRJNA595703_swab/swab', '/Users/angelasun/Downloads/neg_control_reports/reports/PRJNA595703_air/air', '/Users/angelasun/Downloads/neg_control_reports/reports/PRJEB52882/kraken2', '/Users/angelasun/Downloads/neg_control_reports/reports/PRJNA636842/kraken2', '/Users/angelasun/Downloads/neg_control_reports/reports/PRJEB65368/kraken2', '/Users/angelasun/Downloads/neg_control_reports/reports/PRJNA1019400/neg', '/Users/angelasun/Downloads/neg_control_reports/reports/PRJEB14374/kraken2']
-all_directories = mscape_directories + all_other_directories
+all_directories = []
+mscape_directories = []
+input_dir = sys.argv[1] #kraken directory input
+for name in os.listdir(input_dir):
+    if os.path.isdir(f'{input_dir}/{name}'): #if directory exists
+        dataset = f'{input_dir}/{name}'
+        if os.path.isdir(f'{dataset}/kraken2'):
+            krakenset = f'{dataset}/kraken2'
+            all_directories.append(krakenset) #make all_directories list
 
-mscape = ["GSTT_NTC", "GSTT_N2", "BIRM"]
+            # Split the file name by '.' to separate the parts
+            url_parts = krakenset.split('/')
+            
+            mscape_sets = ["GSTT_NTC", "GSTT_N2", "BIRM"]
+            for mscape in mscape_sets:
+                if mscape in url_parts:
+                    mscape_directories.append(krakenset) #make mscape_directories list
+
+# Using filter and lambda to remove 'mscape' from 'all' for all_other_directories list
+all_other_directories = list(filter(lambda item: item not in mscape_directories, all_directories))
+
 plasma = ["PRJEB14374"]
 # Read bacteria load
 data = make_microbial_count_table(all_directories)
@@ -623,7 +636,8 @@ for microbe_type in microbe_types:
     load_list.append(microbe_load)
     buf.close()
     plt.close(fig)
-    
+
+plots_dir = sys.argv[2] # Import R plots
 #shannon plots from R (in html code)
 with open(plots_dir + 'total_diversity.png', "rb") as image_file:
     total_diversity = base64.b64encode(image_file.read()).decode('utf-8')
@@ -929,6 +943,8 @@ def get_two_maps(sort_way):
 mscape_maps = get_two_maps(mscape)
 average_maps = get_two_maps(average)
 
+output_path = sys.argv[3]
+os.makedirs(output_path, exist_ok=True) #make directory path into real directory
 
 # Render the template with the Base64 string
 template = Template(filename="/Users/angelasun/Downloads/neg_control_reports/sum_report_template.html")
