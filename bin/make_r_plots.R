@@ -97,7 +97,7 @@ for (type_of_taxa in taxa_list) {
     scale_fill_manual(name = "Dataset",
                       labels = sorted_shannon$Names,
                       values = colours) +
-    labs(title = "Diversity", x = "", y = "Shannon's Diversity") +
+    labs(title = "Shannon's Diversity", x = "", y = "") +
     stat_summary(geom = 'text', label = mscape_labels, fun = max, vjust = -1) +
     theme_bw() +
     theme(axis.text.x = element_blank()) +
@@ -182,7 +182,7 @@ for (type_of_taxa in taxa_list) {
     scale_fill_manual(name = "Dataset",
                       labels = sorted_shannon$Names,
                       values = colours) +
-    labs(title = "Evenness", x = "", y = "Shannon's Evenness") +
+    labs(title = "Shannon's Evenness", x = "", y = "") +
     stat_summary(geom = 'text', label = mscape_labels, fun = max, vjust = -1) +
     theme_bw() +
     theme(axis.text.x = element_blank())
