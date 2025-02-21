@@ -178,16 +178,25 @@ def make_richness_table(all_directories, taxon_level):
 
     return final_table, single_perc_dfs 
 
-mscape_directories = [tbc]
-all_other_directories = [tbc]
-all_directories = mscape_directories + all_other_directories
 
-taxon = "G"
+all_directories = []
+
+#get input (kraken files) directories
+input_dir = sys.argv[1]
+for name in os.listdir(input_dir):
+    if os.path.isdir(f'{input_dir}/{name}'): #if directory exists
+        dataset = f'{input_dir}/{name}'
+        if os.path.isdir(f'{dataset}/kraken2'): #if directory contains kraken2 files
+            krakenset = f'{dataset}/kraken2'
+            all_directories.append(krakenset) #add them to list of directories
 
 
-output_dir = sys.argv[1]
+#make output text_files directory
+output_dir = sys.argv[2]
 os.makedirs(output_dir, exist_ok=True) #make directory path into real directory
 
+#filter for richness data on genus level
+taxon = "G"
 richness, diversity = make_richness_table(all_directories, taxon)
 
 richness.to_csv(output_dir+"richness_table.txt", sep='\t', index=False)
@@ -199,7 +208,8 @@ for directory in all_directories:
     # The first part is the part before the first dot
     second_last = url_parts[-2]
     names.append(second_last)
-    
+
+#save all text_files in working/processing output directory  
 loop = 0
 for df_set in diversity:
     df_set[0].to_csv(os.path.join(output_dir, f"{names[loop]}.total.txt"), sep='\t', index=False)
