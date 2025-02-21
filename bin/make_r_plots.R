@@ -15,10 +15,6 @@ total_files <- list.files(input_dir, pattern = "*.total.txt", full.names = TRUE)
 dna_files <- list.files(input_dir, pattern = "*.dna.txt", full.names = TRUE)
 rna_files <- list.files(input_dir, pattern = "*.rna.txt", full.names = TRUE)
 
-#eventually change this so that the number of mscape_labels are carried over from input
-mscape_labels = c("BIRM", "GSTT (N2)", "GSTT (NTC)", "", "", "", "", "", "", "", "")
-colours = c("pink", "lightblue", "olivedrab3", "gray","gray","gray","gray","gray","gray","gray","gray")
-
 richness <- read.table(file.path(paste0(input_dir, "richness_table.txt")), stringsAsFactors = TRUE, header=TRUE, row.names="index")
 
 taxa_list <- c(1, 2, 3)
