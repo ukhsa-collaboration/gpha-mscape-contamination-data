@@ -3,7 +3,7 @@
 params.range = 100
 //takes input as --input_dir
 /*
- * A Python script which parses the output of the previous script
+ * A Python script which parses kraken files directory as input and produces taxa abundance tables
  */
 process make_shannon_script {
     input:
@@ -13,7 +13,7 @@ process make_shannon_script {
 
     script:
     """
-    python /Users/angelasun/Downloads/neg_control_reports/make_r_plots.py ${params.input_dir} text_files/
+    python /https://raw.githubusercontent.com/aq-sun/contamination-data/main/bin/make_r_plots.py ${params.input_dir} text_files/
     """
 }
 
@@ -29,7 +29,7 @@ process get_shannon_plot {
 
     script:
     """
-    Rscript /Users/angelasun/Downloads/neg_control_reports/shannon_plots.R text_files/ plots/
+    Rscript /https://raw.githubusercontent.com/aq-sun/contamination-data/main/bin/shannon_plots.R text_files/ plots/
     """
 }
 
@@ -44,11 +44,11 @@ process make_report {
     output:
     path "report/*.html"
 
-    publishDir '/Users/angelasun/Downloads/neg_control_reports/', mode: 'copy' // Publish final report to local directory
+    publishDir '${params.input_dir}/*.html', mode: 'copy', saveAs: {filename -> "summary_report.html"} // Publish final report to local directory
 
     script:
     """
-    python /Users/angelasun/Downloads/neg_control_reports/make_summary_report.py ${params.input_dir} plots/ report/
+    python /https://raw.githubusercontent.com/aq-sun/contamination-data/main/bin/make_summary_report.py ${params.input_dir} plots/ report/
     """
 }
 
