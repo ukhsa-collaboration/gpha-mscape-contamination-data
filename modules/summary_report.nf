@@ -62,4 +62,13 @@ workflow {
     make_shannon_script(params.input_dir)
     get_shannon_plot(make_shannon_script.out)
     make_report(params.input_dir, get_shannon_plot.out)
+
+    // Automatically open the report after the workflow completes
+    report_file = file("${params.input_dir}/../summary_report.html")
+    if (report_file.exists()) {
+        println "Opening report: ${report_file}"
+        "open ${report_file}".execute()  // For macOS
+        "xdg-open ${report_file}".execute()  // For Linux
+
+    echo "Report generated at ${report_file}"
 }
