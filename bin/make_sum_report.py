@@ -968,7 +968,7 @@ html_content = template.render(all_load=load_list[0],
                                mscape_by_mscape=mscape_maps[0], public_by_mscape=mscape_maps[1])
 
 # Save the rendered HTML to a file
-with open(f"{output_path}summary_report.html", "w") as f:
+with open(f"{output_path}negcontm_summary.html", "w") as f:
     f.write(html_content)
 
 print(f"HTML file generated: {output_path}")
