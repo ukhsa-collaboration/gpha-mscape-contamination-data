@@ -13,7 +13,7 @@ process make_shannon_script {
 
     script:
     """
-    python bin/make_r_files.py ${params.input_dir} text_files/
+    python ../bin/make_r_files.py ${params.input_dir} text_files/
     """
 }
 
@@ -29,7 +29,7 @@ process get_shannon_plot {
 
     script:
     """
-    Rscript bin/make_r_plots.R text_files/ plots/
+    Rscript ../bin/make_r_plots.R text_files/ plots/
     """
 }
 
@@ -44,11 +44,11 @@ process make_report {
     output:
     path "report/*.html"
 
-    publishDir '${params.input_dir}/*.html', mode: 'copy', saveAs: {filename -> "summary_report.html"} // Publish final report to local directory
+    publishDir ${file(params.input_dir).parent}, mode: 'copy', saveAs: {filename -> "summary_report.html"} // Publish final report to local directory
 
     script:
     """
-    python bin/make_sum_report.py ${params.input_dir} plots/ report/
+    python ../bin/make_sum_report.py ${params.input_dir} plots/ report/
     """
 }
 
