@@ -50,7 +50,7 @@ process make_report {
     output:
     path "report/*.html"
 
-    publishDir file(params.input_dir).getParent(), mode: 'copy', saveAs: {filename -> "summary_report.html"} // Publish final report to local directory
+    publishDir "${System.getProperty('user.home')}/Downloads/", mode: 'copy', saveAs: {filename -> "negcontm_summary.html"} // Publish final report to local directory
 
     script:
     """
@@ -58,16 +58,10 @@ process make_report {
     """
 }
 
+
 workflow {
     make_shannon_script(params.input_dir)
     get_shannon_plot(make_shannon_script.out)
     make_report(params.input_dir, get_shannon_plot.out)
-
-    // Automatically open the report after the workflow completes
-    report_file = file("${params.input_dir}/../summary_report.html")
-    if (report_file.exists()) {
-        println "Report generated at: ${report_file}"
-        "open ${report_file}".execute()  // For macOS
-        "xdg-open ${report_file}".execute()  // For Linux
-    }
+    println "Report will be generated in ~/Downloads/negcontm_summary.html"
 }
