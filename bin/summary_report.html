@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="icon" href="https://raw.githubusercontent.com/artic-network/scylla/main/docs/mscape.svg">
+
+<title>Summary Report</title>
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css" integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
+<style>
+
+body {
+    padding-top: 50px;
+    font-family: "ArialNova-Light","HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+    max-width: 1200px !important;
+    min-width: 210mm !important;
+    -webkit-print-color-adjust:exact;
+    margin: auto;
+}
+
+.container {
+    min-width: 210px !important;
+}
+            
+
+header {
+    display: block;
+    text-align: right;
+
+}
+
+svg {width: 90%; height: auto;}
+
+
+.center {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    width: 50%;
+}
+
+
+    h1 {
+    color: #161B33;
+    font-size: 32px;
+    font-weight: 300;
+    text-align: left;
+}
+
+    h2 {
+    color: #364652;
+    font-size: 26px;
+    font-weight: 100;
+    margin: 0 auto 20px auto;
+}
+
+.svg-icon {
+    display: inline-flex;
+    align-self: center;
+}
+
+h3 {
+    font-size: 24px;
+    margin: 0;
+    padding: 15px 0 15px 0;
+    font-family: inherit;
+    font-weight: 500;
+    line-height: 1.1;
+}
+
+
+    h4 {
+    color: #466995;
+    font-family: inherit;
+    font-weight: 300;
+    letter-spacing: 2px;
+    text-align: center;
+    text-transform: uppercase
+}
+
+    p {
+    color: #333;
+    font-family: inherit;
+    text-align: left;
+    padding: 8px 0 8px 0;
+}
+
+
+    footer {
+        position: relative;
+        bottom: 50px;
+        right: 0px;
+        width: 100%;
+        height: 50px;
+}
+
+    .content {
+    background-color: #FFFFFF;
+    box-sizing: border-box;
+    margin: 0;
+    text-align: left;
+    width: 100%;
+    position: relative;
+    left: 40px;
+    display: inline-block;
+    height: 100%;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+js .cd-top--fade-out {
+        opacity: .5
+    }
+.js .cd-top--is-visible {
+        visibility: visible;
+        opacity: 1
+    }
+.js .cd-top {
+        visibility: hidden;
+        opacity: 0;
+        transition: opacity .3s, visibility .3s, background-color .3s
+    }
+
+.cd-top {
+    position: fixed;
+    bottom: 20px;
+    bottom: const(--cd-back-to-top-margin);
+    right: 20px;
+    right: const(--cd-back-to-top-margin);
+    display: inline-block;
+    height: 40px;
+    height: const(--cd-back-to-top-size);
+    width: 40px;
+    width: const(--cd-back-to-top-size);
+    box-shadow: 0 0 10px rgba(0, 0, 0, .05) !important;
+    background: url(https://res.cloudinary.com/dxfq3iotg/image/upload/v1571057658/cd-top-arrow.svg) no-repeat center 50%;
+    background-color: #e68781;
+    background-color: hsla(const(--cd-color-3-h), const(--cd-color-3-s), const(--cd-color-3-l), 0.8)
+}
+        
+#toTopBtn {
+    position: fixed;
+    bottom: 26px;
+    right: 39px;
+    z-index: 98;
+    padding: 21px;
+    background-color: #e68781
+}
+
+button {
+    color: #466995;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 0.05em;
+    text-align: center;
+    text-transform: uppercase;
+    padding: 15px 15px;
+    border-radius: 4px;
+    border: 2px solid #466995;
+    background-color: transparent;
+    outline: none;
+}
+
+button:hover {
+  color: black;
+}
+
+.clicked {
+    background-color: pink;
+}
+
+.divider {
+    padding: 10px;
+    display: inline-block
+}
+
+    </style>
+</head>
+
+<body>
+<script>
+    $(document).ready(function() {
+        $(window).scroll(function() {
+            if ($(this).scrollTop() > 20) {
+                $('#toTopBtn').fadeIn();
+            } else {
+                $('#toTopBtn').fadeOut();
+            }
+        });
+
+        $('#toTopBtn').click(function() {
+            $("html, body").animate({
+                scrollTop: 0
+            }, 400);
+            return false;
+        });
+    });
+</script>
+
+<div class='container'>
+    <a href="#" id="toTopBtn" class="cd-top text-replace js-cd-top cd-top--is-visible cd-top--fade-out" data-abc="true"></a>
+    <header>
+        <div class="col-sm-8" style="text-align: left;">
+            <img class="mscape-logo" src="https://raw.githubusercontent.com/artic-network/scylla/main/docs/mscape.svg" vertical-align="left" width="30" height="30"></img>
+            mSCAPE | <small>metagenomics Surveillance Collaboraton and Analysis Programme</small>
+        </div>
+        <div class="col-sm-4" style="text-align: right;">
+            Negative Controls | <small>Summary report</small>
+        </div>
+        <br>
+        <hr>
+        <div class="spacer">
+            &nbsp;
+        </div>
+    </header>
+
+<h1>Summary Report</h1>
+<p class="lead">Data provided by mSCAPE.</p>
+<p class="description">This report summarises contamination found in negative control samples, comparing mSCAPE to publicly available datasets. Each public dataset is denoted by its study's BioProject accession number, in addition to certain metadata. Reads were classified against Kraken2 using epi2me-labs/wf-metagenomics provided by Oxford Nanopore Technologies. Kraken is known to have a high false positive rate. Results should be interpreted with caution. </p>
+
+<h3>Read counts per average single sample </h3>
+<script>
+function toggleElements(showElement, hideElements) {
+    document.querySelectorAll(hideElements).forEach(el => el.style.display = "none");
+    document.querySelector(showElement).style.display = "inline-block";
+}
+</script>
+
+<button onclick="toggleElements('.all', '.load')">All</button>
+<button onclick="toggleElements('.bacteria', '.load')">Bacteria</button> 
+<button onclick="toggleElements('.fungi', '.load')">Fungi</button>
+<button onclick="toggleElements('.virus', '.load')">Viruses</button>
+<button onclick="toggleElements('.archaea', '.load')">Archaea</button>
+<button onclick="toggleElements('.protist', '.load')">Protists</button>
+<br>
+<br>
+<div class="all load">
+<img src="data:image/png;base64,${all_load}" height="500" width="700"
+alt="Embedded Bar Graph depicting the average read count found for all microorganisms in each dataset.">
+</div>
+
+<div class="bacteria load", style="display: none">
+<img src="data:image/png;base64,${bac_load}" height="500" width="700"
+alt="Embedded Bar Graph depicting the average read count found for all bacteria in each dataset.">
+</div>
+
+<div class="fungi load" style="display: none">
+<img src="data:image/png;base64,${fungi_load}" height="500" width="700"
+alt="Embedded Bar Graph depicting the average read count found for all fungi in each dataset.">
+</div>
+
+<div class="virus load" style="display: none">
+<img src="data:image/png;base64,${virus_load}" height="500" width="700"
+alt="Embedded Bar Graph depicting the average read count found for all viruses in each dataset.">
+</div>
+
+<div class="archaea load" style="display: none">
+<img src="data:image/png;base64,${archaea_load}" height="500" width="700"
+alt="Embedded Bar Graph depicting the average read count found for all archaea in each dataset.">
+</div>
+
+<div class="protist load" style="display: none">
+<img src="data:image/png;base64,${protist_load}" height="500" width="700"
+alt="Embedded Bar Graph depicting the average read count found for all protists in each dataset.">
+</div>
+
+<p class="ont_ref" style="text-align: left;"><strong>The average number of reads found in samples of each dataset, displayed on a log scale.</strong> mScape datasets are separated into three categories: GSTT (NTC) (water controls), GSTT (N2) (mock human flora), and BIRM. Spike-ins are included. Non-lung studies are coloured in red.</p>
+
+<h3>Diversity and evenness</h3>
+
+<button onclick="toggleElements('.total', '.shannon')">All</button>
+<button onclick="toggleElements('.dna', '.shannon')">DNA</button> 
+<button onclick="toggleElements('.rna', '.shannon')">RNA</button>
+<br>
+<br>
+<div class="total shannon">
+<img src="data:image/png;base64,${total_diversity}" height="480" width="480" alt="Boxplot depicting Shannon's Diversity Index for 11 datasets."/>
+<img src="data:image/png;base64,${total_evenness}" height="480" width="600" style="display: inline-block" alt="Boxplot depicting Shannon's Diversity Index for 11 datasets."/>
+</div>
+
+<div class="dna shannon" style="display: none">
+<img src="data:image/png;base64,${dna_diversity}" height="480" width="480" alt="Boxplot depicting Shannon's Diversity Index for 11 datasets."/>
+<img src="data:image/png;base64,${dna_evenness}" height="480" width="600" style="display: inline-block" alt="Boxplot depicting Shannon's Diversity Index for 11 datasets."/>
+</div>
+
+<div class="rna shannon" style="display: none">
+<img src="data:image/png;base64,${rna_diversity}" height="480" width="480" alt="Boxplot depicting Shannon's Diversity Index for 11 datasets."/>
+<img src="data:image/png;base64,${rna_evenness}" height="480" width="600" style="display: inline-block" alt="Boxplot depicting Shannon's Diversity Index for 11 datasets."/>
+</div>
+
+<p class="ont_ref" style="text-align: left;"><strong>Shannon&#39; Diversity and Evenness index for samples in each dataset </strong>, calculated using genus-level abundance tables, and produced using vegan and ggplot2 packages in R. All values fall on a log scale due to Shannon's index calculations (H=&minus;&Sigma;[(pi)&times;log(pi)]). Lower diversity may indiciate lower levels of contamination. Evenness was calculated by dividing Diversity by richness (number of microbial genuses).</p>
+
+<h3>Number of microbial taxa (richness) </h3>
+
+<section>
+<script>
+function clickFunction(str) {
+
+ var original = document.getElementById("original");
+ var filtered = document.getElementById("filtered");
+   
+   if(str==1){
+
+   original.classList.toggle("clicked");
+   filtered.classList.remove("clicked");
+    }else{
+
+   filtered.classList.toggle("clicked");
+   original.classList.remove("clicked");
+   
+    }
+
+}
+</script>
+
+<button id="original" class= "clicked" onclick="toggleElements('.visible', '.plot'); clickFunction(1)">Include all taxa</button> 
+<button id="filtered" class="" onclick="toggleElements('.hide_', '.plot'); clickFunction(-1)">Exclude bacteria taxa below ${filter_count}</button>
+<h3 class="divider"> | </h3>
+<div class="visible plot" style="display: inline-block">
+<button onclick="toggleElements('.allfamily', '.richness')">Family-level</button> 
+<button onclick="toggleElements('.allgenus', '.richness')">Genus-level</button>
+<button onclick="toggleElements('.allspecies', '.richness')">Species-level</button>
+</div>
+<div class="hide_ plot" style="display: none">
+<button onclick="toggleElements('.ffamily', '.richness')">Family-level</button> 
+<button onclick="toggleElements('.fgenus', '.richness')">Genus-level</button>
+<button onclick="toggleElements('.fspecies', '.richness')">Species-level</button>
+</div>
+<br>
+<br>
+<div>
+    <div class="allfamily richness" style="display: none">
+    <img src="data:image/png;base64,${all_family_richness}"  height="600" width="700" alt="Embedded Bar Graph depicting the number of microbial families in each dataset, colour-coded by the categories of bacteria, fungi, viruses, archaea, and protists.">
+    </div>
+    <div class="allgenus richness">
+    <img src="data:image/png;base64,${all_genus_richness}"  height="600" width="700" alt="Embedded Bar Graph depicting the number of microbial genera in each dataset, colour-coded by the categories of bacteria, fungi, viruses, archaea, and protists.">
+    </div>
+    <div class="allspecies richness" style="display: none">
+    <img src="data:image/png;base64,${all_species_richness}"  height="600" width="700" alt="Embedded Bar Graph depicting the number of microbial species in each dataset, colour-coded by the categories of bacteria, fungi, viruses, archaea, and protists.">
+    </div>
+</div>
+
+<div class="filtered">
+    <div class="ffamily richness" style="display: none">
+    <img src="data:image/png;base64,${f_family_richness}"  height="600" width="700" alt="Embedded Bar Graph depicting the number of microbial families in each dataset, colour-coded by the categories of bacteria, fungi, viruses, archaea, and protists.">
+    </div>
+    <div class="fgenus richness" style="display: none">
+    <img src="data:image/png;base64,${f_genus_richness}"  height="600" width="700" alt="Embedded Bar Graph depicting the number of microbial genera in each dataset, colour-coded by the categories of bacteria, fungi, viruses, archaea, and protists.">
+    </div>
+    <div class="fspecies richness" style="display: none">
+    <img src="data:image/png;base64,${f_species_richness}"  height="600" width="700" alt="Embedded Bar Graph depicting the number of microbial species in each dataset, colour-coded by the categories of bacteria, fungi, viruses, archaea, and protists.">
+    </div>
+</div>
+
+<p class="ont_ref" style="text-align: left;"><strong>The total number of microbial taxa found in each dataset, indicating richness.</strong> Due to the abundance of the Bacteria domain in kraken classifications, we may restrict the number of bacterial taxa to those with an average of ${filter_count} counts or more in each dataset. Non-lung studies are coloured in red. <u>Species-level data should be interpreted with extra caution due to high risk of false classifications.</u></p>
+</section>
+
+<h3>Distribution of the most abundant contaminants</h3>
+
+<button onclick="toggleElements('.bytotal', '.heatmap')">Sort across all datasets</button>
+<button onclick="toggleElements('.bymscape', '.heatmap')">Sort across mScape datasets</button>
+<button onclick="toggleElements('.barplots', '.heatmap')">Show total reads in each sample</button>
+
+<div class="heatmap barplots", style="display: none">
+<img src="data:image/png;base64,${mscape_counts}" height="450" width="1100" 
+alt="Heatmap depicting the top 20 most abundant microbial genera across all mScape controls."/>
+<img src="data:image/png;base64,${public_counts}" height="450" width="1100" 
+alt="Heatmap depicting the top 20 most abundant microbial genera across all mScape controls."/>
+</div>
+
+<div class="heatmap bytotal">
+<img src="data:image/png;base64,${mscape_by_total}" height="450" width="1100" 
+alt="Heatmap depicting the top 20 most abundant microbial genera across all mScape controls."/>
+<img src="data:image/png;base64,${public_by_total}" height="450" width="1100" 
+alt="Heatmap depicting the top 20 most abundant microbial genera across all mScape controls."/>
+</div>
+
+<div class="heatmap bymscape", style="display: none">
+<img src="data:image/png;base64,${mscape_by_mscape}" height="450" width="1100" 
+alt="Heatmap depicting the top 20 most abundant microbial genera across all mScape controls."/>
+<img src="data:image/png;base64,${public_by_mscape}" height="450" width="1100" 
+alt="Heatmap depicting the top 20 most abundant microbial genera across all mScape controls."/>
+</div>
+
+<p class="ont_ref" style="text-align: left;"><strong>The top 20 most abundant microbial genera in mScape datasets and across all datasets combined.</strong> Colour scale indicates the percentage, or proportion of reads in each sample. An average percentage was calculated for every genus within a dataset, then sorted across <strong>1. all datasets</strong> and <strong>2. only mScape datasets</strong> for the top 20 genera. Each sample is arranged in ascending order of total read count. Blanks (white space) indicate where zero read counts were found.</p> 
+<br>
+<br>
+<br>
+<footer class="mscape-footer">
+    <div class="container-fluid text-right text-md-right">
+        <hr>
+        <div class="row">
+            <div class="col-sm-5" style="text-align: left;">
+                <small class="text-muted">Developed by the ARTIC.network, funded by Wellcome</small>
+                <br>
+                <img class="artic_no_rings" src="https://raw.githubusercontent.com/artic-network/scylla/main/docs/artic_no_rings.svg" vertical-align="left" width="50" height="50"></img>
+                <img class="wt" src="https://raw.githubusercontent.com/artic-network/scylla/main/docs/wellcome-logo-black.png" vertical-align="left" width="50" height="50"></img>
+            </div>
+
+            <div class="col-sm-11" style="text-align: right;">
+                 | <small class="text-muted">Summary report</small> <br><small class="text-muted">GNU General Public License v3.0</small>
+            </div>
+            <br>
+            <br>
+        </div>
+</footer>
+
+</div>
+</body>
+</html>
