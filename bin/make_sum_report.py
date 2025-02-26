@@ -947,7 +947,7 @@ output_path = sys.argv[3]
 os.makedirs(output_path, exist_ok=True) #make directory path into real directory
 
 # Render the template with the Base64 string
-template = Template(filename="https://raw.githubusercontent.com/aq-sun/contamination-data/refs/heads/main/bin/summary_report_template.html")
+template = Template(filename="/bin/summary_report_template.html")
 html_content = template.render(all_load=load_list[0],
                                bac_load=load_list[1], 
                                fungi_load=load_list[2],
