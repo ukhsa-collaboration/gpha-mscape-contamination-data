@@ -66,7 +66,26 @@ workflow {
     // Automatically open the report after the workflow completes
     report_file = file("${params.input_dir}/../summary_report.html")
     if (report_file.exists()) {
-        println "Opening report: ${report_file}"
-        echo "Report generated at ${report_file}"
+        println "Report generated at: ${report_file}"
+
+        // Open the report automatically
+        open_report(report_file)
     }
+
+process open_report {
+    input:
+    path report_file
+
+    script:
+    """
+    # Check if the system is macOS or Linux and open the file accordingly
+    if [[ \$(uname) == 'Darwin' ]]; then
+        open \$report_file  # For macOS
+    elif [[ \$(uname) == 'Linux' ]]; then
+        xdg-open \$report_file  # For Linux
+    else
+        echo "Unsupported system. Report generated at \$report_file"
+    fi
+    """
+}
 }
