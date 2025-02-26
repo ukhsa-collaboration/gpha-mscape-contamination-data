@@ -49,7 +49,7 @@ process make_report {
 
     script:
     """
-    python ${params.script_path}/make_sum_report.py ${params.input_dir} plots/ report/
+    python ${params.script_path}/make_sum_report.py ${params.input_dir} plots/ report/ ${params.script_path}/summary_report_template.html
     """
 }
 
