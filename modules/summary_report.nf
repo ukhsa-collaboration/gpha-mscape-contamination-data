@@ -66,10 +66,16 @@ workflow {
     // Automatically open the report after the workflow completes
     report_file = file("${params.input_dir}/../summary_report.html")
     if (report_file.exists()) {
-        println "Opening report: ${report_file}"
-        "open ${report_file}".execute()  // For macOS
-        "xdg-open ${report_file}".execute()  // For Linux
+        println "Opening report: ${report_file}
 
-        echo "Report generated at ${report_file}"
+        # Check if the system is macOS or Linux and open the file accordingly
+        if [[ $(uname) == 'Darwin' ]]; then
+            "open ${report_file}".execute()  // For macOS
+        elif [[ $(uname) == 'Linux' ]]; then
+            "xdg-open ${report_file}".execute()  // For Linux
+        else
+            echo "Report generated at ${report_file}"
+        fi
+            echo "Report generated at ${report_file}"
     }
 }
