@@ -2,7 +2,12 @@
 
 params.range = 100
 params.script_path = "${workflow.projectDir}/../bin"
-//takes input as --input_dir
+
+//take input as --input_dir
+// Check if required parameters are provided
+if (!params.input_dir) {
+    exit 1, "ERROR: Please provide --input_dir when running Nextflow."
+}
 /*
  * A Python script which parses the output of the previous script
  */
