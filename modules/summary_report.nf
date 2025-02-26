@@ -71,6 +71,7 @@ workflow {
         // Open the report automatically
         open_report(report_file)
     }
+}
 
 process open_report {
     input:
@@ -78,6 +79,8 @@ process open_report {
 
     script:
     """
+    #!/usr/bin/env bash
+
     # Check if the system is macOS or Linux and open the file accordingly
     if [[ \$(uname) == 'Darwin' ]]; then
         open \$report_file  # For macOS
@@ -87,5 +90,4 @@ process open_report {
         echo "Unsupported system. Report generated at \$report_file"
     fi
     """
-}
 }
