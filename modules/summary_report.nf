@@ -1,7 +1,7 @@
 #!/usr/bin/env nextflow
 
 params.range = 100
-params.script_path = "${workflow.projectDir}/bin"
+params.script_path = "${workflow.projectDir}/../bin"
 //takes input as --input_dir
 /*
  * A Python script which parses the output of the previous script
