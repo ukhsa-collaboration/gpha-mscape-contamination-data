@@ -68,7 +68,7 @@ workflow {
     if (report_file.exists()) {
         println "Opening report: ${report_file}"
 
-        # Check if the system is macOS or Linux and open the file accordingly
+        //Check if the system is macOS or Linux and open the file accordingly
         if [[ $(uname) == 'Darwin' ]]; then
             "open ${report_file}".execute()  // For macOS
         elif [[ $(uname) == 'Linux' ]]; then
