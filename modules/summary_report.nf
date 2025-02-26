@@ -1,6 +1,7 @@
 #!/usr/bin/env nextflow
 
 params.range = 100
+params.script_path = "${workflow.projectDir}/bin"
 //takes input as --input_dir
 /*
  * A Python script which parses the output of the previous script
@@ -13,7 +14,7 @@ process make_shannon_script {
 
     script:
     """
-    python ${workflow.projectDir}/bin/make_r_files.py ${params.input_dir} text_files/
+    python ${params.script_path}/make_r_files.py ${params.input_dir} text_files/
     """
 }
 
@@ -29,7 +30,7 @@ process get_shannon_plot {
 
     script:
     """
-    Rscript ${workflow.projectDir}/bin/make_r_plots.R text_files/ plots/
+    Rscript ${params.script_path}/make_r_plots.R text_files/ plots/
     """
 }
 
@@ -44,11 +45,11 @@ process make_report {
     output:
     path "report/*.html"
 
-    publishDir file(params.input_dir).parent, mode: 'copy', saveAs: {filename -> "summary_report.html"} // Publish final report to local directory
+    publishDir file(params.input_dir).getParent(), mode: 'copy', saveAs: {filename -> "summary_report.html"} // Publish final report to local directory
 
     script:
     """
-    python ${workflow.projectDir}/bin/make_sum_report.py ${params.input_dir} plots/ report/
+    python ${params.script_path}/make_sum_report.py ${params.input_dir} plots/ report/
     """
 }
 
