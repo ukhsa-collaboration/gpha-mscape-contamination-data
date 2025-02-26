@@ -70,5 +70,6 @@ workflow {
         "open ${report_file}".execute()  // For macOS
         "xdg-open ${report_file}".execute()  // For Linux
 
-    echo "Report generated at ${report_file}"
+        echo "Report generated at ${report_file}"
+    }
 }
