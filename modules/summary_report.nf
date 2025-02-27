@@ -19,7 +19,7 @@ process make_shannon_script {
 
     script:
     """
-    python ${params.script_path}/make_r_files.py ${params.input_dir} text_files/
+    python make_r_files.py ${params.input_dir} text_files/
     """
 }
 
@@ -35,7 +35,7 @@ process get_shannon_plot {
 
     script:
     """
-    Rscript ${params.script_path}/make_r_plots.R text_files/ plots/
+    Rscript make_r_plots.R text_files/ plots/
     """
 }
 
@@ -54,12 +54,12 @@ process make_report {
 
     script:
     """
-    python ${params.script_path}/make_sum_report.py ${params.input_dir} plots/ report/ ${params.script_path}/summary_report_template.html
+    python make_sum_report.py ${params.input_dir} plots/ report/ ${params.script_path}/summary_report_template.html
     """
 }
 
 
-workflow {
+workflow evaluate_negative_controls {
     make_shannon_script(params.input_dir)
     get_shannon_plot(make_shannon_script.out)
     make_report(params.input_dir, get_shannon_plot.out)
