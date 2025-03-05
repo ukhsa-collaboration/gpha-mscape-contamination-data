@@ -29,7 +29,7 @@ process make_shannon_script {
 
     script:
     """
-    python make_r_files.py --kraken_reports ${reports} --metadata ${metadata} --output text_files/
+    python make_r_files.py --kraken_reports ${reports} --metadata ${metadata} --output_dir text_files/
     """
 }
 
@@ -74,5 +74,9 @@ workflow evaluate_negative_controls {
     make_shannon_script(reports, metadata)
     get_shannon_plot(make_shannon_script.out)
     make_report(reports, metadata, get_shannon_plot.out)
-    println "Report will be generated in ~/Downloads/negcontm_summary.html"
+    println "Report will be generated in ~/Downloads/"
+}
+
+workflow main {
+    evaluate_negative_controls() 
 }
