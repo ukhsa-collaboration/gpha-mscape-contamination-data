@@ -11,83 +11,81 @@ import seaborn as sns
 from natsort import natsorted
 import os
 import sys
+import argparse
 
 # Creating the dataframe
 #microbe type entail "bacteria", "fungi", "viruses", "archaea", and "protists"
 
 #Create a dataframe for average counts per dataset in each microbe type(taxon)
-def get_each_taxon(directory, microbe_type):
+def get_each_taxon(needed_samples, reports, microbe_type):
     # Initialize an empty list to store dataframes
     dfs = []
-    # Loop over each subdirectory in the main directory
-    for file_name in os.listdir(directory):
-        if file_name.endswith('.txt'):
-            #open new file and read it line by line
-            file = open(directory+"/"+file_name)
-        
-            #create 3 lists for count of sequences then rank and scientific name
-            read_counts = []
-            rank = []
-            sci_name = []
 
-            #excluded taxa for different categories of microbes
-            if microbe_type == "All":
-                taxa_list = ["unclassified"]
-                taxon = "root"
-            elif microbe_type == "Bacteria":
-                taxa_list = ["Eukaryota", "Archaea", "Viruses"]
-                taxon = "Bacteria"
-            elif microbe_type == "Fungi":
-                taxa_list = ["Bacteria", "Archaea", "Viruses", "Sar", "Discoba", "Metamonada"]
-                taxon = "Fungi"
-            elif microbe_type == "Viruses":
-                taxa_list = ["Eukaryota", "Archaea", "Bacteria"]
-                taxon = "Viruses"
-            elif microbe_type == "Archaea":
-                taxa_list = ["Eukaryota", "Bacteria", "Viruses"]
-                taxon = "Archaea"
-            else: #protist is not a real taxon, it is paraphyletic
-                taxa_list = ["Metazoa", "Archaea", "Fungi", "Bacteria", "Viruses"]
-                taxon = ["Sar", "Discoba", "Metamonada"]
-                
-    	#only start reading each file when it starts listing our domain
-            column_index = 5 #scientific_name column
-            start_reading = False    
-    
-            # Iterate over each line in the file
-            for line in file:
-                # Split the line into columns
-                columns = line.split()
-    
-                #record the current scientific name of this line
-                current_name = columns[5]
-                
-                # Check for the microbial category in scientific name column and set the flag to start reading
-                if columns[5] in taxon:
-                    start_reading = True
-
-                if start_reading:
-                    current_name = columns[5]
-                    if current_name in taxa_list: #if this code moves onto another domain that is not the one we want
-                        break
-                    else:
-                        read_counts.append(line.split()[1])
-                        rank.append(line.split()[3])            
-                        #this turns scientific name (which sometimes have multiple words) into a list within a list
-                        sci_name.append(line.split()[5:])
-                                         
-            # Extract the sample ID from file name
-            # Split the file name by '.' to separate the parts
-            parts = file_name.split('.')
-            # The first part is the part before the first dot
-            first_part = parts[0]
-            sample_ID = first_part
-        
-            # Turn the four lists into a dataframe, using sample ID in place of "% of seqs" or "read counts", depending on whether you want counts or percentages
-            df_new_file = pd.DataFrame({sample_ID: read_counts, "Rank": rank, "Scientific_Name": sci_name})
+    #Loop over each kraken file in reports directory
+    for sample in needed_samples:
+        for filename in os.listdir(reports):
+            if sample in filename and filename.endswith('.kraken2.report.txt'):
+                #open new file and read it line by line
+                file = open(reports+"/"+filename)
             
-            #add the new dataframe to the list of dataframes
-            dfs.append(df_new_file)
+                #create 3 lists for count of sequences then rank and scientific name
+                read_counts = []
+                rank = []
+                sci_name = []
+
+                #excluded taxa for different categories of microbes
+                if microbe_type == "All":
+                    taxa_list = ["unclassified"]
+                    taxon = "root"
+                elif microbe_type == "Bacteria":
+                    taxa_list = ["Eukaryota", "Archaea", "Viruses"]
+                    taxon = "Bacteria"
+                elif microbe_type == "Fungi":
+                    taxa_list = ["Bacteria", "Archaea", "Viruses", "Sar", "Discoba", "Metamonada"]
+                    taxon = "Fungi"
+                elif microbe_type == "Viruses":
+                    taxa_list = ["Eukaryota", "Archaea", "Bacteria"]
+                    taxon = "Viruses"
+                elif microbe_type == "Archaea":
+                    taxa_list = ["Eukaryota", "Bacteria", "Viruses"]
+                    taxon = "Archaea"
+                else: #protist is not a real taxon, it is paraphyletic
+                    taxa_list = ["Metazoa", "Archaea", "Fungi", "Bacteria", "Viruses"]
+                    taxon = ["Sar", "Discoba", "Metamonada"]
+                    
+            #only start reading each file when it starts listing our domain
+                start_reading = False    
+        
+                # Iterate over each line in the file
+                for line in file:
+                    # Split the line into columns
+                    columns = line.split()
+    
+                    #record the current scientific name of this line
+                    current_name = columns[5]
+                    
+                    # Check for the microbial category in scientific name column and set the flag to start reading
+                    if columns[5] in taxon:
+                        start_reading = True
+
+                    if start_reading:
+                        current_name = columns[5]
+                        if current_name in taxa_list: #if this code moves onto another domain that is not the one we want
+                            break
+                        else:
+                            read_counts.append(line.split()[1])
+                            rank.append(line.split()[3])            
+                            #this turns scientific name (which sometimes have multiple words) into a list within a list
+                            sci_name.append(line.split()[5:])
+                                            
+                # Extract the sample ID from sample (climb_id)
+                sample_ID = sample
+            
+                # Turn the four lists into a dataframe, using sample ID in place of "% of seqs" or "read counts", depending on whether you want counts or percentages
+                df_new_file = pd.DataFrame({sample_ID: read_counts, "Rank": rank, "Scientific_Name": sci_name})
+                
+                #add the new dataframe to the list of dataframes
+                dfs.append(df_new_file)
     
     
     # Merge the DataFrames on a specific column
@@ -132,14 +130,13 @@ def get_each_taxon(directory, microbe_type):
     data = {'Name': microbe_type, 'Average Count': average}
     current_df = pd.DataFrame(data, index=[0])
     return current_df
-    current_dfs.append(current_df)
 
 #Merge all taxon count dataframes together to get all microbe type count data per dataset
-def get_microbial_load(directory):
+def get_microbial_load(set, needed_samples, reports):
     taxa = ["All", "Bacteria", "Fungi", "Viruses", "Archaea", "Protists"]
     current_dfs = []
     for microbe_type in taxa:
-        current_df = get_each_taxon(directory, microbe_type)
+        current_df = get_each_taxon(needed_samples, reports, microbe_type)
         current_dfs.append(current_df)
     # Merge the DataFrames on a specific column
     merged_df = pd.concat(current_dfs, axis = 0, join= "outer")  # Change join to 'outer' for outer join
@@ -147,23 +144,31 @@ def get_microbial_load(directory):
     merged_df = merged_df.groupby('Name', as_index=True).first()
     transposed_df = merged_df.transpose()
     transposed_df.reset_index(inplace=True)
-    
-    # Extract the sample ID from file name
-    # Split the file name by '.' to separate the parts
-    url_parts = directory.split('/')
-    # The first part is the part before the first dot
-    second_last = url_parts[-2]
-    dataset = second_last
 
-    transposed_df['index'] = dataset
+    transposed_df['index'] = set
     return transposed_df
 
 #Make microbe count table for each dataset and merge them together
-def make_microbial_count_table(all_directories):
+def make_microbial_count_table(reports, grouped_metadata):
+
+    datasets = [] #total datasets
+    samples = [] #samples grouped by datasets
+    for sets in grouped_metadata:
+        ids = list(sets[0])
+        #turn scientific_name from a list to a string
+        ids_list = '_'.join(ids)
+        ids_list = ids_list.replace('_other', '')
+        datasets.append(ids_list)
+        table = sets[1] #list of all ids in dataset
+        samples.append(list(table['biosample_id'])) #climb id
+
+    loop = 0
     single_dfs = []
-    for directory in all_directories:
-        transposed_df = get_microbial_load(directory)
+    for set in datasets:
+        needed_samples = samples[loop] #our current set of sample names
+        transposed_df = get_microbial_load(set, needed_samples, reports) #get dataset name, sample names, and all reports
         single_dfs.append(transposed_df)
+        loop += 1
         
     #merge all dataframes together
     final_table = pd.concat(single_dfs, axis = 0, join = "outer")
@@ -171,79 +176,74 @@ def make_microbial_count_table(all_directories):
     final_table.fillna(value=0.0, inplace=True)
     return final_table
 
-def get_species_count(directory, microbe_type, taxon_level, filter_count):
-
+def get_species_count(needed_samples, reports, microbe_type, taxon_level, filter_count):
     # Initialize an empty list to store dataframes
     dfs = []
-    # Loop over each subdirectory in the main directory
-    for file_name in os.listdir(directory):
-        if file_name.endswith('.txt'):
-            #open new file and read it line by line
-            file = open(directory+"/"+file_name)
+#   Loop over each kraken file in reports directory
+    for sample in needed_samples:
+        for filename in os.listdir(reports):
+            if sample in filename and filename.endswith('.kraken2.report.txt'):
+                #open new file and read it line by line
+                file = open(reports+"/"+filename)
         
-            #create 3 lists for count of sequences then rank and scientific name
-            read_counts = []
-            rank = []
-            sci_name = []
+                #create 3 lists for count of sequences then rank and scientific name
+                read_counts = []
+                rank = []
+                sci_name = []
 
-            #excluded domains for different categories of microbes
-            if microbe_type == "Bacteria":
-                phyla_list = ["Eukaryota", "Archaea", "Viruses"]
-                taxon = "Bacteria"
-            elif microbe_type == f"Bacteria > {filter_count}":
-                phyla_list = ["Eukaryota", "Archaea", "Viruses"]
-                taxon = "Bacteria"
-            elif microbe_type == "Fungi":
-                phyla_list = ["Bacteria", "Archaea", "Viruses", "Sar", "Discoba", "Metamonada"]
-                taxon = "Fungi"
-            elif microbe_type == "Viruses":
-                phyla_list = ["Eukaryota", "Archaea", "Bacteria"]
-                taxon = "Viruses"
-            elif microbe_type == "Archaea":
-                phyla_list = ["Eukaryota", "Bacteria", "Viruses"]
-                taxon = "Archaea"
-            else: #protist is not a real taxon, it is paraphyletic
-                phyla_list = ["Metazoa", "Archaea", "Fungi", "Bacteria", "Viruses"]
-                taxon = ["Sar", "Discoba", "Metamonada"]
-        
-    	#only start reading each file when it starts listing our domain
-            column_index = 5 #scientific_name column
-            start_reading = False    
-
-            # Iterate over each line in the file
-            for line in file:
-                # Split the line into columns
-                columns = line.split()
-    
-                #record the current scientific name of this line
-                current_name = columns[5]
-                
-                # Check for the microbial category in scientific name column and set the flag to start reading
-                if columns[5] in taxon:
-                    start_reading = True
-                        
-                if start_reading:
-                    current_name = columns[5]
-                    if current_name in phyla_list: #if this code moves onto another domain that is not the one we want
-                        break
-                    else:
-                        read_counts.append(line.split()[1])
-                        rank.append(line.split()[3])            
-                        #this turns scientific name (which sometimes have multiple words) into a list within a list
-                        sci_name.append(line.split()[5:])
-                                          
-            # Extract the sample ID from file name
-            # Split the file name by '.' to separate the parts
-            parts = file_name.split('.')
-            # The first part is the part before the first dot
-            first_part = parts[0]
-            sample_ID = first_part
-        
-            # Turn the four lists into a dataframe, using sample ID in place of "% of seqs" or "read counts", depending on whether you want counts or percentages
-            df_new_file = pd.DataFrame({sample_ID: read_counts, "Rank": rank, "Scientific_Name": sci_name})
+                #excluded domains for different categories of microbes
+                if microbe_type == "Bacteria":
+                    phyla_list = ["Eukaryota", "Archaea", "Viruses"]
+                    taxon = "Bacteria"
+                elif microbe_type == f"Bacteria > {filter_count}":
+                    phyla_list = ["Eukaryota", "Archaea", "Viruses"]
+                    taxon = "Bacteria"
+                elif microbe_type == "Fungi":
+                    phyla_list = ["Bacteria", "Archaea", "Viruses", "Sar", "Discoba", "Metamonada"]
+                    taxon = "Fungi"
+                elif microbe_type == "Viruses":
+                    phyla_list = ["Eukaryota", "Archaea", "Bacteria"]
+                    taxon = "Viruses"
+                elif microbe_type == "Archaea":
+                    phyla_list = ["Eukaryota", "Bacteria", "Viruses"]
+                    taxon = "Archaea"
+                else: #protist is not a real taxon, it is paraphyletic
+                    phyla_list = ["Metazoa", "Archaea", "Fungi", "Bacteria", "Viruses"]
+                    taxon = ["Sar", "Discoba", "Metamonada"]
             
-            #add the new dataframe to the list of dataframes
-            dfs.append(df_new_file)
+            #only start reading each file when it starts listing our domain
+                start_reading = False    
+
+                # Iterate over each line in the file
+                for line in file:
+                    # Split the line into columns
+                    columns = line.split()
+        
+                    #record the current scientific name of this line
+                    current_name = columns[5]
+                    
+                    # Check for the microbial category in scientific name column and set the flag to start reading
+                    if columns[5] in taxon:
+                        start_reading = True
+                            
+                    if start_reading:
+                        current_name = columns[5]
+                        if current_name in phyla_list: #if this code moves onto another domain that is not the one we want
+                            break
+                        else:
+                            read_counts.append(line.split()[1])
+                            rank.append(line.split()[3])            
+                            #this turns scientific name (which sometimes have multiple words) into a list within a list
+                            sci_name.append(line.split()[5:])
+
+                # Extract the sample ID from sample (climb_id)                           
+                sample_ID = sample
+            
+                # Turn the four lists into a dataframe, using sample ID in place of "% of seqs" or "read counts", depending on whether you want counts or percentages
+                df_new_file = pd.DataFrame({sample_ID: read_counts, "Rank": rank, "Scientific_Name": sci_name})
+                
+                #add the new dataframe to the list of dataframes
+                dfs.append(df_new_file)
 
 
     # Merge the DataFrames on a specific column
@@ -298,11 +298,11 @@ def get_species_count(directory, microbe_type, taxon_level, filter_count):
         df = pd.DataFrame(data, index=[0])
         return df
 
-def get_all_taxa(directory, taxon_level, filter_count):
+def get_all_taxa(set, needed_samples, reports, taxon_level, filter_count):
     taxa = ["Bacteria", f"Bacteria > {filter_count}", "Fungi", "Viruses", "Archaea", "Protists"]
     current_dfs = []
     for microbe_type in taxa:
-        df = get_species_count(directory, microbe_type, taxon_level, filter_count)
+        df = get_species_count(needed_samples, reports, microbe_type, taxon_level, filter_count)
         current_dfs.append(df)
         
     #merge all dataframes together
@@ -312,71 +312,72 @@ def get_all_taxa(directory, taxon_level, filter_count):
 
     transposed_df = table.transpose()
     transposed_df.reset_index(inplace=True)
-    
-    # Extract the sample ID from file name
-    # Split the file name by '.' to separate the parts
-    url_parts = directory.split('/')
-    # The first part is the part before the first dot
-    second_last = url_parts[-2]
-    dataset = second_last
 
-    transposed_df['index'] = dataset
+    transposed_df['index'] = set
     return transposed_df
 
-def make_richness_table(all_directories, taxon_level, filter_count):
+def make_richness_table(reports, grouped_metadata, taxon_level, filter_count):
+ 
+    datasets = [] #total datasets
+    samples = [] #samples grouped by datasets
+    for sets in grouped_metadata:
+        ids = list(sets[0])
+        #turn scientific_name from a list to a string
+        ids_list = '_'.join(ids)
+        ids_list = ids_list.replace('_other', '')
+        datasets.append(ids_list)
+        table = sets[1] #list of all ids in dataset
+        samples.append(list(table['biosample_id'])) #climb id
+
+    loop = 0
     single_dfs = []
-    for directory in all_directories:
-        transposed_df = get_all_taxa(directory, taxon_level, filter_count)
+    for set in datasets:
+        needed_samples = samples[loop] #our current set of sample names
+        transposed_df = get_all_taxa(set, needed_samples, reports, taxon_level, filter_count)
         single_dfs.append(transposed_df)
+        loop += 1
         
     #merge all dataframes together
     final_table = pd.concat(single_dfs, axis = 0, join = "outer")
     final_table = final_table.groupby('index', as_index=False).first()
     final_table.fillna(value=0.0, inplace=True)
 
-    return final_table  
+    return final_table 
 
-from natsort import natsorted
-
-def make_perc_df(directory):
+def make_perc_df(needed_samples, reports):
     # Initialize an empty list to store dataframes
     dfs = []
-    # Loop over each subdirectory in the main directory
-    for file_name in os.listdir(directory):
-        if file_name.endswith('.txt'):
-            #open new file and read it line by line
-            file = open(directory+"/"+file_name)
+#   Loop over each kraken file in reports directory
+    for sample in needed_samples:
+        for filename in os.listdir(reports):
+            if sample in filename and filename.endswith('.kraken2.report.txt'):
+                #open new file and read it line by line
+                file = open(reports+"/"+filename)
         
-            #create 5 lists for %/count of sequences then rank and scientific name
-            perc_seqs = []
-            read_count = []
-            rank = []
-            sci_name = []
-            
-            # Iterate over each line in the file
-            for line in file:
-                #make the lists
-                perc_seqs.append(line.split()[0])
-                read_count.append(line.split()[1])
-                rank.append(line.split()[3])                                
-                #this turns scientific name (which sometimes have multiple words) into a list within a list
-                sci_name.append(line.split()[5:])               
-                            
-            # Extract the sample ID from file name
-            # Split the file name by '.' to separate the parts
-            parts = file_name.split('.')
-            # The first part is the part before the first dot
-            first_part = parts[0]
-            sample_ID = first_part
+                #create 5 lists for %/count of sequences then rank and scientific name
+                perc_seqs = []
+                read_count = []
+                rank = []
+                sci_name = []
+                
+                # Iterate over each line in the file
+                for line in file:
+                    #make the lists
+                    perc_seqs.append(line.split()[0])
+                    read_count.append(line.split()[1])
+                    rank.append(line.split()[3])                                
+                    #this turns scientific name (which sometimes have multiple words) into a list within a list
+                    sci_name.append(line.split()[5:])               
+                                
 
-            #Get total read count from "root"
-            total_reads = read_count[1]
+                #Get total read count from "root"
+                total_reads = read_count[1]
 
-            # Turn the four lists into a dataframe, using sample ID in place of "% of seqs" or "read counts", depending on whether you want counts or percentages
-            df_new_file = pd.DataFrame({total_reads: perc_seqs, "Rank": rank, "Scientific_Name": sci_name})
-            
-            #add the new dataframe to the list of dataframes
-            dfs.append(df_new_file)
+                # Turn the four lists into a dataframe, using sample ID in place of "% of seqs" or "read counts", depending on whether you want counts or percentages
+                df_new_file = pd.DataFrame({total_reads: perc_seqs, "Rank": rank, "Scientific_Name": sci_name})
+                
+                #add the new dataframe to the list of dataframes
+                dfs.append(df_new_file)
     
     # Merge the DataFrames on a specific column
     merged_df = pd.concat(dfs, axis = 0, join= "outer")  # Change join to 'outer' for outer join
@@ -431,39 +432,47 @@ def make_perc_df(directory):
     no_rank_df = filtered_df.drop(columns=['Rank'])
     return no_rank_df
 
-def get_heatmap(mscape_directories, all_other_directories):
+def get_heatmap(reports, grouped_metadata):
     
-    all_directories = mscape_directories + all_other_directories
+    #group by site
+    datasets = []
+    public_datasets = []
+    samples = []
+    public_samples = []
+
+    for sets in grouped_metadata:
+        ids = list(sets[0])
+        #turn scientific_name from a list to a string
+        ids_list = '_'.join(ids)
+        ids_list = ids_list.replace('_other', '')
+        datasets.append(ids_list)
+        table = sets[1] #list of all ids in dataset
+        samples.append(list(table['biosample_id'])) #climb id
+
+        if "public" in ids_list.lower():
+            public_datasets.append(ids_list)
+            public_samples.append(list(table['biosample_id']))
+        
     
     average_list = []
-    all_dataset_names = []
-    mscape_dataset_names = []
     
-    for directory in all_directories:
-        perc_df = make_perc_df(directory)
+    loop = 0
+    for set in datasets:
+        needed_samples = samples[loop] #our current set of sample names
+        perc_df = make_perc_df(needed_samples, reports)
 
-        # Extract the sample ID from file name
-        # Split the file name by '.' to separate the parts
-        url_parts = directory.split('/')
-        # The first part is the part before the first dot
-        second_last = url_parts[-2]
-        dataset = second_last
-
-        if directory in mscape_directories:
-            perc_df = perc_df.rename(columns={c: f"{dataset}_"+c for c in perc_df.columns if c not in ['Scientific_Name', 'Perc_Seqs_Overall']})
-        else:
+        if set in public_datasets:
             perc_df = perc_df.rename(columns={c: "public_"+c for c in perc_df.columns if c not in ['Scientific_Name', 'Perc_Seqs_Overall']})
+        else:
+            perc_df = perc_df.rename(columns={c: f"{set}_"+c for c in perc_df.columns if c not in ['Scientific_Name', 'Perc_Seqs_Overall']})
         
 
-        #collect all necessary dataset names
-        all_dataset_names.append(dataset)
-        if directory in mscape_directories:
-            mscape_dataset_names.append(dataset)
-
         #Change all "average percentage" columns to their respective dataset names to avoid clashes when merging
-        perc_df[dataset] = perc_df["Perc_Seqs_Overall"]
+        perc_df[set] = perc_df["Perc_Seqs_Overall"]
         perc_df = perc_df.drop(columns=["Perc_Seqs_Overall"])
         average_list.append(perc_df)
+
+        loop += 1
 
     #First define the merged dataframe by the starting dataframe
     loop_count = 0
@@ -471,11 +480,19 @@ def get_heatmap(mscape_directories, all_other_directories):
     #Then merge all other dataframes to the pre-existing dataframe
     for df in average_list:
         loop_count += 1
-        if loop_count < len(all_directories):
+        if loop_count < len(datasets):
             current_df = average_list[loop_count]
             merge_df = merge_df.merge(current_df, on="Scientific_Name", how="outer")
     
     merge_df.fillna(value=0, inplace=True)
+
+    mscape_datasets = []
+    mscape_samples = []
+    for set in datasets:
+        if set not in public_datasets:
+            mscape_datasets.append(set)
+            mscape_samples.append(set)
+
 
     def sorting(merge_df, type_of_directories, dataset_names, all_dataset_names):
         # Select columns to sum ('Scientific Name')
@@ -496,10 +513,9 @@ def get_heatmap(mscape_directories, all_other_directories):
         mscape_dfs = []
         publics = "public"
 
-
-        #make specific dfs for all dataframes in mscape_dataset_names
-        for dataset_name in mscape_dataset_names:
-            other_sets = [n for n in mscape_dataset_names if n != dataset_name]
+        #make specific dfs for all dataframes in mscape_datasets
+        for dataset_name in mscape_datasets:
+            other_sets = [n for n in mscape_datasets if n != dataset_name]
             
             # Boolean indexing to filter out columns where the header (column name) contains 'mscape', or 'public'
             mscape_df = total_df.loc[:, ~total_df.columns.str.contains(publics, case=False)]
@@ -515,7 +531,7 @@ def get_heatmap(mscape_directories, all_other_directories):
         sorted_m_counts = []
         for mscape_df in mscape_dfs:
             #Get rid of dataset as prefixes
-            mscape_df = mscape_df.rename(columns={c: c.replace(f"{mscape_dataset_names[loop_count]}_", "") for c in mscape_df.columns if c not in ['Scientific_Name']})
+            mscape_df = mscape_df.rename(columns={c: c.replace(f"{mscape_datasets[loop_count]}_", "") for c in mscape_df.columns if c not in ['Scientific_Name']})
             mscape_df = mscape_df.reindex(natsorted(mscape_df.columns), axis=1)          
             sorted_mscapes.append(mscape_df)
 
@@ -525,7 +541,7 @@ def get_heatmap(mscape_directories, all_other_directories):
             sorted_m_counts.append(mscape_counts['index'])
             loop_count += 1
         
-        for dataset_name in mscape_dataset_names:
+        for dataset_name in mscape_datasets:
             pid_df = total_df.loc[:, ~total_df.columns.str.contains(dataset_name, case=False)]
             total_df = pid_df
         
@@ -545,36 +561,53 @@ def get_heatmap(mscape_directories, all_other_directories):
 
         return both_dfs, both_counts
 
-    sort_by_average, both_counts = sorting(merge_df, all_directories, all_dataset_names, all_dataset_names)
-    sort_by_mscape, both_counts = sorting(merge_df, mscape_directories, mscape_dataset_names, all_dataset_names)
+    sort_by_average, both_counts = sorting(merge_df, samples, datasets, datasets)
+    sort_by_mscape, both_counts = sorting(merge_df, mscape_samples, mscape_datasets, datasets)
 
-    return sort_by_average, sort_by_mscape, mscape_dataset_names, both_counts 
+    return sort_by_average, sort_by_mscape, mscape_datasets, both_counts 
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Parse text files and a CSV file.")
+    parser.add_argument('--text_files', nargs='+', help="List of text files", required=True)
+    parser.add_argument('--csv_file', help="CSV file path", required=True)
+    parser.add_argument('--output', help="Output directory", required=True)
+
+    args = parser.parse_args()
+
+reports = args.reports
+metadata = args.metadata
+output_dir = args.output
 
 sns.set_style("whitegrid")
 all_directories = []
 mscape_directories = []
-input_dir = sys.argv[1] #kraken directory input
-for name in os.listdir(input_dir):
-    if os.path.isdir(f'{input_dir}/{name}'): #if directory exists
-        dataset = f'{input_dir}/{name}'
-        if os.path.isdir(f'{dataset}/kraken2'):
-            krakenset = f'{dataset}/kraken2'
-            all_directories.append(krakenset) #make all_directories list
+#group by site
+grouped_metadata = metadata.groupby(['run_id', 'sample_source','sample_type', 'study_centre_id'])
 
-            # Split the file name by '.' to separate the parts
-            url_parts = krakenset.split('/')
-            
-            mscape_sets = ["GSTT_NTC", "GSTT_N2", "BIRM"]
-            for mscape in mscape_sets:
-                if mscape in url_parts:
-                    mscape_directories.append(krakenset) #make mscape_directories list
+#group by site
+datasets = []
+public_datasets = []
+samples = []
+public_samples = []
+
+for sets in grouped_metadata:
+    ids = list(sets[0])
+    #turn scientific_name from a list to a string
+    ids_list = '_'.join(ids)
+    ids_list = ids_list.replace('_other', '')
+    datasets.append(ids_list)
+    table = sets[1] #list of all ids in dataset
+    samples.append(list(table['biosample_id'])) #climb id
+
+    if "public" in ids_list.lower():
+        public_datasets.append(ids_list)
+        public_samples.append(list(table['biosample_id']))
 
 # Using filter and lambda to remove 'mscape' from 'all' for all_other_directories list
-all_other_directories = list(filter(lambda item: item not in mscape_directories, all_directories))
+mscape_datasets = list(filter(lambda item: item not in public_datasets, datasets))
 
-plasma = ["PRJEB14374"]
 # Read bacteria load
-data = make_microbial_count_table(all_directories)
+data = make_microbial_count_table(reports, grouped_metadata)
 
 microbe_types = ["All", "Bacteria", "Fungi", "Viruses", "Archaea", "Protists"]
 load_list = []
@@ -588,14 +621,17 @@ for microbe_type in microbe_types:
     colors = []
     
     for name in dataset:
-        if name == "GSTT_NTC":
-            color = "#73B42B"
-        elif name == "GSTT_N2":
-            color = "#95d0fc"
-        elif name == "BIRM":
+        if "public" in name.lower():
+            color = "lightgray"
+        elif "GSTT" in name.lower():
+            if "n2" in name.lower():
+                color = "#73B42B"
+            else:
+                color = "#95d0fc"
+        elif "birm" in name.lower():
             color = "pink"
         else:
-            color = "lightgray"
+            color = "tba"
         colors.append(color)
     
     # Figure Size
@@ -637,7 +673,7 @@ for microbe_type in microbe_types:
     buf.close()
     plt.close(fig)
 
-plots_dir = sys.argv[2] # Import R plots
+plots_dir = argparse.plots_dir # Import R plots
 #shannon plots from R (in html code)
 with open(plots_dir + 'total_diversity.png', "rb") as image_file:
     total_diversity = base64.b64encode(image_file.read()).decode('utf-8')
