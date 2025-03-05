@@ -23,10 +23,10 @@ def get_each_taxon(needed_samples, reports, microbe_type):
 
     #Loop over each kraken file in reports directory
     for sample in needed_samples:
-        for filename in os.listdir(reports):
-            if sample in filename and filename.endswith('.kraken2.report.txt'):
+        for filename in reports:
+            if sample in filename and filename.endswith('report.txt'):
                 #open new file and read it line by line
-                file = open(reports+"/"+filename)
+                file = open(filename)
             
                 #create 3 lists for count of sequences then rank and scientific name
                 read_counts = []
@@ -564,145 +564,13 @@ def get_heatmap(reports, grouped_metadata):
     sort_by_average, both_counts = sorting(merge_df, samples, datasets, datasets)
     sort_by_mscape, both_counts = sorting(merge_df, mscape_samples, mscape_datasets, datasets)
 
-    return sort_by_average, sort_by_mscape, mscape_datasets, both_counts 
+    return sort_by_average, sort_by_mscape, mscape_datasets, both_counts
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Parse text files and a CSV file.")
-    parser.add_argument('--kraken_reports', nargs='+', help="List of text files", required=True)
-    parser.add_argument('--metadata', help="CSV file path", required=True)
-    parser.add_argument('--plots_dir', help="Shannon plots directory", required=True)
-    parser.add_argument('--final_report', help="Output directory", required=True)
-    parser.add_argument('--template', help="HTMl template", required=True)
-    args = parser.parse_args()
-
-reports = args.reports
-metadata = args.metadata
-
-sns.set_style("whitegrid")
-all_directories = []
-mscape_directories = []
-#group by site
-grouped_metadata = metadata.groupby(['run_id', 'sample_source','sample_type', 'study_centre_id'])
-
-#group by site
-datasets = []
-public_datasets = []
-samples = []
-public_samples = []
-
-for sets in grouped_metadata:
-    ids = list(sets[0])
-    #turn scientific_name from a list to a string
-    ids_list = '_'.join(ids)
-    ids_list = ids_list.replace('_other', '')
-    datasets.append(ids_list)
-    table = sets[1] #list of all ids in dataset
-    samples.append(list(table['biosample_id'])) #climb id
-
-    if "public" in ids_list.lower():
-        public_datasets.append(ids_list)
-        public_samples.append(list(table['biosample_id']))
-
-# Using filter and lambda to remove 'mscape' from 'all' for all_other_directories list
-mscape_datasets = list(filter(lambda item: item not in public_datasets, datasets))
-
-# Read bacteria load
-data = make_microbial_count_table(reports, grouped_metadata)
-
-microbe_types = ["All", "Bacteria", "Fungi", "Viruses", "Archaea", "Protists"]
-load_list = []
-
-for microbe_type in microbe_types:
-    data_sorted = data.sort_values(microbe_type)
-    
-    dataset = data_sorted['index']
-    average = data_sorted[microbe_type]
-    
-    colors = []
-    
-    for name in dataset:
-        if "public" in name.lower():
-            color = "lightgray"
-        elif "GSTT" in name.lower():
-            if "n2" in name.lower():
-                color = "#73B42B"
-            else:
-                color = "#95d0fc"
-        elif "birm" in name.lower():
-            color = "pink"
-        else:
-            color = "tba"
-        colors.append(color)
-    
-    # Figure Size
-    fig, ax = plt.subplots(figsize =(8, 6))
-    # convert y-axis to Logarithmic scale
-    plt.xscale("log")
-    # Horizontal Bar Plot
-    ax.barh(dataset, average, color=colors)
-    
-    y = np.asarray([i for i in range(len(dataset))])
-    ax.set_yticks(y)
-    yid = np.asarray([i for i in dataset])
-    ax.set_yticklabels(yid)
-    
-        
-    new_labels = []
-    
-    for element in ax.yaxis.get_ticklabels():
-        if element.get_text() in mscape:
-            element.set_fontweight('bold')
-            new_labels.append(element)
-        elif element.get_text() in plasma:
-            element.set_color('red')
-            new_labels.append(element)
-        else:
-            new_labels.append(element)
-            
-    ax.set_yticklabels(new_labels)
-    plt.title(microbe_type)
-    plt.xlabel('Average Read Count (Log)', fontweight='bold', horizontalalignment='center')
-    
-    
-    # Save the figure as a Base64 string
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png', bbox_inches='tight')
-    buf.seek(0)
-    microbe_load = base64.b64encode(buf.read()).decode('utf-8')
-    load_list.append(microbe_load)
-    buf.close()
-    plt.close(fig)
-
-plots_dir = args.plots_dir # Import R plots
-#shannon plots from R (in html code)
-with open(plots_dir + 'total_diversity.png', "rb") as image_file:
-    total_diversity = base64.b64encode(image_file.read()).decode('utf-8')
-    
-#shannon plots from R (in html code)
-with open(plots_dir + 'dna_diversity.png', "rb") as image_file:
-    dna_diversity = base64.b64encode(image_file.read()).decode('utf-8')
-
-#shannon plots from R (in html code)
-with open(plots_dir + 'rna_diversity.png', "rb") as image_file:
-    rna_diversity = base64.b64encode(image_file.read()).decode('utf-8')
-
-#shannon plots from R (in html code)
-with open(plots_dir + 'total_evenness.png', "rb") as image_file:
-    total_evenness = base64.b64encode(image_file.read()).decode('utf-8')
-    
-#shannon plots from R (in html code)
-with open(plots_dir + 'dna_evenness.png', "rb") as image_file:
-    dna_evenness = base64.b64encode(image_file.read()).decode('utf-8')
-
-#shannon plots from R (in html code)
-with open(plots_dir + 'rna_evenness.png', "rb") as image_file:
-    rna_evenness = base64.b64encode(image_file.read()).decode('utf-8')
-    
 # get microbe taxa
 def make_two_sets(reports, grouped_metadata, column_to_drop, filter_count):
     taxons = ['F', 'G', 'S']
     richness_tables = []
-    
+
     for taxon in taxons:
         df = make_richness_table(reports, grouped_metadata, taxon, filter_count)
         df = df.drop(columns=[column_to_drop])
@@ -711,14 +579,14 @@ def make_two_sets(reports, grouped_metadata, column_to_drop, filter_count):
         df["all"] = numerical_df.sum(axis=1)
         df_sorted = df.sort_values("all")
         df_sorted = df_sorted.drop(columns=["all"])
-        
+
         if taxon == "F":
             word = "Families"
         elif taxon == "G":
             word = "Genera"
         else:
             word = "Species"
-            
+
         # Generate the plot
         fig, ax = plt.subplots(figsize=(8, 6))
         colors = ['#7a87dc', '#98e2c6', '#ffcb69', '#db93b0', '#d6f6ff']
@@ -733,10 +601,10 @@ def make_two_sets(reports, grouped_metadata, column_to_drop, filter_count):
         ax.set_xticks(x)
         xid = np.asarray([i for i in dataset])
         ax.set_xticklabels(xid)
-        
-            
+
+
         new_labels = []
-        
+
         for element in ax.xaxis.get_ticklabels():
             if element.get_text() in mscape:
                 element.set_fontweight('bold')
@@ -746,9 +614,9 @@ def make_two_sets(reports, grouped_metadata, column_to_drop, filter_count):
                 new_labels.append(element)
             else:
                 new_labels.append(element)
-                
+
         ax.set_xticklabels(new_labels)
-        
+
         # Save the figure as a Base64 string
         buf = io.BytesIO()
         plt.savefig(buf, format='png', bbox_inches='tight')
@@ -759,135 +627,6 @@ def make_two_sets(reports, grouped_metadata, column_to_drop, filter_count):
         plt.close(fig)
 
     return richness_tables
-
-filter_count = 5
-all_bac_tables = make_two_sets(reports, grouped_metadata, f"Bacteria > {filter_count}", filter_count)
-filtered_bac_tables = make_two_sets(reports, grouped_metadata, "Bacteria", filter_count)
-
-#make bar plots for total read counts (for heatmaps)
-sns.set_style("white")
-#heatmap
-average, mscape, mscape_names, both_counts = get_heatmap(reports, grouped_metadata) 
-
-two_total_counts = []
-total_samples = 0
-
-for df in both_counts[0]:
-        samples = df.index
-        total_samples = total_samples + len(samples)
-
-width_ratios = []
-for df in both_counts[0]:
-    samples = df.index
-    width = len(samples)/total_samples
-    width_ratios.append(width)
-
-    no_mscape = len(both_counts[0])
-
-# Figure Size
-fig, ax = plt.subplots(figsize=(18,6), ncols=no_mscape, gridspec_kw={'width_ratios': width_ratios})
-
-all_counts = []
-
-for count_list in both_counts[0]: 
-    counts = count_list.tolist() 
-    all_counts = all_counts + counts
-
-#all_counts = all_counts + both_counts[1].tolist()
-# Convert strings to integers using
-# list comprehension
-int_counts = [int(item) for item in all_counts]
-
-max_value = max(int_counts)
-upper_lim = max_value + (max_value/10)
-loop = 0
-for count_list in both_counts[0]:
-    df = pd.DataFrame({"Total Counts": count_list})
-    df["Total Counts"] = pd.to_numeric(df["Total Counts"])    
-    counts = df["Total Counts"]
-    index = df.index.to_list()
-    # Convert strings to integers using
-    # list comprehension
-    int_index = [int(item) for item in index]
-
-    ax = plt.subplot(1, no_mscape, loop+1)
-
-    # convert y-axis to Logarithmic scale
-    #plt.yscale("log")
-    ax.set_ylim([0, upper_lim])
-
-    if loop == 0:
-         color = "#73B42B"
-    elif loop == 1:
-         color = "#95d0fc"
-    elif loop == 2:
-         color = "pink"
-    else:
-         color = (np.random.random(), np.random.random(), np.random.random())
-    # Horizontal Bar Plot
-    ax.bar(int_index, counts, color=color)
-    ax.ticklabel_format(style='plain')
-    plt.xticks([])
-
-    if loop == 0:
-        plt.ylabel('Total Read Count', fontweight='bold', ha='center', labelpad=20)
-        plt.xlabel(f'{mscape_names[loop]}', fontweight='bold', horizontalalignment='center')
-    elif loop < (no_mscape-1):
-        plt.yticks([])      
-        plt.xlabel(f'{mscape_names[loop]}', fontweight='bold', horizontalalignment='center')
-    elif loop == (no_mscape-1):
-        plt.yticks([])
-        plt.xlabel(f'{mscape_names[loop]}', fontweight='bold', horizontalalignment='center')
-    loop += 1
-    plt.subplots_adjust(wspace=0.02, hspace=0)
-    plt.xlim([0,len(int_index)])
-
-# Save the figure as a Base64 string
-buf = io.BytesIO()
-plt.savefig(buf, format='png', bbox_inches='tight')
-buf.seek(0)
-counts = base64.b64encode(buf.read()).decode('utf-8')
-two_total_counts.append(counts)
-buf.close()
-plt.close(fig)
-
-pub_df = both_counts[1]
-df = pd.DataFrame({"Total Counts": pub_df})
-df["Total Counts"] = pd.to_numeric(df["Total Counts"])    
-counts = df["Total Counts"]
-index = df.index.to_list()
-
-all_counts = both_counts[1].tolist()
-int_counts = [int(item) for item in all_counts]
-
-max_value = max(int_counts)
-upper_lim = max_value + (max_value/10)
-
-# Figure Size
-fig, ax = plt.subplots(figsize=(18,6))
-
-# convert y-axis to Logarithmic scale
-#plt.yscale("log")
-ax.set_ylim([0, upper_lim])
-# Horizontal Bar Plot
-ax.bar(index, counts, color="lightgray")
-ax.ticklabel_format(style='plain')
-
-plt.xticks([])
-plt.xlabel("Public data samples", fontweight='bold', horizontalalignment='center')
-plt.ylabel('Total Read Count', fontweight='bold', ha='center', labelpad=20) 
-
-plt.xlim([0,len(index)])
-
-# Save the figure as a Base64 string
-buf = io.BytesIO()
-plt.savefig(buf, format='png', bbox_inches='tight')
-buf.seek(0)
-counts = base64.b64encode(buf.read()).decode('utf-8')
-two_total_counts.append(counts)
-buf.close()
-plt.close(fig)
- 
 
 def get_two_maps(sort_way):
     heatmap_list = []
@@ -910,30 +649,30 @@ def get_two_maps(sort_way):
     loop = 0
     for df in sort_way[0]:
         df.replace(0, np.nan, inplace=True)
-        
+
         genus = df.index.tolist()
         samples = df.columns.tolist()
         matrix = df.to_numpy()
-        
+
         heatmap = np.reshape(matrix, (len(genus), len(samples)))
 
-        ax = plt.subplot(1, no_mscape, loop+1)   
+        ax = plt.subplot(1, no_mscape, loop+1)
 
         plot = ax.pcolormesh(samples, genus, heatmap, vmin=0, vmax=100, cmap='viridis')
-        
+
         plt.xticks([])
 
         if loop == 0:
             plt.yticks(genus, rotation=0,fontsize='10')
             plt.xlabel(mscape_names[loop], fontweight='bold', horizontalalignment='center')
         elif loop < (no_mscape-1):
-            plt.yticks([])      
+            plt.yticks([])
             plt.xlabel(mscape_names[loop], fontweight='bold', horizontalalignment='center')
         elif loop == (no_mscape-1):
             plt.yticks([])
             fig.colorbar(plot, ax=ax, aspect=30)
             plt.xlabel(mscape_names[loop], fontweight='bold', horizontalalignment='center')
-        loop += 1
+       loop += 1
     plt.subplots_adjust(wspace=0.02, hspace=0)
 
     # Save the figure as a Base64 string
@@ -944,16 +683,16 @@ def get_two_maps(sort_way):
     heatmap_list.append(heatmap)
     buf.close()
     plt.close(fig)
-    
+
     pub_df = sort_way[1]
     pub_df.set_index('Scientific_Name', inplace=True)
     pub_df.replace(0, np.nan, inplace=True)
-        
+
     genus = pub_df.index.tolist()
     samples = pub_df.columns.tolist()
     matrix = pub_df.to_numpy()
-        
-    heatmap = np.reshape(matrix, (len(genus), len(samples))) 
+
+    heatmap = np.reshape(matrix, (len(genus), len(samples)))
 
     fig, ax = plt.subplots(figsize=(18.5,5.5))
     plot = ax.pcolormesh(samples, genus, heatmap, vmin=0, vmax=100, cmap='viridis')
@@ -962,8 +701,8 @@ def get_two_maps(sort_way):
     plt.xticks([])
     plt.yticks(genus, rotation=0,fontsize='10')
     plt.xlabel("Public data", fontweight='bold', horizontalalignment='center')
-    plt.subplots_adjust(wspace=0.02, hspace=0) 
-     
+    plt.subplots_adjust(wspace=0.02, hspace=0)
+
     # Save the figure as a Base64 string
     buf = io.BytesIO()
     plt.savefig(buf, format='png', bbox_inches='tight')
@@ -975,36 +714,297 @@ def get_two_maps(sort_way):
 
     return heatmap_list
 
-# Make two lists
-mscape_maps = get_two_maps(mscape)
-average_maps = get_two_maps(average)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Parse text files and a CSV file.")
+    parser.add_argument('--kraken_reports', nargs='+', help="List of text files", required=True)
+    parser.add_argument('--metadata', help="CSV file path", required=True)
+    parser.add_argument('--plots_dir', help="Shannon plots directory", required=True)
+    parser.add_argument('--final_report', help="Output directory", required=True)
+    parser.add_argument('--template', help="HTMl template", required=True)
+    args = parser.parse_args()
 
-output_path = args.final_report
-os.makedirs(output_path, exist_ok=True) #make directory path into real directory
+    reports = args.reports
+    metadata = args.metadata
 
-template_dir = args.template
-# Render the template with the Base64 string
-template = Template(filename=template_dir)
-html_content = template.render(all_load=load_list[0],
-                               bac_load=load_list[1], 
-                               fungi_load=load_list[2],
-                               virus_load=load_list[3],
-                               archaea_load=load_list[4],
-                               protist_load=load_list[5],
+    sns.set_style("whitegrid")
+    all_directories = []
+    mscape_directories = []
+    #group by site
+    grouped_metadata = metadata.groupby(['run_id', 'sample_source','sample_type', 'study_centre_id'])
 
-                               filter_count=filter_count,
-                               all_family_richness=all_bac_tables[0], all_genus_richness=all_bac_tables[1], all_species_richness=all_bac_tables[2],
-                               f_family_richness=filtered_bac_tables[0], f_genus_richness=filtered_bac_tables[1], f_species_richness=filtered_bac_tables[2],
-                               
-                               total_diversity=total_diversity, total_evenness=total_evenness,
-                               dna_diversity=dna_diversity, dna_evenness=dna_evenness,
-                               rna_diversity=rna_diversity, rna_evenness=rna_evenness,
-                               mscape_counts=two_total_counts[0], public_counts=two_total_counts[1],
-                               mscape_by_total=average_maps[0], public_by_total=average_maps[1],
-                               mscape_by_mscape=mscape_maps[0], public_by_mscape=mscape_maps[1])
+    #group by site
+    datasets = []
+    public_datasets = []
+    samples = []
+    public_samples = []
 
-# Save the rendered HTML to a file
-with open(f"{output_path}negcontm_summary.html", "w") as f:
-    f.write(html_content)
+    for sets in grouped_metadata:
+        ids = list(sets[0])
+        #turn scientific_name from a list to a string
+        ids_list = '_'.join(ids)
+        ids_list = ids_list.replace('_other', '')
+        datasets.append(ids_list)
+        table = sets[1] #list of all ids in dataset
+        samples.append(list(table['biosample_id'])) #climb id
 
-print(f"HTML file generated: {output_path}")
+        if "public" in ids_list.lower():
+            public_datasets.append(ids_list)
+            public_samples.append(list(table['biosample_id']))
+
+    # Using filter and lambda to remove 'mscape' from 'all' for all_other_directories list
+    mscape_datasets = list(filter(lambda item: item not in public_datasets, datasets))
+
+    # Read bacteria load
+    data = make_microbial_count_table(reports, grouped_metadata)
+
+    microbe_types = ["All", "Bacteria", "Fungi", "Viruses", "Archaea", "Protists"]
+    load_list = []
+
+    for microbe_type in microbe_types:
+        data_sorted = data.sort_values(microbe_type)
+
+        dataset = data_sorted['index']
+        average = data_sorted[microbe_type]
+
+        colors = []
+
+        for name in dataset:
+            if "public" in name.lower():
+                color = "lightgray"
+            elif "GSTT" in name.lower():
+                if "n2" in name.lower():
+                    color = "#73B42B"
+                else:
+                    color = "#95d0fc"
+            elif "birm" in name.lower():
+                color = "pink"
+            else:
+                color = "tba"
+            colors.append(color)
+
+        # Figure Size
+        fig, ax = plt.subplots(figsize =(8, 6))
+        # convert y-axis to Logarithmic scale
+        plt.xscale("log")
+        # Horizontal Bar Plot
+        ax.barh(dataset, average, color=colors)
+
+        y = np.asarray([i for i in range(len(dataset))])
+        ax.set_yticks(y)
+        yid = np.asarray([i for i in dataset])
+        ax.set_yticklabels(yid)
+
+
+        new_labels = []
+
+        for element in ax.yaxis.get_ticklabels():
+            if element.get_text() in mscape:
+                element.set_fontweight('bold')
+                new_labels.append(element)
+            elif element.get_text() in plasma:
+                element.set_color('red')
+                new_labels.append(element)
+            else:
+                new_labels.append(element)
+
+        ax.set_yticklabels(new_labels)
+        plt.title(microbe_type)
+        plt.xlabel('Average Read Count (Log)', fontweight='bold', horizontalalignment='center')
+
+
+        # Save the figure as a Base64 string
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', bbox_inches='tight')
+        buf.seek(0)
+        microbe_load = base64.b64encode(buf.read()).decode('utf-8')
+        load_list.append(microbe_load)
+        buf.close()
+        plt.close(fig)
+
+    plots_dir = args.plots_dir # Import R plots
+    #shannon plots from R (in html code)
+    with open(plots_dir + 'total_diversity.png', "rb") as image_file:
+        total_diversity = base64.b64encode(image_file.read()).decode('utf-8')
+
+    #shannon plots from R (in html code)
+    with open(plots_dir + 'dna_diversity.png', "rb") as image_file:
+        dna_diversity = base64.b64encode(image_file.read()).decode('utf-8')
+
+    #shannon plots from R (in html code)
+    with open(plots_dir + 'rna_diversity.png', "rb") as image_file:
+        rna_diversity = base64.b64encode(image_file.read()).decode('utf-8')
+
+    #shannon plots from R (in html code)
+    with open(plots_dir + 'total_evenness.png', "rb") as image_file:
+        total_evenness = base64.b64encode(image_file.read()).decode('utf-8')
+
+    #shannon plots from R (in html code)
+    with open(plots_dir + 'dna_evenness.png', "rb") as image_file:
+        dna_evenness = base64.b64encode(image_file.read()).decode('utf-8')
+
+    #shannon plots from R (in html code)
+    with open(plots_dir + 'rna_evenness.png', "rb") as image_file:
+        rna_evenness = base64.b64encode(image_file.read()).decode('utf-8')
+
+    filter_count = 5
+    all_bac_tables = make_two_sets(reports, grouped_metadata, f"Bacteria > {filter_count}", filter_count)
+    filtered_bac_tables = make_two_sets(reports, grouped_metadata, "Bacteria", filter_count)
+
+    #make bar plots for total read counts (for heatmaps)
+    sns.set_style("white")
+    #heatmap
+    average, mscape, mscape_names, both_counts = get_heatmap(reports, grouped_metadata)
+
+    two_total_counts = []
+    total_samples = 0
+
+    for df in both_counts[0]:
+            samples = df.index
+            total_samples = total_samples + len(samples)
+
+    width_ratios = []
+    for df in both_counts[0]:
+        samples = df.index
+        width = len(samples)/total_samples
+        width_ratios.append(width)
+
+        no_mscape = len(both_counts[0])
+
+    # Figure Size
+    fig, ax = plt.subplots(figsize=(18,6), ncols=no_mscape, gridspec_kw={'width_ratios': width_ratios})
+
+    all_counts = []
+
+    for count_list in both_counts[0]:
+        counts = count_list.tolist()
+        all_counts = all_counts + counts
+
+    #all_counts = all_counts + both_counts[1].tolist()
+    # Convert strings to integers using
+    # list comprehension
+    int_counts = [int(item) for item in all_counts]
+
+    max_value = max(int_counts)
+    upper_lim = max_value + (max_value/10)
+    loop = 0
+    for count_list in both_counts[0]:
+        df = pd.DataFrame({"Total Counts": count_list})
+        df["Total Counts"] = pd.to_numeric(df["Total Counts"])
+        counts = df["Total Counts"]
+        index = df.index.to_list()
+        # Convert strings to integers using
+        # list comprehension
+        int_index = [int(item) for item in index]
+
+        ax = plt.subplot(1, no_mscape, loop+1)
+
+        # convert y-axis to Logarithmic scale
+        #plt.yscale("log")
+        ax.set_ylim([0, upper_lim])
+
+        if loop == 0:
+             color = "#73B42B"
+        elif loop == 1:
+             color = "#95d0fc"
+        elif loop == 2:
+             color = "pink"
+        else:
+             color = (np.random.random(), np.random.random(), np.random.random())
+        # Horizontal Bar Plot
+        ax.bar(int_index, counts, color=color)
+        ax.ticklabel_format(style='plain')
+        plt.xticks([])
+
+        if loop == 0:
+            plt.ylabel('Total Read Count', fontweight='bold', ha='center', labelpad=20)
+            plt.xlabel(f'{mscape_names[loop]}', fontweight='bold', horizontalalignment='center')
+        elif loop < (no_mscape-1):
+            plt.yticks([])
+            plt.xlabel(f'{mscape_names[loop]}', fontweight='bold', horizontalalignment='center')
+        elif loop == (no_mscape-1):
+            plt.yticks([])
+            plt.xlabel(f'{mscape_names[loop]}', fontweight='bold', horizontalalignment='center')
+        loop += 1
+        plt.subplots_adjust(wspace=0.02, hspace=0)
+        plt.xlim([0,len(int_index)])
+
+    # Save the figure as a Base64 string
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight')
+    buf.seek(0)
+    counts = base64.b64encode(buf.read()).decode('utf-8')
+    two_total_counts.append(counts)
+    buf.close()
+    plt.close(fig)
+
+    pub_df = both_counts[1]
+    df = pd.DataFrame({"Total Counts": pub_df})
+    df["Total Counts"] = pd.to_numeric(df["Total Counts"])
+    counts = df["Total Counts"]
+    index = df.index.to_list()
+
+    all_counts = both_counts[1].tolist()
+    int_counts = [int(item) for item in all_counts]
+
+    max_value = max(int_counts)
+    upper_lim = max_value + (max_value/10)
+
+    # Figure Size
+    fig, ax = plt.subplots(figsize=(18,6))
+
+    # convert y-axis to Logarithmic scale
+    #plt.yscale("log")
+    ax.set_ylim([0, upper_lim])
+    # Horizontal Bar Plot
+    ax.bar(index, counts, color="lightgray")
+    ax.ticklabel_format(style='plain')
+
+    plt.xticks([])
+    plt.xlabel("Public data samples", fontweight='bold', horizontalalignment='center')
+    plt.ylabel('Total Read Count', fontweight='bold', ha='center', labelpad=20)
+
+    plt.xlim([0,len(index)])
+
+    # Save the figure as a Base64 string
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight')
+    buf.seek(0)
+    counts = base64.b64encode(buf.read()).decode('utf-8')
+    two_total_counts.append(counts)
+    buf.close()
+    plt.close(fig)
+
+
+    # Make two lists
+    mscape_maps = get_two_maps(mscape)
+    average_maps = get_two_maps(average)
+
+    output_path = args.final_report
+    os.makedirs(output_path, exist_ok=True) #make directory path into real directory
+
+    template_dir = args.template
+    # Render the template with the Base64 string
+    template = Template(filename=template_dir)
+    html_content = template.render(all_load=load_list[0],
+                                   bac_load=load_list[1],
+                                   fungi_load=load_list[2],
+                                   virus_load=load_list[3],
+                                   archaea_load=load_list[4],
+                                   protist_load=load_list[5],
+
+                                   filter_count=filter_count,
+                                   all_family_richness=all_bac_tables[0], all_genus_richness=all_bac_tables[1], all_species_richness=all_bac_tables[2],
+                                   f_family_richness=filtered_bac_tables[0], f_genus_richness=filtered_bac_tables[1], f_species_richness=filtered_bac_tables[2],
+
+                                   total_diversity=total_diversity, total_evenness=total_evenness,
+                                   dna_diversity=dna_diversity, dna_evenness=dna_evenness,
+                                   rna_diversity=rna_diversity, rna_evenness=rna_evenness,
+                                   mscape_counts=two_total_counts[0], public_counts=two_total_counts[1],
+                                   mscape_by_total=average_maps[0], public_by_total=average_maps[1],
+                                   mscape_by_mscape=mscape_maps[0], public_by_mscape=mscape_maps[1])
+
+    # Save the rendered HTML to a file
+    with open(f"{output_path}negcontm_summary.html", "w") as f:
+        f.write(html_content)
+
+    print(f"HTML file generated: {output_path}")

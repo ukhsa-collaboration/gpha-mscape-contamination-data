@@ -13,10 +13,10 @@ def get_broad_count(needed_samples, reports, microbe_type, taxon_level):
     dfs = []
     # Loop over each kraken file in reports directory
     for sample in needed_samples:
-        for filename in os.listdir(reports):
-            if sample in filename and filename.endswith('.kraken2.report.txt'):
+        for filename in reports:
+            if sample in filename and filename.endswith('report.txt'):
                 #open new file and read it line by line
-                file = open(reports+"/"+filename)
+                file = open(filename)
         
                 #create 3 lists for count of sequences then rank and scientific name
                 read_counts = []
@@ -190,31 +190,31 @@ if __name__ == "__main__":
     parser.add_argument('--output_dir', help="Shannon plots directory", required=True)
     args = parser.parse_args()
 
-reports = args.reports
-metadata = args.metadata
-#make output text_files directory
-output_dir = sys.output_dir
-os.makedirs(output_dir, exist_ok=True) #make directory path into real directory
+    reports = args.reports
+    metadata = args.metadata
+    #make output text_files directory
+    output_dir = sys.output_dir
+    os.makedirs(output_dir, exist_ok=True) #make directory path into real directory
 
-#filter for richness data on genus level
-taxon = "G"
-grouped_metadata = metadata.groupby(['run_id', 'sample_source','sample_type', 'study_centre_id'])
-richness, diversity = make_richness_table(reports, grouped_metadata, taxon)
+    #filter for richness data on genus level
+    taxon = "G"
+    grouped_metadata = metadata.groupby(['run_id', 'sample_source','sample_type', 'study_centre_id'])
+    richness, diversity = make_richness_table(reports, grouped_metadata, taxon)
 
-richness.to_csv(output_dir+"richness_table.txt", sep='\t', index=False)
+    richness.to_csv(output_dir+"richness_table.txt", sep='\t', index=False)
 
-names = []
-for directory in all_directories:
-    # Split the file name by '.' to separate the parts
-    url_parts = directory.split('/')
-    # The first part is the part before the first dot
-    second_last = url_parts[-2]
-    names.append(second_last)
+    names = []
+    for directory in all_directories:
+        # Split the file name by '.' to separate the parts
+        url_parts = directory.split('/')
+        # The first part is the part before the first dot
+        second_last = url_parts[-2]
+        names.append(second_last)
 
-#save all text_files in working/processing output directory  
-loop = 0
-for df_set in diversity:
-    df_set[0].to_csv(os.path.join(output_dir, f"{names[loop]}.total.txt"), sep='\t', index=False)
-    df_set[1].to_csv(os.path.join(output_dir, f"{names[loop]}.dna.txt"), sep='\t', index=False)
-    df_set[2].to_csv(os.path.join(output_dir, f"{names[loop]}.rna.txt"), sep='\t', index=False)
-    loop += 1
+    #save all text_files in working/processing output directory
+    loop = 0
+    for df_set in diversity:
+        df_set[0].to_csv(os.path.join(output_dir, f"{names[loop]}.total.txt"), sep='\t', index=False)
+        df_set[1].to_csv(os.path.join(output_dir, f"{names[loop]}.dna.txt"), sep='\t', index=False)
+        df_set[2].to_csv(os.path.join(output_dir, f"{names[loop]}.rna.txt"), sep='\t', index=False)
+        loop += 1
