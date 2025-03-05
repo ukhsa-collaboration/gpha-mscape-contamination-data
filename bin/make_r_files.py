@@ -204,12 +204,12 @@ if __name__ == "__main__":
     richness.to_csv(output_dir+"richness_table.txt", sep='\t', index=False)
 
     names = []
-    for directory in all_directories:
-        # Split the file name by '.' to separate the parts
-        url_parts = directory.split('/')
-        # The first part is the part before the first dot
-        second_last = url_parts[-2]
-        names.append(second_last)
+    for sets in grouped_metadata:
+        ids = list(sets[0])
+        #turn scientific_name from a list to a string
+        ids_list = '_'.join(ids)
+        ids_list = ids_list.replace('_other', '')
+        names.append(ids_list)
 
     #save all text_files in working/processing output directory
     loop = 0
@@ -218,3 +218,4 @@ if __name__ == "__main__":
         df_set[1].to_csv(os.path.join(output_dir, f"{names[loop]}.dna.txt"), sep='\t', index=False)
         df_set[2].to_csv(os.path.join(output_dir, f"{names[loop]}.rna.txt"), sep='\t', index=False)
         loop += 1
+
