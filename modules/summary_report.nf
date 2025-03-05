@@ -76,7 +76,3 @@ workflow evaluate_negative_controls {
     make_report(reports, metadata, get_shannon_plot.out)
     println "Report will be generated in ~/Downloads/"
 }
-
-workflow main {
-    evaluate_negative_controls() 
-}
