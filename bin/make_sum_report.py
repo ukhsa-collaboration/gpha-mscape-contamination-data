@@ -568,15 +568,15 @@ def get_heatmap(reports, grouped_metadata):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Parse text files and a CSV file.")
-    parser.add_argument('--text_files', nargs='+', help="List of text files", required=True)
-    parser.add_argument('--csv_file', help="CSV file path", required=True)
-    parser.add_argument('--output', help="Output directory", required=True)
-
+    parser.add_argument('--kraken_reports', nargs='+', help="List of text files", required=True)
+    parser.add_argument('--metadata', help="CSV file path", required=True)
+    parser.add_argument('--plots_dir', help="Shannon plots directory", required=True)
+    parser.add_argument('--final_report', help="Output directory", required=True)
+    parser.add_argument('--template', help="HTMl template", required=True)
     args = parser.parse_args()
 
 reports = args.reports
 metadata = args.metadata
-output_dir = args.output
 
 sns.set_style("whitegrid")
 all_directories = []
@@ -673,7 +673,7 @@ for microbe_type in microbe_types:
     buf.close()
     plt.close(fig)
 
-plots_dir = argparse.plots_dir # Import R plots
+plots_dir = args.plots_dir # Import R plots
 #shannon plots from R (in html code)
 with open(plots_dir + 'total_diversity.png', "rb") as image_file:
     total_diversity = base64.b64encode(image_file.read()).decode('utf-8')
@@ -699,12 +699,12 @@ with open(plots_dir + 'rna_evenness.png', "rb") as image_file:
     rna_evenness = base64.b64encode(image_file.read()).decode('utf-8')
     
 # get microbe taxa
-def make_two_sets(all_directories, column_to_drop, filter_count):
+def make_two_sets(reports, grouped_metadata, column_to_drop, filter_count):
     taxons = ['F', 'G', 'S']
     richness_tables = []
     
     for taxon in taxons:
-        df = make_richness_table(all_directories, taxon, filter_count)
+        df = make_richness_table(reports, grouped_metadata, taxon, filter_count)
         df = df.drop(columns=[column_to_drop])
 
         numerical_df = df.drop(columns=["index"])
@@ -761,13 +761,13 @@ def make_two_sets(all_directories, column_to_drop, filter_count):
     return richness_tables
 
 filter_count = 5
-all_bac_tables = make_two_sets(all_directories, f"Bacteria > {filter_count}", filter_count)
-filtered_bac_tables = make_two_sets(all_directories, "Bacteria", filter_count)
+all_bac_tables = make_two_sets(reports, grouped_metadata, f"Bacteria > {filter_count}", filter_count)
+filtered_bac_tables = make_two_sets(reports, grouped_metadata, "Bacteria", filter_count)
 
 #make bar plots for total read counts (for heatmaps)
 sns.set_style("white")
 #heatmap
-average, mscape, mscape_names, both_counts = get_heatmap(mscape_directories, all_other_directories) 
+average, mscape, mscape_names, both_counts = get_heatmap(reports, grouped_metadata) 
 
 two_total_counts = []
 total_samples = 0
@@ -979,10 +979,10 @@ def get_two_maps(sort_way):
 mscape_maps = get_two_maps(mscape)
 average_maps = get_two_maps(average)
 
-output_path = sys.argv[3]
+output_path = args.final_report
 os.makedirs(output_path, exist_ok=True) #make directory path into real directory
 
-template_dir = sys.argv[4]
+template_dir = args.template
 # Render the template with the Base64 string
 template = Template(filename=template_dir)
 html_content = template.render(all_load=load_list[0],
