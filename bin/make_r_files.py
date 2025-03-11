@@ -3,7 +3,6 @@
 import os
 import pandas as pd
 import numpy as np
-import sys
 import argparse
 
     
@@ -185,19 +184,21 @@ def make_richness_table(reports, grouped_metadata, taxon_level):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Parse text files and a CSV file.")
-    parser.add_argument('--kraken_reports', nargs='+', help="List of text files", required=True)
+    parser.add_argument('--reports', nargs='+', help="List of text files", required=True)
     parser.add_argument('--metadata', help="CSV file path", required=True)
     parser.add_argument('--output_dir', help="Shannon plots directory", required=True)
     args = parser.parse_args()
 
     reports = args.reports
-    metadata = args.metadata
+    metadata = pd.read_csv(args.metadata)
+    
     #make output text_files directory
-    output_dir = sys.output_dir
+    output_dir = args.output_dir
     os.makedirs(output_dir, exist_ok=True) #make directory path into real directory
 
     #filter for richness data on genus level
     taxon = "G"
+
     grouped_metadata = metadata.groupby(['run_id', 'sample_source','sample_type', 'study_centre_id'])
     richness, diversity = make_richness_table(reports, grouped_metadata, taxon)
 
