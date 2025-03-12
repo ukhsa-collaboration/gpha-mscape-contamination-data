@@ -66,7 +66,7 @@ process make_report {
     output:
     path "report/*.html"
 
-    publishDir "${System.getProperty('user.home')}/Downloads/", mode: 'copy' // Publish final report to local directory
+    publishDir "${params.output_dir}/", mode: 'copy' // Publish final report to local directory
 
     script:
     """
@@ -79,5 +79,5 @@ workflow evaluate_negative_controls {
     make_shannon_script(reports, metadata)
     get_shannon_plot(make_shannon_script.out)
     make_report(reports, metadata, get_shannon_plot.out)
-    println "Report will be generated in ~/Downloads/"
+    println "Report will be generated in ${params.output_dir}"
 }

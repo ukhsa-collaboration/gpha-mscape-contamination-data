@@ -624,7 +624,7 @@ if __name__ == "__main__":
             output = list(palette.loc[palette['name_order'] == name, 'colours'])
             output = ''.join(output)
             colors.append(output)
-        
+
         # Figure Size
         fig, ax = plt.subplots(figsize =(8, 6))
         # convert y-axis to Logarithmic scale
@@ -708,7 +708,8 @@ if __name__ == "__main__":
                 
             # Generate the plot
             fig, ax = plt.subplots(figsize=(8, 6))
-            colors = ['#7a87dc', '#98e2c6', '#ffcb69', '#db93b0', '#d6f6ff']
+            #https://davidmathlogic.com/colorblind/#%237F9DEA-%23785EF0-%23DC267F-%23FE6100-%23FFB000
+            colors = ['#7F9CEA', '#785EF0', '#DC267F', '#FE6100', '#FFB000']
             df_sorted.plot(
                 x='index', kind='bar', stacked=True,
                 title='Number of Microbial '+word, ax=ax,
@@ -750,7 +751,7 @@ if __name__ == "__main__":
 
     #make bar plots for total read counts (for heatmaps)
     sns.set_style("white")
-    #heatmap
+    #heatmap function
     average, mscape, mscape_names, both_counts = get_heatmap(reports, grouped_metadata)
 
     mscape_colours = []
@@ -763,10 +764,12 @@ if __name__ == "__main__":
     two_total_counts = []
     total_samples = 0
 
+    #Get number of total samples
     for df in both_counts[0]:
             samples = df.index
             total_samples = total_samples + len(samples)
 
+    # Get list of relative width ratios for each subplot
     width_ratios = []
     for df in both_counts[0]:
         samples = df.index
@@ -778,6 +781,7 @@ if __name__ == "__main__":
     # Figure Size
     fig, ax = plt.subplots(figsize=(18,6), ncols=no_mscape, gridspec_kw={'width_ratios': width_ratios})
 
+    # Normalise counts for all mscape dataset subplots on the same y-scale
     all_counts = []
 
     for count_list in both_counts[0]: 
@@ -789,7 +793,9 @@ if __name__ == "__main__":
     int_counts = [int(item) for item in all_counts]
 
     max_value = max(int_counts)
-    upper_lim = max_value + (max_value/10)
+    upper_lim = max_value + (max_value/10) # ensures linear graphs will be 110% in height/y-axis
+
+    #make all mscape subplots
     loop = 0
     for count_list in both_counts[0]:
         df = pd.DataFrame({"Total Counts": count_list})
@@ -802,8 +808,9 @@ if __name__ == "__main__":
 
         ax = plt.subplot(1, no_mscape, loop+1)
 
-        # convert y-axis to Logarithmic scale
+        # Optional: convert y-axis to Logarithmic scale
         #plt.yscale("log")
+        # OR: set y-lim to something above 10% of highest value
         ax.set_ylim([0, upper_lim])
 
         # Horizontal Bar Plot
@@ -833,6 +840,7 @@ if __name__ == "__main__":
     buf.close()
     plt.close(fig)
 
+    #make a bar graph for public dataset dataframe
     pub_df = both_counts[1]
     df = pd.DataFrame({"Total Counts": pub_df})
     df["Total Counts"] = pd.to_numeric(df["Total Counts"])    
@@ -848,15 +856,16 @@ if __name__ == "__main__":
     # Figure Size
     fig, ax = plt.subplots(figsize=(18,6))
 
-    # convert y-axis to Logarithmic scale
+    # optional: convert y-axis to Logarithmic scale
     #plt.yscale("log")
+    # OR: set y-lim to something above 10% of highest value
     ax.set_ylim([0, upper_lim])
     # Horizontal Bar Plot
     ax.bar(index, counts, color="lightgray")
     ax.ticklabel_format(style='plain')
 
     plt.xticks([])
-    plt.xlabel("Public data samples", fontweight='bold', horizontalalignment='center')
+    plt.xlabel("Public data", fontweight='bold', horizontalalignment='center')
     plt.ylabel('Total Read Count', fontweight='bold', ha='center', labelpad=20) 
 
     plt.xlim([0,len(index)])
@@ -957,7 +966,7 @@ if __name__ == "__main__":
 
         return heatmap_list
 
-    # Make two lists
+    # Make two lists, sorted by mscape and by all
     mscape_maps = get_two_maps(mscape)
     average_maps = get_two_maps(average)
 
