@@ -52,6 +52,7 @@ process make_report {
     input:
     path reports
     path metadata
+    path template
     path plots
 
     output:
@@ -66,28 +67,27 @@ process make_report {
       --metadata ${metadata} \
       --plots_dir ${plots} \
       --final_report summary_report/ \
-      --template ${params.script_path}/summary_report_template.html
+      --template ${template}
     """
 }
 
 
 workflow evaluate_negative_controls {
-    report_files = files(params.reports, checkIfExists:true)
     Channel
-        .fromPath(report_files)
+        .fromPath("${params.reports}/**report.txt")
         .collect()
         .set { reports }
-    reports.view()
 
 
     metadata_file = file(params.metadata, type: "file", checkIfExists:true)
     Channel
         .fromPath(metadata_file)
         .set { metadata }
-    metadata.view()
+
+    template = file("$baseDir/bin/summary_report_template.html")
 
     make_shannon_script(reports, metadata)
     get_shannon_plot(make_shannon_script.out)
-    make_report(reports, metadata, get_shannon_plot.out)
+    make_report(reports, metadata, template, get_shannon_plot.out)
     println "Report will be generated in ${params.output_dir}"
 }
