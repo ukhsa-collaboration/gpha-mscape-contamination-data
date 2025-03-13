@@ -22,7 +22,7 @@ def get_each_taxon(needed_samples, reports, microbe_type):
     #Loop over each kraken file in reports directory
     for sample in needed_samples:
         for filename in reports:
-            if sample in filename and filename.endswith('.kraken2.report.txt'):
+            if f'{sample}.' in filename and filename.endswith('.kraken2.report.txt'):
                 #open new file and read it line by line
                 file = open(filename)
             
@@ -180,7 +180,7 @@ def get_species_count(needed_samples, reports, microbe_type, taxon_level, filter
 #   Loop over each kraken file in reports directory
     for sample in needed_samples:
         for filename in reports:
-            if sample in filename and filename.endswith('.kraken2.report.txt'):
+            if f'{sample}.' in filename and filename.endswith('.kraken2.report.txt'):
                 #open new file and read it line by line
                 file = open(filename)
         
@@ -348,7 +348,7 @@ def make_perc_df(needed_samples, reports):
 #   Loop over each kraken file in reports directory
     for sample in needed_samples:
         for filename in reports:
-            if sample in filename and filename.endswith('.kraken2.report.txt'):
+            if f'{sample}.' in filename and filename.endswith('.kraken2.report.txt'):
                 #open new file and read it line by line
                 file = open(filename)
         

@@ -13,7 +13,7 @@ def get_broad_count(needed_samples, reports, microbe_type, taxon_level):
     # Loop over each kraken file in reports directory
     for sample in needed_samples:
         for filename in reports:
-            if sample in filename and filename.endswith('report.txt'):
+            if f'{sample}.' in filename and filename.endswith('report.txt'):
                 #open new file and read it line by line
                 file = open(filename)
         
