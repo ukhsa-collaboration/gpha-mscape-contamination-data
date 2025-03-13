@@ -12,12 +12,13 @@ process make_shannon_script {
     input:
     path reports
     path metadata
+
     output:
-    path "text_files/*"
+    path "text_files"
 
     script:
     """
-    python ${params.script_path}/make_r_files.py --reports ${reports.join(' ')} --metadata ${metadata} --output_dir text_files/
+    make_r_files.py --reports ${reports.join(' ')} --metadata ${metadata} --output_dir text_files/
     """
 }
 
@@ -30,13 +31,13 @@ process get_shannon_plot {
 
     container 'community.wave.seqera.io/library/r-argparse_r-crayon_r-dplyr_r-ggplot2_r-vegan:eb552a73894bf74c'
     input:
-    path "text_files/*"
+    path text_files
     output:
-    path "plots/*"
+    path "plots"
 
     script:
     """
-    Rscript ${params.script_path}/make_r_plots.R text_files/ plots/
+    make_r_plots.R ${text_files}/* plots/
     """
 }
 
@@ -51,7 +52,8 @@ process make_report {
     input:
     path reports
     path metadata
-    path "plots/*"
+    path plots
+
     output:
     path "summary_report/*.html"
 
@@ -59,21 +61,30 @@ process make_report {
 
     script:
     """
-    python ${params.script_path}/make_sum_report.py --reports ${reports.join(' ')} --metadata ${metadata} --plots_dir plots/ --final_report summary_report/ --template ${params.script_path}/summary_report_template.html
+    make_sum_report.py \
+      --reports ${reports.join(' ')} \
+      --metadata ${metadata} \
+      --plots_dir ${plots} \
+      --final_report summary_report/ \
+      --template ${params.script_path}/summary_report_template.html
     """
 }
 
 
 workflow evaluate_negative_controls {
+    report_files = files(params.reports, checkIfExists:true)
     Channel
-        .fromPath(params.reports)
+        .fromPath(report_files)
         .collect()
         .set { reports }
+    reports.view()
 
 
+    metadata_file = file(params.metadata, type: "file", checkIfExists:true)
     Channel
-        .fromPath(params.metadata)
+        .fromPath(metadata_file)
         .set { metadata }
+    metadata.view()
 
     make_shannon_script(reports, metadata)
     get_shannon_plot(make_shannon_script.out)
