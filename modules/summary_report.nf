@@ -74,9 +74,10 @@ process make_report {
 
 workflow evaluate_negative_controls {
     Channel
-        .fromPath("${params.reports}/**report.txt")
+        .fromPath(params.reports)
         .collect()
         .set { reports }
+    reports.view()
 
 
     metadata_file = file(params.metadata, type: "file", checkIfExists:true)
