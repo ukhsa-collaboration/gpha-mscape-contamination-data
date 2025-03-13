@@ -73,8 +73,10 @@ process make_report {
 
 
 workflow evaluate_negative_controls {
+    report_list = params.reports?.split('\n') as List
     Channel
-        .fromPath(params.reports)
+        .fromPath(report_list)
+        .flatten()
         .collect()
         .set { reports }
     reports.view()
