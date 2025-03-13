@@ -70,23 +70,42 @@ for (type_of_taxa in taxa_list) {
   sorted_shannon <- median_shannon_df[order(-median_shannon_df$Median), ]
   
   #colour and label the mscape boxes
-  colours <- c()
-  mscape_labels <- c()
-  for (name in sorted_shannon$Names) {
-    if (name == "BIRM") {
-      colours <- append(colours, "pink")
-      mscape_labels <- append(mscape_labels, "BIRM")
-    } else if (name == "GSTT_N2") {
-      colours <- append(colours, "lightblue")
-      mscape_labels <- append(mscape_labels, "GSTT (N2)")
-    } else if (name == "GSTT_NTC") {
-      colours <- append(colours, "olivedrab3")
-      mscape_labels <- append(mscape_labels, "GSTT (NTC)")
-    } else {
-      colours <- append(colours, "gray")
-      mscape_labels <- append(mscape_labels, "")
+  if (type_of_taxa == 1) {
+    #palette from https://sashamaps.net/docs/resources/20-colors/ in "convenient" order
+    palette <- c('#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe', '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1', '#000075')
+    colours <- c()
+    mscape_labels <- c()
+
+    #record order of names to attach them to order of colour
+    name_order <- c()
+
+    colour_loop <- 1
+    for (name in sorted_shannon$Names) {
+      name_order <- append(name_order, name)
+      if (grepl("public", tolower(name))) {
+        colours <- append(colours, "gray")
+        mscape_labels <- append(mscape_labels, "")
+      } else {
+        colours <- append(colours, palette[colour_loop])
+        mscape_labels <- append(mscape_labels, name)
+        colour_loop <- colour_loop + 1
+      }
     }
+    # Make and save colour_df in workflow
+    colour_df <- cbind(data.frame(name_order), data.frame(colours))
+    write.table(colour_df, file.path(paste0(output_dir, "colour_palette.txt")), sep="\t", quote = FALSE, row.names = FALSE) # Write tab delimiter text file
+
+  } else {
+    colours <- c()
+    mscape_labels <- c()
+    for (name in sorted_shannon$Names) {
+        # Find corresponding output/colour
+        colour <- colour_df$colours[colour_df$name_order == name]
+        colours <- append(colours, colour) # This ensures that the same colours are used for datasets across figures
+        mscape_labels <- append(mscape_labels, name)
+      }
   }
+  
   
   # Convert Datasets to a factor with the desired order
   merge_df$Datasets <- factor(merge_df$Datasets, levels = sorted_shannon$Names)
@@ -153,25 +172,19 @@ for (type_of_taxa in taxa_list) {
     loop <- loop + 1
   }
 
-  
-  #colour and label the mscape boxes
+#colour and label the mscape boxes
   colours <- c()
   mscape_labels <- c()
   for (name in sorted_shannon$Names) {
-    if (name == "BIRM") {
-      colours <- append(colours, "pink")
-      mscape_labels <- append(mscape_labels, "BIRM")
-    } else if (name == "GSTT_N2") {
-      colours <- append(colours, "lightblue")
-      mscape_labels <- append(mscape_labels, "GSTT_N2")
-    } else if (name == "GSTT_NTC") {
-      colours <- append(colours, "olivedrab3")
-      mscape_labels <- append(mscape_labels, "GSTT_NTC")
-    } else {
-      colours <- append(colours, "gray")
-      mscape_labels <- append(mscape_labels, "")
+      # Find corresponding output/colour
+      colour <- colour_df$colours[colour_df$name_order == name]
+      colours <- append(colours, colour) # This ensures that the same colours are used for datasets across figures
+      if (grepl("public", tolower(name))) {
+        mscape_labels <- append(mscape_labels, "")
+      } else {
+        mscape_labels <- append(mscape_labels, name)
+      }
     }
-  }
   
   # Convert Datasets to a factor with the desired order from Diversity measures
   merge_df$Datasets <- factor(merge_df$Datasets, levels = sorted_shannon$Names)

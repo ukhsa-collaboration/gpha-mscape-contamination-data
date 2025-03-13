@@ -3,73 +3,68 @@
 import os
 import pandas as pd
 import numpy as np
-import sys
+import argparse
 
-def get_broad_count(directory, microbe_type, taxon_level):
+    
+def get_broad_count(needed_samples, reports, microbe_type, taxon_level):
 
     # Initialize an empty list to store dataframes
     dfs = []
-    # Loop over each subdirectory in the main directory
-    for file_name in os.listdir(directory):
-        if file_name.endswith('.txt'):
-            #open new file and read it line by line
-            file = open(directory+"/"+file_name)
+    # Loop over each kraken file in reports directory
+    for sample in needed_samples:
+        for filename in reports:
+            if sample in filename and filename.endswith('report.txt'):
+                #open new file and read it line by line
+                file = open(filename)
         
-            #create 3 lists for count of sequences then rank and scientific name
-            read_counts = []
-            rank = []
-            sci_name = []
+                #create 3 lists for count of sequences then rank and scientific name
+                read_counts = []
+                rank = []
+                sci_name = []
 
-            #excluded domains for different categories of microbes
-            if microbe_type == "All":
-                taxa_list = []
-                taxon = "root"
-            elif microbe_type == "DNA":
-                taxa_list = ["Riboviria"]
-                taxon = "root"
-            else: #RNA
-                taxa_list = ["Eukaryota", "Archaea", "Bacteria", 'Varidnaviria', 'Duplodnaviria']
-                taxon = "Riboviria"
-        
-    	#only start reading each file when it starts listing our domain
-            column_index = 5 #scientific_name column
-            start_reading = False    
-
-            # Iterate over each line in the file
-            for line in file:
-                # Split the line into columns
-                columns = line.split()
-    
-                #record the current scientific name of this line
-                current_name = columns[5]
-                
-                # Check for the microbial category in scientific name column and set the flag to start reading
-                if columns[5] == taxon:
-                    start_reading = True
-                        
-                if start_reading:
-                    current_name = columns[5]
-                    if current_name in taxa_list: #if this code moves onto another domain that is not the one we want
-                        break
-                    else:
-                        read_counts.append(line.split()[1])
-                        rank.append(line.split()[3])            
-                        #this turns scientific name (which sometimes have multiple words) into a list within a list
-                        sci_name.append(line.split()[5:])
-
-                                          
-            # Extract the sample ID from file name
-            # Split the file name by '.' to separate the parts
-            parts = file_name.split('.')
-            # The first part is the part before the first dot
-            first_part = parts[0]
-            sample_ID = first_part
-        
-            # Turn the four lists into a dataframe, using sample ID in place of "% of seqs" or "read counts", depending on whether you want counts or percentages
-            df_new_file = pd.DataFrame({sample_ID: read_counts, "Rank": rank, "Scientific_Name": sci_name})
+                #excluded domains for different categories of microbes
+                if microbe_type == "All":
+                    taxa_list = []
+                    taxon = "root"
+                elif microbe_type == "DNA":
+                    taxa_list = ["Riboviria"]
+                    taxon = "root"
+                else: #RNA
+                    taxa_list = ["Eukaryota", "Archaea", "Bacteria", 'Varidnaviria', 'Duplodnaviria']
+                    taxon = "Riboviria"
             
-            #add the new dataframe to the list of dataframes
-            dfs.append(df_new_file)
+            #only start reading each file when it starts listing our domain
+                start_reading = False    
+
+                # Iterate over each line in the file
+                for line in file:
+                    # Split the line into columns
+                    columns = line.split()
+        
+                    #record the current scientific name of this line
+                    current_name = columns[5]
+                    
+                    # Check for the microbial category in scientific name column and set the flag to start reading
+                    if columns[5] == taxon:
+                        start_reading = True
+                        
+                    if start_reading:
+                        current_name = columns[5]
+                        if current_name in taxa_list: #if this code moves onto another domain that is not the one we want
+                            break
+                        else:
+                            read_counts.append(line.split()[1])
+                            rank.append(line.split()[3])            
+                            #this turns scientific name (which sometimes have multiple words) into a list within a list
+                            sci_name.append(line.split()[5:])
+
+                sample_ID = sample
+            
+                # Turn the four lists into a dataframe, using sample ID in place of "% of seqs" or "read counts", depending on whether you want counts or percentages
+                df_new_file = pd.DataFrame({sample_ID: read_counts, "Rank": rank, "Scientific_Name": sci_name})
+                
+                #add the new dataframe to the list of dataframes
+                dfs.append(df_new_file)
 
 
     # Merge the DataFrames on a specific column
@@ -135,12 +130,12 @@ def get_broad_count(directory, microbe_type, taxon_level):
     return richness_df, transposed_df
         
 # make 3 lists of richness/diversity by DNA, RNA, and all combined
-def get_broad_category(directory, taxon_level):
+def get_broad_category(set, needed_samples, reports, taxon_level):
     taxa = ["All", "DNA", "RNA"]
     current_dfs = []
     percent_dfs = []
     for microbe_type in taxa:
-        rich, perc = get_broad_count(directory, microbe_type, taxon_level)
+        rich, perc = get_broad_count(needed_samples, reports, microbe_type, taxon_level)
         current_dfs.append(rich)
         percent_dfs.append(perc)
         
@@ -151,25 +146,34 @@ def get_broad_category(directory, taxon_level):
 
     transposed_df = table.transpose()
     transposed_df.reset_index(inplace=True)
-    
-    # Extract the sample ID from file name
-    # Split the file name by '.' to separate the parts
-    url_parts = directory.split('/')
-    # The first part is the part before the first dot
-    second_last = url_parts[-2]
-    dataset = second_last
 
-    transposed_df['index'] = dataset
+    transposed_df['index'] = set
     return transposed_df, percent_dfs
 
 # Do the above for all directories
-def make_richness_table(all_directories, taxon_level):
+def make_richness_table(reports, grouped_metadata, taxon_level):
+    #group by site
+    datasets = []
+    samples = []
+
+    for sets in grouped_metadata:
+        ids = list(sets[0])
+        #turn scientific_name from a list to a string
+        ids_list = '_'.join(ids)
+        ids_list = ids_list.replace('_other', '')
+        datasets.append(ids_list)
+        table = sets[1] #list of all ids in dataset
+        samples.append(list(table['climb_id'])) #climb id
+
+    loop = 0
     single_dfs = []
     single_perc_dfs = []
-    for directory in all_directories:
-        transposed_df, percent_dfs = get_broad_category(directory, taxon_level)
+    for set in datasets:
+        needed_samples = samples[loop]
+        transposed_df, percent_dfs = get_broad_category(set, needed_samples, reports, taxon_level)
         single_dfs.append(transposed_df)
         single_perc_dfs.append(percent_dfs)
+        loop += 1
         
     #merge all dataframes together
     final_table = pd.concat(single_dfs, axis = 0, join = "outer")
@@ -178,41 +182,41 @@ def make_richness_table(all_directories, taxon_level):
 
     return final_table, single_perc_dfs 
 
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Parse text files and a CSV file.")
+    parser.add_argument('--reports', nargs='+', help="List of text files", required=True)
+    parser.add_argument('--metadata', help="CSV file path", required=True)
+    parser.add_argument('--output_dir', help="Shannon plots directory", required=True)
+    args = parser.parse_args()
 
-all_directories = []
+    reports = args.reports
+    metadata = pd.read_csv(args.metadata)
+    
+    #make output text_files directory
+    output_dir = args.output_dir
+    os.makedirs(output_dir, exist_ok=True) #make directory path into real directory
 
-#get input (kraken files) directories
-input_dir = sys.argv[1]
-for name in os.listdir(input_dir):
-    if os.path.isdir(f'{input_dir}/{name}'): #if directory exists
-        dataset = f'{input_dir}/{name}'
-        if os.path.isdir(f'{dataset}/kraken2'): #if directory contains kraken2 files
-            krakenset = f'{dataset}/kraken2'
-            all_directories.append(krakenset) #add them to list of directories
+    #filter for richness data on genus level
+    taxon = "G"
 
+    grouped_metadata = metadata.groupby(['site', 'control_type_details'])
+    richness, diversity = make_richness_table(reports, grouped_metadata, taxon)
 
-#make output text_files directory
-output_dir = sys.argv[2]
-os.makedirs(output_dir, exist_ok=True) #make directory path into real directory
+    richness.to_csv(output_dir+"richness_table.txt", sep='\t', index=False)
 
-#filter for richness data on genus level
-taxon = "G"
-richness, diversity = make_richness_table(all_directories, taxon)
+    names = []
+    for sets in grouped_metadata:
+        ids = list(sets[0])
+        #turn scientific_name from a list to a string
+        ids_list = '_'.join(ids)
+        ids_list = ids_list.replace('_other', '')
+        names.append(ids_list)
 
-richness.to_csv(output_dir+"richness_table.txt", sep='\t', index=False)
+    #save all text_files in working/processing output directory
+    loop = 0
+    for df_set in diversity:
+        df_set[0].to_csv(os.path.join(output_dir, f"{names[loop]}.total.txt"), sep='\t', index=False)
+        df_set[1].to_csv(os.path.join(output_dir, f"{names[loop]}.dna.txt"), sep='\t', index=False)
+        df_set[2].to_csv(os.path.join(output_dir, f"{names[loop]}.rna.txt"), sep='\t', index=False)
+        loop += 1
 
-names = []
-for directory in all_directories:
-    # Split the file name by '.' to separate the parts
-    url_parts = directory.split('/')
-    # The first part is the part before the first dot
-    second_last = url_parts[-2]
-    names.append(second_last)
-
-#save all text_files in working/processing output directory  
-loop = 0
-for df_set in diversity:
-    df_set[0].to_csv(os.path.join(output_dir, f"{names[loop]}.total.txt"), sep='\t', index=False)
-    df_set[1].to_csv(os.path.join(output_dir, f"{names[loop]}.dna.txt"), sep='\t', index=False)
-    df_set[2].to_csv(os.path.join(output_dir, f"{names[loop]}.rna.txt"), sep='\t', index=False)
-    loop += 1

@@ -1,41 +1,43 @@
 #!/usr/bin/env nextflow
 
-params.range = 100
-params.script_path = "${workflow.projectDir}/../bin"
+//take input as --reports and--metadata
 
-//take input as --input_dir
-// Check if required parameters are provided
-if (!params.input_dir) {
-    exit 1, "Please provide --input_dir when running Nextflow."
-}
 /*
  * A Python script which parses the output of the previous script
  */
 process make_shannon_script {
+
+    container 'community.wave.seqera.io/library/pip_numpy_pandas:426ad974eac1c1db'
+
     input:
-    path params.input_dir
+    path reports
+    path metadata
+
     output:
-    path "text_files/*"
+    path "text_files"
 
     script:
     """
-    python ${params.script_path}/make_r_files.py ${params.input_dir} text_files/
+    make_r_files.py --reports ${reports.join(' ')} --metadata ${metadata} --output_dir text_files/
     """
 }
+
 
 /*
  * An R script which produces output for shannon's diversity graphs
  */
 
 process get_shannon_plot {
+
+    container 'community.wave.seqera.io/library/r-argparse_r-crayon_r-dplyr_r-ggplot2_r-vegan:eb552a73894bf74c'
     input:
-    path "text_files/*"
+    path text_files
     output:
-    path "plots/*"
+    path "plots"
 
     script:
     """
-    Rscript ${params.script_path}/make_r_plots.R text_files/ plots/
+    make_r_plots.R ${text_files}/* plots/
     """
 }
 
@@ -44,24 +46,49 @@ process get_shannon_plot {
  */
 
 process make_report {
-    input:
-    path params.input_dir
-    path "plots/*"
-    output:
-    path "report/*.html"
 
-    publishDir "${System.getProperty('user.home')}/Downloads/", mode: 'copy', saveAs: {filename -> "negcontm_summary.html"} // Publish final report to local directory
+    container 'community.wave.seqera.io/library/pip_mako_matplotlib_natsort_pruned:44e99f335376fa3b'
+
+    input:
+    path reports
+    path metadata
+    path template
+    path plots
+
+    output:
+    path "summary_report/*.html"
+
+    publishDir "${params.output_dir}/", mode: 'copy' // Publish final report to local directory specified in params.config
 
     script:
     """
-    python ${params.script_path}/make_sum_report.py ${params.input_dir} plots/ report/ ${params.script_path}/summary_report_template.html
+    make_sum_report.py \
+      --reports ${reports.join(' ')} \
+      --metadata ${metadata} \
+      --plots_dir ${plots} \
+      --final_report summary_report/ \
+      --template ${template}
     """
 }
 
 
-workflow {
-    make_shannon_script(params.input_dir)
+workflow evaluate_negative_controls {
+    Channel
+        .fromPath(params.reports)
+        .collect()
+        .set { reports }
+    reports.view()
+
+
+    metadata_file = file(params.metadata, type: "file", checkIfExists:true)
+    Channel
+        .fromPath(metadata_file)
+        .set { metadata }
+
+    template = file("$baseDir/bin/summary_report_template.html")
+
+    make_shannon_script(reports, metadata)
     get_shannon_plot(make_shannon_script.out)
-    make_report(params.input_dir, get_shannon_plot.out)
-    println "Report will be generated in ~/Downloads/negcontm_summary.html"
+    make_report(reports, metadata, template, get_shannon_plot.out)
+    println "Report will be generated in ${params.output_dir}"
 }
