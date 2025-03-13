@@ -3,17 +3,6 @@ params.script_path = "${workflow.projectDir}/bin"
 params.metadata = "${params.metadata ?: ''}"
 //take input as --reports and--metadata
 
-Channel
-    .fromPath(params.reports)
-    .collect()
-    .set { reports }
-
-
-Channel
-    .fromPath(params.metadata)
-    .set { metadata }
-
-
 /*
  * A Python script which parses the output of the previous script
  */
@@ -32,6 +21,7 @@ process make_shannon_script {
     python ${params.script_path}/make_r_files.py --reports ${reports.join(' ')} --metadata ${metadata} --output_dir text_files/
     """
 }
+
 
 /*
  * An R script which produces output for shannon's diversity graphs
@@ -64,18 +54,28 @@ process make_report {
     path metadata
     path "plots/*"
     output:
-    path "report/*.html"
+    path "summary_report/*.html"
 
-    publishDir "${params.output_dir}/", mode: 'copy' // Publish final report to local directory
+    publishDir "${params.output_dir}/", mode: 'copy' // Publish final report to local directory specified in params.config
 
     script:
     """
-    python ${params.script_path}/make_sum_report.py --reports ${reports.join(' ')} --metadata ${metadata} --plots_dir plots/ --final_report report/ --template ${params.script_path}/summary_report_template.html
+    python ${params.script_path}/make_sum_report.py --reports ${reports.join(' ')} --metadata ${metadata} --plots_dir plots/ --final_report summary_report/ --template ${params.script_path}/summary_report_template.html
     """
 }
 
 
 workflow evaluate_negative_controls {
+    Channel
+        .fromPath(params.reports)
+        .collect()
+        .set { reports }
+
+
+    Channel
+        .fromPath(params.metadata)
+        .set { metadata }
+
     make_shannon_script(reports, metadata)
     get_shannon_plot(make_shannon_script.out)
     make_report(reports, metadata, get_shannon_plot.out)

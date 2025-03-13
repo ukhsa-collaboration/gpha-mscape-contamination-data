@@ -163,7 +163,7 @@ def make_richness_table(reports, grouped_metadata, taxon_level):
         ids_list = ids_list.replace('_other', '')
         datasets.append(ids_list)
         table = sets[1] #list of all ids in dataset
-        samples.append(list(table['biosample_id'])) #climb id
+        samples.append(list(table['climb_id'])) #climb id
 
     loop = 0
     single_dfs = []
@@ -199,7 +199,7 @@ if __name__ == "__main__":
     #filter for richness data on genus level
     taxon = "G"
 
-    grouped_metadata = metadata.groupby(['run_id', 'sample_source','sample_type', 'study_centre_id'])
+    grouped_metadata = metadata.groupby(['site', 'control_type_details'])
     richness, diversity = make_richness_table(reports, grouped_metadata, taxon)
 
     richness.to_csv(output_dir+"richness_table.txt", sep='\t', index=False)

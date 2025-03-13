@@ -158,7 +158,7 @@ def make_microbial_count_table(reports, grouped_metadata):
         ids_list = ids_list.replace('_other', '')
         datasets.append(ids_list)
         table = sets[1] #list of all ids in dataset
-        samples.append(list(table['biosample_id'])) #climb id
+        samples.append(list(table['climb_id'])) #climb id
 
     loop = 0
     single_dfs = []
@@ -325,7 +325,7 @@ def make_richness_table(reports, grouped_metadata, taxon_level, filter_count):
         ids_list = ids_list.replace('_other', '')
         datasets.append(ids_list)
         table = sets[1] #list of all ids in dataset
-        samples.append(list(table['biosample_id'])) #climb id
+        samples.append(list(table['climb_id'])) #climb id
 
     loop = 0
     single_dfs = []
@@ -445,11 +445,11 @@ def get_heatmap(reports, grouped_metadata):
         ids_list = ids_list.replace('_other', '')
         datasets.append(ids_list)
         table = sets[1] #list of all ids in dataset
-        samples.append(list(table['biosample_id'])) #climb id
+        samples.append(list(table['climb_id'])) #climb id
 
         if "public" in ids_list.lower():
             public_datasets.append(ids_list)
-            public_samples.append(list(table['biosample_id']))
+            public_samples.append(list(table['climb_id']))
         
     
     average_list = []
@@ -580,8 +580,8 @@ if __name__ == "__main__":
     sns.set_style("whitegrid")
     all_directories = []
     mscape_directories = []
-    #group by site
-    grouped_metadata = metadata.groupby(['run_id', 'sample_source','sample_type', 'study_centre_id'])
+    #group by site and other identifiers
+    grouped_metadata = metadata.groupby(['site', 'control_type_details'])
 
     #group by site
     datasets = []
@@ -596,11 +596,11 @@ if __name__ == "__main__":
         ids_list = ids_list.replace('_other', '')
         datasets.append(ids_list)
         table = sets[1] #list of all ids in dataset
-        samples.append(list(table['biosample_id'])) #climb id
+        samples.append(list(table['climb_id'])) #climb id
 
         if "public" in ids_list.lower():
             public_datasets.append(ids_list)
-            public_samples.append(list(table['biosample_id']))
+            public_samples.append(list(table['climb_id']))
 
     # Using filter and lambda to remove 'mscape' from 'all' for all_other_directories list
     mscape_datasets = list(filter(lambda item: item not in public_datasets, datasets))
@@ -708,8 +708,8 @@ if __name__ == "__main__":
                 
             # Generate the plot
             fig, ax = plt.subplots(figsize=(8, 6))
-            #https://davidmathlogic.com/colorblind/#%237F9DEA-%23785EF0-%23DC267F-%23FE6100-%23FFB000
-            colors = ['#7F9CEA', '#785EF0', '#DC267F', '#FE6100', '#FFB000']
+            #https://davidmathlogic.com/colorblind/#%237F9DEA-%23785EF0-%23DC267F-%23F58744-%23FFD900
+            colors = ['#7F9CEA', '#785EF0', '#DC267F', '#F58744', '#FFD900']
             df_sorted.plot(
                 x='index', kind='bar', stacked=True,
                 title='Number of Microbial '+word, ax=ax,
