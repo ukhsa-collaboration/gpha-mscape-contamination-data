@@ -1,6 +1,5 @@
 #!/usr/bin/env nextflow
-params.script_path = "${workflow.projectDir}/bin"
-params.metadata = "${params.metadata ?: ''}"
+
 //take input as --reports and--metadata
 
 /*
