@@ -164,7 +164,7 @@ def make_richness_table(reports, grouped_metadata, taxon_level):
                 run_id = ''.join(subset[0])
                 #turn scientific_name from a list to a string
                 ids_list = '_'.join(ids)
-                ids_list = ids_list.replace('public', 'public_'+run_id) #add run_id to name
+                ids_list = ids_list.replace('PUBLIC', 'PUBLIC_'+run_id) #add run_id to name
                 ids_list = ids_list.replace('_extraction_control', '')
 
                 datasets.append(ids_list)
@@ -182,7 +182,9 @@ def make_richness_table(reports, grouped_metadata, taxon_level):
     single_dfs = []
     single_perc_dfs = []
     for set in datasets:
+        print(set)
         needed_samples = samples[loop]
+        print(needed_samples)
         transposed_df, percent_dfs = get_broad_category(set, needed_samples, reports, taxon_level)
         single_dfs.append(transposed_df)
         single_perc_dfs.append(percent_dfs)
@@ -226,7 +228,7 @@ if __name__ == "__main__":
                 run_id = ''.join(subset[0])
                 #turn scientific_name from a list to a string
                 ids_list = '_'.join(ids)
-                ids_list = ids_list.replace('public', 'public_'+run_id) #add run_id to name
+                ids_list = ids_list.replace('PUBLIC', 'PUBLIC_'+run_id) #add run_id to name
                 ids_list = ids_list.replace('_extraction_control', '')
                 names.append(ids_list)
         else:
