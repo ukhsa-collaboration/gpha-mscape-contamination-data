@@ -12,8 +12,10 @@ def get_broad_count(needed_samples, reports, microbe_type, taxon_level):
     dfs = []
     # Loop over each kraken file in reports directory
     for sample in needed_samples:
+        found = False
         for filename in reports:
             if f'{sample}.' in filename and filename.endswith('report.txt'):
+                found = True
                 #open new file and read it line by line
                 file = open(filename)
         
@@ -33,7 +35,7 @@ def get_broad_count(needed_samples, reports, microbe_type, taxon_level):
                     taxa_list = ["Eukaryota", "Archaea", "Bacteria", 'Varidnaviria', 'Duplodnaviria']
                     taxon = "Riboviria"
             
-            #only start reading each file when it starts listing our domain
+                #only start reading each file when it starts listing our domain
                 start_reading = False    
 
                 # Iterate over each line in the file
@@ -66,8 +68,11 @@ def get_broad_count(needed_samples, reports, microbe_type, taxon_level):
                 #add the new dataframe to the list of dataframes
                 dfs.append(df_new_file)
 
+        if not found:
+            print(f"No kraken report for sample {sample} has been provided!")
 
     # Merge the DataFrames on a specific column
+    print(len(dfs))
     merged_df = pd.concat(dfs, axis = 0, join= "outer")  # Change join to 'outer' for outer join
     #turn scientific_name from a list to a string
     merged_df["Scientific_Name"] = ['_'.join(lst) for lst in merged_df["Scientific_Name"]]
