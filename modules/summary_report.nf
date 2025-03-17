@@ -59,7 +59,7 @@ process make_report {
     output:
     path "summary_report/*.html"
 
-    publishDir "${params.output_dir}/", mode: 'copy' // Publish final report to local directory specified in params.config
+    publishDir "${params.outdir}/", mode: 'copy' // Publish final report to local directory specified in params.config
 
     script:
     """
@@ -93,5 +93,5 @@ workflow evaluate_negative_controls {
     make_shannon_script(reports, metadata)
     get_shannon_plot(make_shannon_script.out)
     make_report(reports, metadata, template, get_shannon_plot.out)
-    println "Report will be generated in ${params.output_dir}"
+    println "Report will be generated in ${params.outdir}"
 }
