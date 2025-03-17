@@ -7,6 +7,7 @@
  */
 process make_shannon_script {
 
+    label "process_long"
     container 'community.wave.seqera.io/library/pip_numpy_pandas:426ad974eac1c1db'
 
     input:
@@ -37,7 +38,7 @@ process get_shannon_plot {
 
     script:
     """
-    make_r_plots.R ${text_files}/* plots/
+    make_r_plots.R ${text_files}/ plots/
     """
 }
 
@@ -65,7 +66,7 @@ process make_report {
     make_sum_report.py \
       --reports ${reports.join(' ')} \
       --metadata ${metadata} \
-      --plots_dir ${plots} \
+      --plots_dir ${plots}/ \
       --final_report summary_report/ \
       --template ${template}
     """

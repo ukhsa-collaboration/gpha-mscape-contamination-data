@@ -120,7 +120,7 @@ for (type_of_taxa in taxa_list) {
     stat_summary(geom = 'text', label = mscape_labels, fun = max, vjust = -1) +
     theme_bw() +
     theme(axis.text.x = element_blank()) +
-    guides(fill = FALSE)
+    guides(fill = "none")
   
   if (type_of_taxa == 1) {
     ggsave(file.path(paste0(output_dir, "total_diversity.png")), plot = p, width = 9, height = 6, dpi = 300) # Save the plot as a PNG
