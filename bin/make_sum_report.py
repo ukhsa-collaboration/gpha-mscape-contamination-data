@@ -151,14 +151,28 @@ def make_microbial_count_table(reports, grouped_metadata):
 
     datasets = [] #total datasets
     samples = [] #samples grouped by datasets
+
     for sets in grouped_metadata:
-        ids = list(sets[0])
-        #turn scientific_name from a list to a string
-        ids_list = '_'.join(ids)
-        ids_list = ids_list.replace('_other', '')
-        datasets.append(ids_list)
-        table = sets[1] #list of all ids in dataset
-        samples.append(list(table['climb_id'])) #climb id
+            ids = list(sets[0])
+            if "public" in ids[0].lower(): #if dataset is public
+                subgroup = sets[1].groupby(['run_id'])
+                for subset in subgroup:
+                    run_id = ''.join(subset[0])
+                    #turn scientific_name from a list to a string
+                    ids_list = '_'.join(ids)
+                    ids_list = ids_list.replace('public', 'public_'+run_id) #add run_id to name
+                    ids_list = ids_list.replace('_extraction_control', '')
+
+                    datasets.append(ids_list)
+                    table = subset[1] #list of all ids in sub_dataset
+                    samples.append(list(table['climb_id'])) #climb id
+            else:
+                #turn scientific_name from a list to a string
+                ids_list = '_'.join(ids)
+                ids_list = ids_list.replace('_extraction_control', '')
+                datasets.append(ids_list)
+                table = sets[1] #list of all ids in dataset
+                samples.append(list(table['climb_id'])) #climb id
 
     loop = 0
     single_dfs = []
@@ -318,14 +332,28 @@ def make_richness_table(reports, grouped_metadata, taxon_level, filter_count):
  
     datasets = [] #total datasets
     samples = [] #samples grouped by datasets
+
     for sets in grouped_metadata:
-        ids = list(sets[0])
-        #turn scientific_name from a list to a string
-        ids_list = '_'.join(ids)
-        ids_list = ids_list.replace('_other', '')
-        datasets.append(ids_list)
-        table = sets[1] #list of all ids in dataset
-        samples.append(list(table['climb_id'])) #climb id
+            ids = list(sets[0])
+            if "public" in ids[0].lower(): #if dataset is public
+                subgroup = sets[1].groupby(['run_id'])
+                for subset in subgroup:
+                    run_id = ''.join(subset[0])
+                    #turn scientific_name from a list to a string
+                    ids_list = '_'.join(ids)
+                    ids_list = ids_list.replace('public', 'public_'+run_id) #add run_id to name
+                    ids_list = ids_list.replace('_extraction_control', '')
+
+                    datasets.append(ids_list)
+                    table = subset[1] #list of all ids in sub_dataset
+                    samples.append(list(table['climb_id'])) #climb id
+            else:
+                #turn scientific_name from a list to a string
+                ids_list = '_'.join(ids)
+                ids_list = ids_list.replace('_extraction_control', '')
+                datasets.append(ids_list)
+                table = sets[1] #list of all ids in dataset
+                samples.append(list(table['climb_id'])) #climb id
 
     loop = 0
     single_dfs = []
@@ -439,18 +467,29 @@ def get_heatmap(reports, grouped_metadata):
     public_samples = []
 
     for sets in grouped_metadata:
-        ids = list(sets[0])
-        #turn scientific_name from a list to a string
-        ids_list = '_'.join(ids)
-        ids_list = ids_list.replace('_other', '')
-        datasets.append(ids_list)
-        table = sets[1] #list of all ids in dataset
-        samples.append(list(table['climb_id'])) #climb id
+            ids = list(sets[0])
+            if "public" in ids[0].lower(): #if dataset is public
+                subgroup = sets[1].groupby(['run_id'])
+                for subset in subgroup:
+                    run_id = ''.join(subset[0])
+                    #turn scientific_name from a list to a string
+                    ids_list = '_'.join(ids)
+                    ids_list = ids_list.replace('public', 'public_'+run_id) #add run_id to name
+                    ids_list = ids_list.replace('_extraction_control', '')
 
-        if "public" in ids_list.lower():
-            public_datasets.append(ids_list)
-            public_samples.append(list(table['climb_id']))
-        
+                    datasets.append(ids_list)
+                    public_datasets.append(ids_list)
+                    table = subset[1] #list of all ids in sub_dataset
+                    samples.append(list(table['climb_id'])) #climb id
+                    public_samples.append(list(table['climb_id']))
+            else:
+                #turn scientific_name from a list to a string
+                ids_list = '_'.join(ids)
+                ids_list = ids_list.replace('_extraction_control', '')
+                datasets.append(ids_list)
+                table = sets[1] #list of all ids in dataset
+                samples.append(list(table['climb_id'])) #climb id
+            
     
     average_list = []
     
@@ -590,17 +629,28 @@ if __name__ == "__main__":
     public_samples = []
 
     for sets in grouped_metadata:
-        ids = list(sets[0])
-        #turn scientific_name from a list to a string
-        ids_list = '_'.join(ids)
-        ids_list = ids_list.replace('_other', '')
-        datasets.append(ids_list)
-        table = sets[1] #list of all ids in dataset
-        samples.append(list(table['climb_id'])) #climb id
+            ids = list(sets[0])
+            if "public" in ids[0].lower(): #if dataset is public
+                subgroup = sets[1].groupby(['run_id'])
+                for subset in subgroup:
+                    run_id = ''.join(subset[0])
+                    #turn scientific_name from a list to a string
+                    ids_list = '_'.join(ids)
+                    ids_list = ids_list.replace('public', 'public_'+run_id) #add run_id to name
+                    ids_list = ids_list.replace('_extraction_control', '')
 
-        if "public" in ids_list.lower():
-            public_datasets.append(ids_list)
-            public_samples.append(list(table['climb_id']))
+                    datasets.append(ids_list)
+                    public_datasets.append(ids_list)
+                    table = subset[1] #list of all ids in sub_dataset
+                    samples.append(list(table['climb_id'])) #climb id
+                    public_samples.append(list(table['climb_id']))
+            else:
+                #turn scientific_name from a list to a string
+                ids_list = '_'.join(ids)
+                ids_list = ids_list.replace('_extraction_control', '')
+                datasets.append(ids_list)
+                table = sets[1] #list of all ids in dataset
+                samples.append(list(table['climb_id'])) #climb id
 
     # Using filter and lambda to remove 'mscape' from 'all' for all_other_directories list
     mscape_datasets = list(filter(lambda item: item not in public_datasets, datasets))
