@@ -23,7 +23,7 @@ def get_each_taxon(needed_samples, reports, microbe_type):
     for sample in needed_samples:
         found = False
         for filename in reports:
-            if f'{sample}' in filename:
+            if f'{sample}.' in filename:
                 found = True
                 #open new file and read it line by line
                 file = open(filename)
