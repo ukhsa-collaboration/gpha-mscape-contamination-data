@@ -564,7 +564,7 @@ def get_heatmap(reports, grouped_metadata):
         public_df = total_df.loc[:, total_df.columns.str.contains(publics, case=False)]
         public_df["Scientific_Name"] = total_df["Scientific_Name"]
         public_df = public_df.rename(columns={c: c.split("_")[-1] for c in public_df.columns if c not in ['Scientific_Name']})
-        public_df = public_df.reindex(natsorted(public_df.columns), axis=1)
+        public_df.sort_index(axis=1, inplace=True)
 
         public_matrix = public_df.drop(columns=["Scientific_Name"])
         public_counts = public_matrix.transpose()
