@@ -14,7 +14,7 @@ def get_broad_count(needed_samples, reports, microbe_type, taxon_level):
     for sample in needed_samples:
         found = False
         for filename in reports:
-            if f'{sample}.' in filename:
+            if f'{sample}' in filename:
                 found = True
                 #open new file and read it line by line
                 file = open(filename)
@@ -26,14 +26,14 @@ def get_broad_count(needed_samples, reports, microbe_type, taxon_level):
 
                 #excluded domains for different categories of microbes
                 if microbe_type == "All":
-                    taxa_list = []
-                    taxon = "root"
+                    unwanted_taxa = []
+                    wanted_taxa = ["Eukaryota", "Archaea", "Bacteria"]
                 elif microbe_type == "DNA":
-                    taxa_list = ["Riboviria"]
-                    taxon = "root"
+                    unwanted_taxa = ["Riboviria"]
+                    wanted_taxa = ["Eukaryota", "Archaea", "Bacteria"]
                 else: #RNA
-                    taxa_list = ["Eukaryota", "Archaea", "Bacteria", 'Varidnaviria', 'Duplodnaviria']
-                    taxon = "Riboviria"
+                    unwanted_taxa = ["Eukaryota", "Archaea", "Bacteria", 'Varidnaviria', 'Duplodnaviria']
+                    wanted_taxa = ["Riboviria"]
             
                 #only start reading each file when it starts listing our domain
                 start_reading = False    
@@ -45,20 +45,20 @@ def get_broad_count(needed_samples, reports, microbe_type, taxon_level):
         
                     #record the current scientific name of this line
                     current_name = columns[5]
-                    
-                    # Check for the microbial category in scientific name column and set the flag to start reading
-                    if columns[5] == taxon:
-                        start_reading = True
-                        
-                    if start_reading:
-                        current_name = columns[5]
-                        if current_name in taxa_list: #if this code moves onto another domain that is not the one we want
-                            break
-                        else:
-                            read_counts.append(line.split()[1])
-                            rank.append(line.split()[3])            
-                            #this turns scientific name (which sometimes have multiple words) into a list within a list
-                            sci_name.append(line.split()[5:])
+                    current_rank = columns[3]
+
+                    # Check for the microbial category in scientific name column and set the flag to start readin
+      
+                    if current_name in unwanted_taxa: #if this code moves onto another domain that is not the one we want
+                        start_reading = False
+                    elif current_rank == "D":
+                        if current_name in wanted_taxa:
+                            start_reading = True                           
+                    elif start_reading:
+                        read_counts.append(line.split()[1])
+                        rank.append(line.split()[3])            
+                        #this turns scientific name (which sometimes have multiple words) into a list within a list
+                        sci_name.append(line.split()[5:])
 
                 sample_ID = sample
             
@@ -102,7 +102,7 @@ def get_broad_count(needed_samples, reports, microbe_type, taxon_level):
     transposed_df = pd.DataFrame(empty_data, index=['Scientific_Name'])
     richness_df = pd.DataFrame([])
     
-    if len(filtered_df.columns) > 0:
+    if len(filtered_df.index) > 0:
         # Rearrange column 'Scientific Name' to the first position
         wordy_columns = ['Scientific_Name', 'Rank']
         # check if columns are not in the wordy_columns list
