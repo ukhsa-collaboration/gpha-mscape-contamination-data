@@ -491,11 +491,7 @@ def get_heatmap(reports, grouped_metadata):
         needed_samples = samples[loop] #our current set of sample names
         perc_df = make_perc_df(needed_samples, reports)
 
-        if set in public_datasets:
-            perc_df = perc_df.rename(columns={c: "public_"+c for c in perc_df.columns if c not in ['Scientific_Name', 'Perc_Seqs_Overall']})
-        else:
-            perc_df = perc_df.rename(columns={c: f"{set}_"+c for c in perc_df.columns if c not in ['Scientific_Name', 'Perc_Seqs_Overall']})
-        
+        perc_df = perc_df.rename(columns={c: f"{set}_"+c for c in perc_df.columns if c not in ['Scientific_Name', 'Perc_Seqs_Overall']})
 
         #Change all "average percentage" columns to their respective dataset names to avoid clashes when merging
         perc_df[set] = perc_df["Perc_Seqs_Overall"]
@@ -567,7 +563,7 @@ def get_heatmap(reports, grouped_metadata):
         
         public_df = total_df.loc[:, total_df.columns.str.contains(publics, case=False)]
         public_df["Scientific_Name"] = total_df["Scientific_Name"]
-        public_df = public_df.rename(columns={c: c.replace("public_", "") for c in public_df.columns if c not in ['Scientific_Name']})
+        public_df = public_df.rename(columns={c: c.split("_")[-1] for c in public_df.columns if c not in ['Scientific_Name']})
         public_df = public_df.reindex(natsorted(public_df.columns), axis=1)
 
         public_matrix = public_df.drop(columns=["Scientific_Name"])
