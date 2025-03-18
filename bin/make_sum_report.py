@@ -21,8 +21,13 @@ def get_each_taxon(needed_samples, reports, microbe_type):
 
     #Loop over each kraken file in reports directory
     for sample in needed_samples:
-        for filename in reports:
-            if f'{sample}.' in filename and filename.endswith('.kraken2.report.txt'):
+        report = glob.glob(f"{sample}*report.txt")
+        if not len(report) > 0:
+            report = [filename for filename in reports if f"{sample}" in filename]
+        if len(report) > 0:
+
+                filename = report[0]
+
                 #open new file and read it line by line
                 file = open(filename)
             
@@ -51,7 +56,7 @@ def get_each_taxon(needed_samples, reports, microbe_type):
                     taxa_list = ["Metazoa", "Archaea", "Fungi", "Bacteria", "Viruses"]
                     taxon = ["Sar", "Discoba", "Metamonada"]
                     
-            #only start reading each file when it starts listing our domain
+                #only start reading each file when it starts listing our domain
                 start_reading = False    
         
                 # Iterate over each line in the file
@@ -84,6 +89,8 @@ def get_each_taxon(needed_samples, reports, microbe_type):
                 
                 #add the new dataframe to the list of dataframes
                 dfs.append(df_new_file)
+        else:
+            print(f"No kraken report for sample {sample} has been provided!")
     
     
     # Merge the DataFrames on a specific column
