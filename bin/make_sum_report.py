@@ -23,7 +23,7 @@ def get_each_taxon(needed_samples, reports, microbe_type):
     for sample in needed_samples:
         found = False
         for filename in reports:
-            if f'{sample}.' in filename:
+            if f'{sample}' in filename:
                 found = True
                 #open new file and read it line by line
                 file = open(filename)
@@ -31,51 +31,35 @@ def get_each_taxon(needed_samples, reports, microbe_type):
                 #create 3 lists for count of sequences then rank and scientific name
                 read_counts = []
                 rank = []
-                sci_name = []
-
-                #excluded taxa for different categories of microbes
-                if microbe_type == "All":
-                    taxa_list = ["unclassified"]
-                    taxon = "root"
-                elif microbe_type == "Bacteria":
-                    taxa_list = ["Eukaryota", "Archaea", "Viruses"]
-                    taxon = "Bacteria"
-                elif microbe_type == "Fungi":
-                    taxa_list = ["Bacteria", "Archaea", "Viruses", "Sar", "Discoba", "Metamonada"]
-                    taxon = "Fungi"
-                elif microbe_type == "Viruses":
-                    taxa_list = ["Eukaryota", "Archaea", "Bacteria"]
-                    taxon = "Viruses"
-                elif microbe_type == "Archaea":
-                    taxa_list = ["Eukaryota", "Bacteria", "Viruses"]
-                    taxon = "Archaea"
-                else: #protist is not a real taxon, it is paraphyletic
-                    taxa_list = ["Metazoa", "Archaea", "Fungi", "Bacteria", "Viruses"]
-                    taxon = ["Sar", "Discoba", "Metamonada"]
-                    
-                #only start reading each file when it starts listing our domain
-                start_reading = False    
+                sci_name = []   
         
                 # Iterate over each line in the file
                 for line in file:
                     # Split the line into columns
                     columns = line.split()
-    
+
                     #record the current scientific name of this line
                     current_name = columns[5]
-                    
-                    # Check for the microbial category in scientific name column and set the flag to start reading
-                    if columns[5] in taxon:
-                        start_reading = True
-
-                    if start_reading:
-                        current_name = columns[5]
-                        if current_name in taxa_list: #if this code moves onto another domain that is not the one we want
-                            break
-                        else:
+    
+                    # Check for the microbial category in scientific name column and set the flag to start readin
+                    if microbe_type == "Protists":
+                        if current_name in ["Sar", "Discoba", "Metamonada"]:
                             read_counts.append(line.split()[1])
                             rank.append(line.split()[3])            
-                            #this turns scientific name (which sometimes have multiple words) into a list within a list
+                        #this turns scientific name (which sometimes have multiple words) into a list within a list
+                            sci_name.append(line.split()[5:])
+                    if microbe_type == "All":
+                        if current_name == "root":
+                            read_counts.append(line.split()[1])
+                            rank.append(line.split()[3])            
+                        #this turns scientific name (which sometimes have multiple words) into a list within a list
+                            sci_name.append(line.split()[5:])
+                    # Get list of taxa in bacteria, virus, archaea domain 
+                    else:
+                        if current_name == microbe_type:
+                            read_counts.append(line.split()[1])
+                            rank.append(line.split()[3])            
+                        #this turns scientific name (which sometimes have multiple words) into a list within a list
                             sci_name.append(line.split()[5:])
                                             
                 # Extract the sample ID from sample (climb_id)
@@ -112,10 +96,12 @@ def get_each_taxon(needed_samples, reports, microbe_type):
     numeric_df = numeric_df.fillna(0)
     
     #Filtering the dataframe to find the total of whichever taxon    
-    if isinstance(taxon, str):
-        taxon_needed = numeric_df.loc[numeric_df["Scientific_Name"] == taxon]
+    if microbe_type != "Protists" and microbe_type != "All":
+        taxon_needed = numeric_df.loc[numeric_df["Scientific_Name"] == microbe_type]
+    elif microbe_type == "All":
+        taxon_needed = numeric_df.loc[numeric_df["Scientific_Name"] == "root"]
     else:
-        taxon_needed = numeric_df.loc[numeric_df["Scientific_Name"].isin(taxon)]
+        taxon_needed = numeric_df.loc[numeric_df["Scientific_Name"].isin(["Sar", "Discoba", "Metamonada"])]
 
     # Select columns to sum (excluding 'Kingdom' and 'Scientific Name')
     columns_needed = taxon_needed.drop(columns=['Scientific_Name', 'Rank'])
@@ -199,7 +185,7 @@ def get_species_count(needed_samples, reports, microbe_type, taxon_level, filter
 #   Loop over each kraken file in reports directory
     for sample in needed_samples:
         for filename in reports:
-            if f'{sample}.' in filename and filename.endswith('.kraken2.report.txt'):
+            if f'{sample}' in filename and filename.endswith('.kraken2.report.txt'):
                 #open new file and read it line by line
                 file = open(filename)
         
@@ -207,26 +193,6 @@ def get_species_count(needed_samples, reports, microbe_type, taxon_level, filter
                 read_counts = []
                 rank = []
                 sci_name = []
-
-                #excluded domains for different categories of microbes
-                if microbe_type == "Bacteria":
-                    phyla_list = ["Eukaryota", "Archaea", "Viruses"]
-                    taxon = "Bacteria"
-                elif microbe_type == f"Bacteria > {filter_count}":
-                    phyla_list = ["Eukaryota", "Archaea", "Viruses"]
-                    taxon = "Bacteria"
-                elif microbe_type == "Fungi":
-                    phyla_list = ["Bacteria", "Archaea", "Viruses", "Sar", "Discoba", "Metamonada"]
-                    taxon = "Fungi"
-                elif microbe_type == "Viruses":
-                    phyla_list = ["Eukaryota", "Archaea", "Bacteria"]
-                    taxon = "Viruses"
-                elif microbe_type == "Archaea":
-                    phyla_list = ["Eukaryota", "Bacteria", "Viruses"]
-                    taxon = "Archaea"
-                else: #protist is not a real taxon, it is paraphyletic
-                    phyla_list = ["Metazoa", "Archaea", "Fungi", "Bacteria", "Viruses"]
-                    taxon = ["Sar", "Discoba", "Metamonada"]
             
             #only start reading each file when it starts listing our domain
                 start_reading = False    
@@ -238,20 +204,42 @@ def get_species_count(needed_samples, reports, microbe_type, taxon_level, filter
         
                     #record the current scientific name of this line
                     current_name = columns[5]
-                    
-                    # Check for the microbial category in scientific name column and set the flag to start reading
-                    if columns[5] in taxon:
-                        start_reading = True
-                            
-                    if start_reading:
-                        current_name = columns[5]
-                        if current_name in phyla_list: #if this code moves onto another domain that is not the one we want
-                            break
+                    current_rank = columns[3]
+    
+                    # Check for the microbial category in scientific name column and set the flag to start readin
+                    if microbe_type == "Protists":
+                        if current_name in ["Sar", "Discoba", "Metamonada"]:
+                            start_reading = True
                         else:
-                            read_counts.append(line.split()[1])
-                            rank.append(line.split()[3])            
-                            #this turns scientific name (which sometimes have multiple words) into a list within a list
-                            sci_name.append(line.split()[5:])
+                            if current_rank == "D1":
+                                start_reading = False
+                    # Get list of taxa in Fungi kingdom only
+                    elif microbe_type == "Fungi":
+                        if current_name == microbe_type:
+                            start_reading = True
+                        else:
+                            if current_rank == "K":
+                                start_reading = False
+                    # Get list of taxa in bacteria, virus, archaea domain
+                    elif microbe_type == f'Bacteria > {filter_count}':
+                        if current_name == "Bacteria":
+                            start_reading = True
+                        else:
+                            if current_rank == "D":
+                                start_reading = False  
+                    else:
+                        if current_name == microbe_type:
+                            start_reading = True
+                        else:
+                            if current_rank == "D":
+                                start_reading = False
+                        
+                                    
+                    if start_reading:
+                        read_counts.append(line.split()[1])
+                        rank.append(line.split()[3])            
+                    #this turns scientific name (which sometimes have multiple words) into a list within a list
+                        sci_name.append(line.split()[5:])
 
                 # Extract the sample ID from sample (climb_id)                           
                 sample_ID = sample
@@ -289,7 +277,7 @@ def get_species_count(needed_samples, reports, microbe_type, taxon_level, filter
     # Boolean indexing to filter rows showing only genus in the rank column
     filtered_df = numeric_df[numeric_df[columns_to_search].apply(lambda x: x.isin(keywords).any(), axis=1)]
 
-    if len(filtered_df.columns) > 0 :
+    if len(filtered_df.index) > 0 :
         # Rearrange column 'Scientific Name' to the first position
         wordy_columns = ['Scientific_Name', 'Rank']
         # check if columns are not in the wordy_columns list
@@ -381,7 +369,7 @@ def make_perc_df(needed_samples, reports):
 #   Loop over each kraken file in reports directory
     for sample in needed_samples:
         for filename in reports:
-            if f'{sample}.' in filename and filename.endswith('.kraken2.report.txt'):
+            if f'{sample}' in filename and filename.endswith('.kraken2.report.txt'):
                 #open new file and read it line by line
                 file = open(filename)
         

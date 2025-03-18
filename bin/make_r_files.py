@@ -23,17 +23,6 @@ def get_broad_count(needed_samples, reports, microbe_type, taxon_level):
                 read_counts = []
                 rank = []
                 sci_name = []
-
-                #excluded domains for different categories of microbes
-                if microbe_type == "All":
-                    unwanted_taxa = []
-                    wanted_taxa = ["Eukaryota", "Archaea", "Bacteria"]
-                elif microbe_type == "DNA":
-                    unwanted_taxa = ["Riboviria"]
-                    wanted_taxa = ["Eukaryota", "Archaea", "Bacteria"]
-                else: #RNA
-                    unwanted_taxa = ["Eukaryota", "Archaea", "Bacteria", 'Varidnaviria', 'Duplodnaviria']
-                    wanted_taxa = ["Riboviria"]
             
                 #only start reading each file when it starts listing our domain
                 start_reading = False    
@@ -48,12 +37,16 @@ def get_broad_count(needed_samples, reports, microbe_type, taxon_level):
                     current_rank = columns[3]
 
                     # Check for the microbial category in scientific name column and set the flag to start readin
-      
-                    if current_name in unwanted_taxa: #if this code moves onto another domain that is not the one we want
+                    if "D" in current_rank:
                         start_reading = False
-                    elif current_rank == "D":
-                        if current_name in wanted_taxa:
-                            start_reading = True                           
+                        if microbe_type == "All":
+                            start_reading = True #read everything
+                        elif microbe_type == "DNA":
+                            if current_name != "Riboviria": #read everything except rna
+                                start_reading = True
+                        elif microbe_type == "RNA":
+                            if current_name == "Riboviria": #only read rna
+                                start_reading = True
                     elif start_reading:
                         read_counts.append(line.split()[1])
                         rank.append(line.split()[3])            
