@@ -71,8 +71,8 @@ def get_each_taxon(needed_samples, reports, microbe_type):
                 #add the new dataframe to the list of dataframes
                 dfs.append(df_new_file)
 
-       if not found:
-           print(f"No kraken report for sample {sample} has been provided!")
+        if not found:
+            print(f"No kraken report for sample {sample} has been provided!")
     
     
     # Merge the DataFrames on a specific column
