@@ -4,7 +4,6 @@ import os
 import pandas as pd
 import numpy as np
 import argparse
-import glob
 
     
 def get_broad_count(needed_samples, reports, microbe_type, taxon_level):
@@ -13,11 +12,10 @@ def get_broad_count(needed_samples, reports, microbe_type, taxon_level):
     dfs = []
     # Loop over each kraken file in reports directory
     for sample in needed_samples:
-        report = glob.glob(f"{sample}*report.txt")
-        if not len(report) > 0:
-            report = [filename for filename in reports if f"{sample}" in filename]
-        if len(report) > 0:
-                filename = report[0]
+        found = False
+        for filename in reports:
+            if f'{sample}' in filename:
+                found = True
                 #open new file and read it line by line
                 file = open(filename)
         
@@ -70,7 +68,7 @@ def get_broad_count(needed_samples, reports, microbe_type, taxon_level):
                 #add the new dataframe to the list of dataframes
                 dfs.append(df_new_file)
 
-        else:
+        if not found:
             print(f"No kraken report for sample {sample} has been provided!")
 
     # Merge the DataFrames on a specific column
