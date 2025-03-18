@@ -225,8 +225,8 @@ if __name__ == "__main__":
             for subset in subgroup:
                 run_id = ''.join(subset[0])
                 #turn scientific_name from a list to a string
-                ids_list = '_'.join(ids)
-                ids_list = ids_list.replace('PUBLIC', 'PUBLIC_'+run_id) #add run_id to name
+                ids_list = '_'.join(ids).lower()
+                ids_list = ids_list.replace('public', 'public_'+run_id) #add run_id to name
                 ids_list = ids_list.replace('_extraction_control', '')
                 names.append(ids_list)
         else:
