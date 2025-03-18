@@ -545,16 +545,10 @@ def get_heatmap(reports, grouped_metadata):
 
         #make specific dfs for all dataframes in mscape_datasets
         for dataset_name in mscape_datasets:
-            other_sets = [n for n in mscape_datasets if n != dataset_name]
-            
-            # Boolean indexing to filter out columns where the header (column name) contains 'mscape', or 'public'
-            mscape_df = total_df.loc[:, ~total_df.columns.str.contains(publics, case=False)]
-            
-            for other_dataset_name in other_sets:
-                mid_df = mscape_df.loc[:, ~mscape_df.columns.str.contains(other_dataset_name, case=False)]
-                mscape_df = mid_df
-
-            mscape_dfs.append(mscape_df)
+            name_col = "Scientific_Name"
+            df = total_df.loc[:, total_df.columns.str.contains(dataset_name)]
+            df[name_col] = total_df[name_col]
+            mscape_dfs.append(df)
         
         loop_count = 0
         sorted_mscapes = []
@@ -571,11 +565,8 @@ def get_heatmap(reports, grouped_metadata):
             sorted_m_counts.append(mscape_counts['index'])
             loop_count += 1
         
-        for dataset_name in mscape_datasets:
-            pid_df = total_df.loc[:, ~total_df.columns.str.contains(dataset_name, case=False)]
-            total_df = pid_df
-        
-        public_df = pid_df
+        public_df = total_df.loc[:, total_df.columns.str.contains(publics, case=False)]
+        public_df["Scientific_Name"] = total_df["Scientific_Name"]
         public_df = public_df.rename(columns={c: c.replace("public_", "") for c in public_df.columns if c not in ['Scientific_Name']})
         public_df = public_df.reindex(natsorted(public_df.columns), axis=1)
 
