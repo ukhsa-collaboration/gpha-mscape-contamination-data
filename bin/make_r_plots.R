@@ -102,8 +102,12 @@ for (type_of_taxa in taxa_list) {
         # Find corresponding output/colour
         colour <- colour_df$colours[colour_df$name_order == name]
         colours <- append(colours, colour) # This ensures that the same colours are used for datasets across figures
+        if (grepl("public", tolower(name))) {
+          mscape_labels <- append(mscape_labels, "")
+        } else {
         mscape_labels <- append(mscape_labels, name)
-      }
+        }
+    }
   }
   
   
