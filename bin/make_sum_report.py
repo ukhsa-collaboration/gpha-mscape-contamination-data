@@ -153,6 +153,7 @@ def make_microbial_count_table(reports, grouped_metadata):
                     ids_list = '_'.join(ids)
                     ids_list = ids_list.replace('public', 'public_'+run_id) #add run_id to name
                     ids_list = ids_list.replace('_extraction_control', '')
+                    ids_list = ids_list.replace('_resp_matrix_mc110', '_matrix')
 
                     datasets.append(ids_list)
                     table = subset[1] #list of all ids in sub_dataset
@@ -161,6 +162,7 @@ def make_microbial_count_table(reports, grouped_metadata):
                 #turn scientific_name from a list to a string
                 ids_list = '_'.join(ids)
                 ids_list = ids_list.replace('_extraction_control', '')
+                ids_list = ids_list.replace('_resp_matrix_mc110', '_matrix')
                 datasets.append(ids_list)
                 table = sets[1] #list of all ids in dataset
                 samples.append(list(table['climb_id'])) #climb id
@@ -336,6 +338,7 @@ def make_richness_table(reports, grouped_metadata, taxon_level, filter_count):
                     ids_list = '_'.join(ids)
                     ids_list = ids_list.replace('public', 'public_'+run_id) #add run_id to name
                     ids_list = ids_list.replace('_extraction_control', '')
+                    ids_list = ids_list.replace('_resp_matrix_mc110', '_matrix')
 
                     datasets.append(ids_list)
                     table = subset[1] #list of all ids in sub_dataset
@@ -344,6 +347,7 @@ def make_richness_table(reports, grouped_metadata, taxon_level, filter_count):
                 #turn scientific_name from a list to a string
                 ids_list = '_'.join(ids)
                 ids_list = ids_list.replace('_extraction_control', '')
+                ids_list = ids_list.replace('_resp_matrix_mc110', '_matrix')
                 datasets.append(ids_list)
                 table = sets[1] #list of all ids in dataset
                 samples.append(list(table['climb_id'])) #climb id
@@ -469,6 +473,7 @@ def get_heatmap(reports, grouped_metadata):
                     ids_list = '_'.join(ids).lower()
                     ids_list = ids_list.replace('public', 'public_'+run_id) #add run_id to name
                     ids_list = ids_list.replace('_extraction_control', '')
+                    ids_list = ids_list.replace('_resp_matrix_mc110', '_matrix')
 
                     datasets.append(ids_list)
                     public_datasets.append(ids_list)
@@ -479,6 +484,7 @@ def get_heatmap(reports, grouped_metadata):
                 #turn scientific_name from a list to a string
                 ids_list = '_'.join(ids)
                 ids_list = ids_list.replace('_extraction_control', '')
+                ids_list = ids_list.replace('_resp_matrix_mc110', '_matrix')
                 datasets.append(ids_list)
                 table = sets[1] #list of all ids in dataset
                 samples.append(list(table['climb_id'])) #climb id
@@ -618,6 +624,7 @@ if __name__ == "__main__":
                     ids_list = '_'.join(ids)
                     ids_list = ids_list.replace('public', 'public_'+run_id) #add run_id to name
                     ids_list = ids_list.replace('_extraction_control', '')
+                    ids_list = ids_list.replace('_resp_matrix_mc110', '_matrix')
 
                     datasets.append(ids_list)
                     public_datasets.append(ids_list)
@@ -628,6 +635,7 @@ if __name__ == "__main__":
                 #turn scientific_name from a list to a string
                 ids_list = '_'.join(ids)
                 ids_list = ids_list.replace('_extraction_control', '')
+                ids_list = ids_list.replace('_resp_matrix_mc110', '_matrix')
                 datasets.append(ids_list)
                 table = sets[1] #list of all ids in dataset
                 samples.append(list(table['climb_id'])) #climb id
