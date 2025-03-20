@@ -38,6 +38,9 @@ def get_each_taxon(needed_samples, reports, microbe_type):
         
                 # Iterate over each line in the file
                 for line in file:
+                    if line.startswith("%"):
+                        continue
+
                     # Split the line into columns
                     columns = line.split()
 
@@ -65,6 +68,8 @@ def get_each_taxon(needed_samples, reports, microbe_type):
                             rank.append(line.split()[3])            
                         #this turns scientific name (which sometimes have multiple words) into a list within a list
                             sci_name.append(line.split()[5:])
+                            print("Appended line in kraken report:")
+                            print(line)
                     else:
                         if current_name == microbe_type:
                             read_counts.append(line.split()[1])
@@ -104,6 +109,8 @@ def get_each_taxon(needed_samples, reports, microbe_type):
     
     #change NaN to "0"
     numeric_df = numeric_df.fillna(0)
+    print("Read counts:")
+    print(numeric_df)
     no_words_df = numeric_df.drop(columns=['Scientific_Name', 'Rank'])
     copy_df = no_words_df.copy()
     copy_df["Sum"] = copy_df.sum(axis=1)
@@ -458,7 +465,7 @@ def make_perc_df(needed_samples, reports):
     #remove spikeins
     for spike in spikeins:
         numeric_df = numeric_df.loc[~numeric_df["Scientific_Name"].astype(str).isin(spikeins[spike])]
-        
+
     #Filtering the dataframe    
     # Define keywords and columns to search
     keywords = ['G'] #the taxonomy level I want to filter for
