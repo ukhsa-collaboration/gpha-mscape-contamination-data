@@ -109,12 +109,27 @@ def get_each_taxon(needed_samples, reports, microbe_type):
     
     #change NaN to "0"
     numeric_df = numeric_df.fillna(0)
-    print("Read counts:")
-    print(numeric_df)
-    no_words_df = numeric_df.drop(columns=['Scientific_Name', 'Rank'])
-    copy_df = no_words_df.copy()
-    copy_df["Sum"] = copy_df.sum(axis=1)
-    extra_sum = copy_df["Sum"].sum(axis=0)
+
+    #Get list of spikeins and make a spikeins dataframe from main dataframe
+    spikein_names = []
+    for spike in spikeins:
+        spike_list = spikeins[spike]
+        spikein_names.extend(spike_list)
+    
+    if isinstance(spikein_names, str):
+        spike_df = numeric_df.loc[numeric_df["Scientific_Name"] == spikein_names]
+    else:
+        spike_df = numeric_df.loc[numeric_df["Scientific_Name"].isin(spikein_names)]
+    
+    if microbe_type == "Viruses":
+        print("Dataframe with all potential spikeins:")
+        print(spike_df)
+
+    #Get sum of spikeins
+    spike_df = spike_df.drop(columns=['Scientific_Name', 'Rank'])
+    copy_df = spike_df.copy()
+    copy_df["Sum"] = copy_df.sum(axis=1) #sum for each spikein taxon
+    spike_sum = copy_df["Sum"].sum(axis=0) #sum for all spikein taxa combined
      
     #Filtering the dataframe to find the total of whichever taxon    
     if microbe_type != "Protists" and microbe_type != "All":
@@ -124,6 +139,9 @@ def get_each_taxon(needed_samples, reports, microbe_type):
     else:
         taxon_needed = numeric_df.loc[numeric_df["Scientific_Name"].isin(["Sar", "Discoba", "Metamonada"])]
 
+    if microbe_type == "Viruses":
+        print("Dataframe for domain level Virus counts:")
+        print(taxon_needed)
     # Select columns to sum (excluding 'Kingdom' and 'Scientific Name')
     columns_needed = taxon_needed.drop(columns=['Scientific_Name', 'Rank'])
     columns_copy = columns_needed.copy()
@@ -133,8 +151,10 @@ def get_each_taxon(needed_samples, reports, microbe_type):
     columns_copy['sum'] = columns_sum
     microbe_sum = columns_copy['sum'].sum(axis=0)
 
-    spike_load =  int(extra_sum) - int(microbe_sum)
-    real_count = int(microbe_sum) - spike_load
+    real_count = int(microbe_sum) - int(spike_sum)
+
+    if microbe_type == "Viruses":
+        print(f'Count with spikeins removed: all virus counts({microbe_sum}) - all tobamo virus counts ({spike_sum}) = {real_count}')
     
     #Get the total number of columns/samples
     columns_no = columns_copy.shape[1]
