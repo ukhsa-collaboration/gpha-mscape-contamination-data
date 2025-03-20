@@ -13,6 +13,9 @@ import argparse
 
 # Creating the dataframe
 #microbe type entail "bacteria", "fungi", "viruses", "archaea", and "protists"
+spikeins = {
+        12242:["Tobamovirus","Tobacco_mosaic_virus"]
+    }
 
 #Create a dataframe for average counts per dataset in each microbe type(taxon)
 def get_each_taxon(needed_samples, reports, microbe_type):
@@ -40,7 +43,8 @@ def get_each_taxon(needed_samples, reports, microbe_type):
 
                     #record the current scientific name of this line
                     current_name = columns[5]
-    
+                    current_id = int(columns[4])
+                        
                     # Check for the microbial category in scientific name column and set the flag to start readin
                     if microbe_type == "Protists":
                         if current_name in ["Sar", "Discoba", "Metamonada"]:
@@ -48,13 +52,19 @@ def get_each_taxon(needed_samples, reports, microbe_type):
                             rank.append(line.split()[3])            
                         #this turns scientific name (which sometimes have multiple words) into a list within a list
                             sci_name.append(line.split()[5:])
-                    if microbe_type == "All":
-                        if current_name == "root":
+                    elif microbe_type == "All":
+                        if current_name == "root" or current_id in spikeins:
                             read_counts.append(line.split()[1])
                             rank.append(line.split()[3])            
                         #this turns scientific name (which sometimes have multiple words) into a list within a list
                             sci_name.append(line.split()[5:])
                     # Get list of taxa in bacteria, virus, archaea domain 
+                    elif microbe_type == "Viruses":
+                        if current_name == microbe_type or current_id in spikeins:
+                            read_counts.append(line.split()[1])
+                            rank.append(line.split()[3])            
+                        #this turns scientific name (which sometimes have multiple words) into a list within a list
+                            sci_name.append(line.split()[5:])
                     else:
                         if current_name == microbe_type:
                             read_counts.append(line.split()[1])
@@ -94,7 +104,11 @@ def get_each_taxon(needed_samples, reports, microbe_type):
     
     #change NaN to "0"
     numeric_df = numeric_df.fillna(0)
-    
+    no_words_df = numeric_df.drop(columns=['Scientific_Name', 'Rank'])
+    copy_df = no_words_df.copy()
+    copy_df["Sum"] = copy_df.sum(axis=1)
+    extra_sum = copy_df["Sum"].sum(axis=0)
+     
     #Filtering the dataframe to find the total of whichever taxon    
     if microbe_type != "Protists" and microbe_type != "All":
         taxon_needed = numeric_df.loc[numeric_df["Scientific_Name"] == microbe_type]
@@ -108,13 +122,18 @@ def get_each_taxon(needed_samples, reports, microbe_type):
     columns_copy = columns_needed.copy()
     #Get the total counts in each dataset for the phylum we are checking for 
     columns_sum = columns_copy.sum(axis=1)
+    #Get the sum of all taxa that we are checking for - needed for protists as there are 3 taxa
+    columns_copy['sum'] = columns_sum
+    microbe_sum = columns_copy['sum'].sum(axis=0)
+
+    spike_load =  int(extra_sum) - int(microbe_sum)
+    real_count = int(microbe_sum) - spike_load
+    
     #Get the total number of columns/samples
     columns_no = columns_copy.shape[1]
 
     #Get average count per sample in a dataset
-    columns_copy['average'] = columns_sum/columns_no
-    #Get the sum of all taxa that we are checking for - needed for protists as there are 3 taxa
-    average = columns_copy['average'].sum(axis=0)
+    average = real_count/columns_no
 
     data = {'Name': microbe_type, 'Average Count': average}
     current_df = pd.DataFrame(data, index=[0])
@@ -272,6 +291,10 @@ def get_species_count(needed_samples, reports, microbe_type, taxon_level, filter
     #change NaN to "0"
     numeric_df = numeric_df.fillna(0)
     
+    #remove spikeins
+    for spike in spikeins:
+        numeric_df = numeric_df.loc[~numeric_df["Scientific_Name"].astype(str).isin(spikeins[spike])]
+
     # Define keywords and columns to search
     keywords = [taxon_level] #the taxonomy level I want to filter for
     columns_to_search = ['Rank']
@@ -432,6 +455,10 @@ def make_perc_df(needed_samples, reports):
     #change NaN to "0"
     numeric_df = numeric_df.fillna(0)
     
+    #remove spikeins
+    for spike in spikeins:
+        numeric_df = numeric_df.loc[~numeric_df["Scientific_Name"].astype(str).isin(spikeins[spike])]
+        
     #Filtering the dataframe    
     # Define keywords and columns to search
     keywords = ['G'] #the taxonomy level I want to filter for
