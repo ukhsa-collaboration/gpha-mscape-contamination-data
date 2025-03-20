@@ -5,6 +5,9 @@ import pandas as pd
 import numpy as np
 import argparse
 
+spikeins = {
+        12242:["Tobamovirus","Tobacco_mosaic_virus"]
+    }
     
 def get_broad_count(needed_samples, reports, microbe_type, taxon_level):
 
@@ -83,6 +86,10 @@ def get_broad_count(needed_samples, reports, microbe_type, taxon_level):
     numeric_df = merged_on_sci.apply(convert_to_numeric)   
     #change NaN to "0"
     numeric_df = numeric_df.fillna(0)
+
+    #remove spikeins
+    for spike in spikeins:
+        numeric_df = numeric_df.loc[~numeric_df["Scientific_Name"].astype(str).isin(spikeins[spike])]
     
     # Define keywords and columns to search
     keywords = [taxon_level] #the taxonomy level I want to filter for
