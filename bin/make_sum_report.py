@@ -11,31 +11,9 @@ import os
 import argparse
 import json
 
-# Creating the dataframe
-#microbe type entail "bacteria", "fungi", "viruses", "archaea", and "protists"
-spikeins = {
-        12242:["Tobamovirus","Tobacco_mosaic_virus"]
-    }
+from utils import spikeins, convert_to_numeric
 
-def get_label(ids, site_key, run_id=None):
-    ids_list = [id.lower() for id in ids]
-
-    ids_list_anon = []
-    for id in ids_list:
-        if id in site_key:
-            ids_list_anon.append(site_key[id])
-        else:
-            ids_list_anon.append(id)
-    ids_list = ids_list_anon
-
-    ids_list = ' '.join(ids_list)
-    if "public" in ids and run_id:
-        ids_list = ids_list.replace('public', 'public_'+run_id) #add run_id to name
-    ids_list = ids_list.replace('water_extraction_control', '(water)')
-    ids_list = ids_list.replace('resp_matrix_mc110', '(matrix)')
-    return ids_list
-
-#Create a dataframe for average counts per dataset in each microbe type(taxon)
+#Create a dataframe for average counts per dataset in each microbe type(taxon) in "bacteria", "fungi", "viruses", "archaea", and "protists"
 def get_each_taxon(needed_samples, reports, microbe_type):
     # Initialize an empty list to store dataframes
     dfs = []
@@ -114,14 +92,7 @@ def get_each_taxon(needed_samples, reports, microbe_type):
     merged_df["Scientific_Name"] = ['_'.join(lst) for lst in merged_df["Scientific_Name"]]
     #merge on scientific name - this means that no scientific name is repeated if it's present in different dataframes
     merged_on_sci = merged_df.groupby('Scientific_Name', as_index=False).first()
-    
-    
-    # Define a function to convert a column to numeric type if it's not 'rank' or 'scientific name'
-    def convert_to_numeric(column):
-        if column.name not in ['Rank', 'Scientific_Name']:
-            return pd.to_numeric(column, errors='coerce')
-        else:
-            return column
+
     # Apply the function to each column
     numeric_df = merged_on_sci.apply(convert_to_numeric)
     
@@ -318,14 +289,7 @@ def get_species_count(needed_samples, reports, microbe_type, taxon_level, filter
     merged_df["Scientific_Name"] = ['_'.join(lst) for lst in merged_df["Scientific_Name"]]
     #merge on scientific name - this means that no scientific name is repeated if it's present in both the gut and lung dataframes
     merged_on_sci = merged_df.groupby('Scientific_Name', as_index=False).first()
-    
-    
-    # Define a function to convert a column to numeric type if it's not 'rank' or 'scientific name'
-    def convert_to_numeric(column):
-        if column.name not in ['Rank', 'Scientific_Name']:
-            return pd.to_numeric(column, errors='coerce')
-        else:
-            return column
+
     # Apply the function to each column
     numeric_df = merged_on_sci.apply(convert_to_numeric)   
     #change NaN to "0"
@@ -466,14 +430,7 @@ def make_perc_df(needed_samples, reports):
     merged_df["Scientific_Name"] = ['_'.join(lst) for lst in merged_df["Scientific_Name"]]
     #merge on scientific name - this means that no scientific name is repeated if it's present in both the gut and lung dataframes
     merged_on_sci = merged_df.groupby('Scientific_Name', as_index=False).first()
-    
-    
-    # Define a function to convert a column to numeric type if it's not 'rank' or 'scientific name'
-    def convert_to_numeric(column):
-        if column.name not in ['Rank', 'Scientific_Name']:
-            return pd.to_numeric(column, errors='coerce')
-        else:
-            return column
+
     # Apply the function to each column
     numeric_df = merged_on_sci.apply(convert_to_numeric)
     

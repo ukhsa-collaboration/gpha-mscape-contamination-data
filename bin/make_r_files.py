@@ -6,27 +6,8 @@ import numpy as np
 import argparse
 import json
 
-spikeins = {
-        12242:["Tobamovirus","Tobacco_mosaic_virus"]
-    }
+from utils import spikeins, convert_to_numeric
 
-def get_label(ids, site_key, run_id=None):
-    ids_list = [id.lower() for id in ids]
-
-    ids_list_anon = []
-    for id in ids_list:
-        if id in site_key:
-            ids_list_anon.append(site_key[id])
-        else:
-            ids_list_anon.append(id)
-    ids_list = ids_list_anon
-
-    ids_list = ' '.join(ids_list)
-    if "public" in ids and run_id:
-        ids_list = ids_list.replace('public', 'public_'+run_id) #add run_id to name
-    ids_list = ids_list.replace('water_extraction_control', '(water)')
-    ids_list = ids_list.replace('resp_matrix_mc110', '(matrix)')
-    return ids_list
 
 def get_broad_count(needed_samples, reports, microbe_type, taxon_level):
 
@@ -96,11 +77,7 @@ def get_broad_count(needed_samples, reports, microbe_type, taxon_level):
     
     
     # Define a function to convert a column to numeric type if it's not 'rank' or 'scientific name'
-    def convert_to_numeric(column):
-        if column.name not in ['Rank', 'Scientific_Name']:
-            return pd.to_numeric(column, errors='coerce')
-        else:
-            return column
+
     # Apply the function to each column
     numeric_df = merged_on_sci.apply(convert_to_numeric)   
     #change NaN to "0"
