@@ -7,7 +7,6 @@ import base64
 from mako.template import Template
 import numpy as np
 import seaborn as sns
-from natsort import natsorted
 import os
 import argparse
 import json
@@ -29,7 +28,7 @@ def get_label(ids, site_key, run_id=None):
             ids_list_anon.append(id)
     ids_list = ids_list_anon
 
-    ids_list = ' '.join(ids)
+    ids_list = ' '.join(ids_list)
     if "public" in ids and run_id:
         ids_list = ids_list.replace('public', 'public_'+run_id) #add run_id to name
     ids_list = ids_list.replace('water_extraction_control', '(water)')
@@ -584,15 +583,25 @@ def get_heatmap(reports, grouped_metadata, site_key):
             mscape_samples.append(set)
 
 
-    def sorting(merge_df, type_of_directories, dataset_names, all_dataset_names):
+    def sorting(merge_df, type_of_directories, dataset_names, all_dataset_names, any_threshold=None):
         # Select columns to sum ('Scientific Name')
         columns_to_sum = merge_df[dataset_names]
+
         # Calculate the sum of values in each row
         column_sums = columns_to_sum.sum(axis=1)
         merge_df['Average'] = column_sums/len(type_of_directories)
-            
-        sorted_df = merge_df.sort_values(by="Average", ascending=False)
-        top_df = sorted_df.head(20)
+
+        # Calculate the max of values in each row
+        merge_df['Max'] = columns_to_sum.max(axis=1)
+
+        if any_threshold:
+            sorted_df = merge_df.sort_values(by="Max", ascending=False)
+            count = merge_df[merge_df['Max'] > any_threshold].shape
+            print(f"Found {count} taxa above threshold {any_threshold}")
+            top_df = sorted_df.head(max(20, count[0]))
+        else:
+            sorted_df = merge_df.sort_values(by="Average", ascending=False)
+            top_df = sorted_df.head(20)
     
         total_df = top_df.drop(columns=all_dataset_names)
         total_df = total_df.drop(columns=["Average"])
@@ -616,7 +625,7 @@ def get_heatmap(reports, grouped_metadata, site_key):
         for mscape_df in mscape_dfs:
             #Get rid of dataset as prefixes
             mscape_df = mscape_df.rename(columns={c: c.replace(f"{mscape_datasets[loop_count]}_", "") for c in mscape_df.columns if c not in ['Scientific_Name']})
-            mscape_df = mscape_df.reindex(natsorted(mscape_df.columns), axis=1)          
+            mscape_df.sort_index(axis=1, inplace=True)
             sorted_mscapes.append(mscape_df)
 
             mscape_matrix = mscape_df.drop(columns=["Scientific_Name"])
@@ -644,6 +653,7 @@ def get_heatmap(reports, grouped_metadata, site_key):
 
     sort_by_average, both_counts = sorting(merge_df, samples, datasets, datasets)
     sort_by_mscape, both_counts = sorting(merge_df, mscape_samples, mscape_datasets, datasets)
+    sort_by_mscape, both_counts = sorting(merge_df, mscape_samples, mscape_datasets, datasets, any_thresold=100)
 
     return sort_by_average, sort_by_mscape, mscape_datasets, both_counts 
 
