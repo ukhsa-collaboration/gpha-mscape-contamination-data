@@ -10,6 +10,7 @@ import seaborn as sns
 from natsort import natsorted
 import os
 import argparse
+import json
 
 # Creating the dataframe
 #microbe type entail "bacteria", "fungi", "viruses", "archaea", and "protists"
