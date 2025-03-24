@@ -21,11 +21,11 @@ def get_label(ids, site_key, run_id=None):
             ids_list_anon.append(id)
     ids_list = ids_list_anon
 
-    ids_list = '_'.join(ids)
+    ids_list = ' '.join(ids)
     if "public" in ids and run_id:
         ids_list = ids_list.replace('public', 'public_'+run_id) #add run_id to name
-    ids_list = ids_list.replace('_extraction_control', '')
-    ids_list = ids_list.replace('_resp_matrix_mc110', '_matrix')
+    ids_list = ids_list.replace('water_extraction_control', '(water)')
+        ids_list = ids_list.replace('resp_matrix_mc110', '(matrix)')
     return ids_list
 
 def get_broad_count(needed_samples, reports, microbe_type, taxon_level):
