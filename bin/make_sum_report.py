@@ -11,7 +11,7 @@ import os
 import argparse
 import json
 
-from utils import spikeins, convert_to_numeric
+from utils import spikeins, convert_to_numeric, get_label
 
 #Create a dataframe for average counts per dataset in each microbe type(taxon) in "bacteria", "fungi", "viruses", "archaea", and "protists"
 def get_each_taxon(needed_samples, reports, microbe_type):

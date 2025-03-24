@@ -3,7 +3,7 @@
 spikeins = {
         12242:["Tobamovirus","Tobacco_mosaic_virus"]
     }
-    
+
 def get_label(ids, site_key, run_id=None):
     ids_list = [id.lower() for id in ids]
 

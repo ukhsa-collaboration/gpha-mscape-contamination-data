@@ -6,7 +6,7 @@ import numpy as np
 import argparse
 import json
 
-from utils import spikeins, convert_to_numeric
+from utils import spikeins, convert_to_numeric, get_label
 
 
 def get_broad_count(needed_samples, reports, microbe_type, taxon_level):
