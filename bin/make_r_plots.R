@@ -15,7 +15,7 @@ total_files <- list.files(input_dir, pattern = "*.total.txt", full.names = TRUE)
 dna_files <- list.files(input_dir, pattern = "*.dna.txt", full.names = TRUE)
 rna_files <- list.files(input_dir, pattern = "*.rna.txt", full.names = TRUE)
 
-richness <- read.table(file.path(paste0(input_dir, "richness_table.txt")), stringsAsFactors = TRUE, header=TRUE, row.names="index")
+richness <- read.table(file.path(paste0(input_dir, "richness_table.txt")), sep = "\t", stringsAsFactors = TRUE, header=TRUE, row.names="index")
 
 taxa_list <- c(1, 2, 3)
 
