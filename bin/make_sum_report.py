@@ -510,6 +510,7 @@ def get_heatmap(reports, grouped_metadata, site_key):
     for set in datasets:
         needed_samples = samples[loop] #our current set of sample names
         perc_df = make_perc_df(needed_samples, reports)
+        save_perc_and_count_dfs(needed_samples, reports)
 
         perc_df = perc_df.rename(columns={c: f"{set}_"+c for c in perc_df.columns if c not in ['Scientific_Name', 'Perc_Seqs_Overall']})
 
@@ -553,6 +554,9 @@ def get_heatmap(reports, grouped_metadata, site_key):
 
         if any_threshold:
             sorted_df = merge_df.sort_values(by="Max", ascending=False)
+            print(sorted_df)
+            sorted_df = pd.read_csv("counts.csv", index=True)
+            merge_df['Max'] = columns_to_sum.max(axis=1)
             count = merge_df[merge_df['Max'] > any_threshold].shape
             print(f"Found {count} taxa above threshold {any_threshold}")
             top_df = sorted_df.head(max(20, count[0]))
