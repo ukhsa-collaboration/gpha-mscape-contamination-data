@@ -653,7 +653,7 @@ def get_heatmap(reports, grouped_metadata, site_key):
 
     sort_by_average, both_counts = sorting(merge_df, samples, datasets, datasets)
     sort_by_mscape, both_counts = sorting(merge_df, mscape_samples, mscape_datasets, datasets)
-    sort_by_mscape, both_counts = sorting(merge_df, mscape_samples, mscape_datasets, datasets, any_thresold=100)
+    sort_by_mscape, both_counts = sorting(merge_df, mscape_samples, mscape_datasets, datasets, any_threshold=100)
 
     return sort_by_average, sort_by_mscape, mscape_datasets, both_counts 
 
