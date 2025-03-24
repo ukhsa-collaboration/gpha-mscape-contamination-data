@@ -215,14 +215,14 @@ def make_microbial_count_table(reports, grouped_metadata, site_key):
                 for subset in subgroup:
                     run_id = ''.join(subset[0])
                     #turn scientific_name from a list to a string
-                    ids_list = get_label(ids_list, site_key, run_id=run_id)
+                    ids_list = get_label(ids, site_key, run_id=run_id)
 
                     datasets.append(ids_list)
                     table = subset[1] #list of all ids in sub_dataset
                     samples.append(list(table['climb_id'])) #climb id
             else:
                 #turn scientific_name from a list to a string
-                ids_list = get_label(ids_list, site_key)
+                ids_list = get_label(ids, site_key)
                 datasets.append(ids_list)
                 table = sets[1] #list of all ids in dataset
                 samples.append(list(table['climb_id'])) #climb id
@@ -399,14 +399,14 @@ def make_richness_table(reports, grouped_metadata, taxon_level, filter_count, si
                 for subset in subgroup:
                     run_id = ''.join(subset[0])
                     #turn scientific_name from a list to a string
-                    ids_list = get_label(ids_list, site_key, run_id=run_id)
+                    ids_list = get_label(ids, site_key, run_id=run_id)
 
                     datasets.append(ids_list)
                     table = subset[1] #list of all ids in sub_dataset
                     samples.append(list(table['climb_id'])) #climb id
             else:
                 #turn scientific_name from a list to a string
-                ids_list = get_label(ids_list, site_key)
+                ids_list = get_label(ids, site_key)
                 datasets.append(ids_list)
                 table = sets[1] #list of all ids in dataset
                 samples.append(list(table['climb_id'])) #climb id
@@ -533,7 +533,7 @@ def get_heatmap(reports, grouped_metadata, site_key):
                 for subset in subgroup:
                     run_id = ''.join(subset[0])
                     #turn scientific_name from a list to a string
-                    ids_list = get_label(ids_list, site_key, run_id=run_id)
+                    ids_list = get_label(ids, site_key, run_id=run_id)
 
                     datasets.append(ids_list)
                     public_datasets.append(ids_list)
@@ -542,7 +542,7 @@ def get_heatmap(reports, grouped_metadata, site_key):
                     public_samples.append(list(table['climb_id']))
             else:
                 #turn scientific_name from a list to a string
-                ids_list = get_label(ids_list, site_key)
+                ids_list = get_label(ids, site_key)
                 datasets.append(ids_list)
                 table = sets[1] #list of all ids in dataset
                 samples.append(list(table['climb_id'])) #climb id
@@ -682,7 +682,7 @@ if __name__ == "__main__":
                 for subset in subgroup:
                     run_id = ''.join(subset[0])
                     #turn scientific_name from a list to a string
-                    ids_list = get_label(ids_list, site_key, run_id=run_id)
+                    ids_list = get_label(ids, site_key, run_id=run_id)
 
                     datasets.append(ids_list)
                     public_datasets.append(ids_list)
@@ -691,7 +691,7 @@ if __name__ == "__main__":
                     public_samples.append(list(table['climb_id']))
             else:
                 #turn scientific_name from a list to a string
-                ids_list = get_label(ids_list, site_key)
+                ids_list = get_label(ids, site_key)
                 datasets.append(ids_list)
                 table = sets[1] #list of all ids in dataset
                 samples.append(list(table['climb_id'])) #climb id

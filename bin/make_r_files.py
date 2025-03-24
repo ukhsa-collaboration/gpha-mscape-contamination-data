@@ -175,7 +175,7 @@ def get_broad_category(set, needed_samples, reports, taxon_level):
     return transposed_df, percent_dfs
 
 # Do the above for all directories
-def make_richness_table(reports, grouped_metadata, taxon_level):
+def make_richness_table(reports, grouped_metadata, taxon_level, site_key):
     #group by site
     datasets = []
     samples = []
@@ -187,13 +187,13 @@ def make_richness_table(reports, grouped_metadata, taxon_level):
             for subset in subgroup:
                 run_id = ''.join(subset[0])
                 #turn scientific_name from a list to a string
-                ids_list = get_label(ids_list, site_key, run_id=run_id)
+                ids_list = get_label(ids, site_key, run_id=run_id)
                 datasets.append(ids_list)
                 table = subset[1] #list of all ids in sub_dataset
                 samples.append(list(table['climb_id'])) #climb id
         else:
             #turn scientific_name from a list to a string
-            ids_list = get_label(ids_list, site_key)
+            ids_list = get_label(ids, site_key)
             datasets.append(ids_list)
             table = sets[1] #list of all ids in dataset
             samples.append(list(table['climb_id'])) #climb id
@@ -236,7 +236,7 @@ if __name__ == "__main__":
     taxon = "G"
 
     grouped_metadata = metadata.groupby(['site', 'control_type_details'])
-    richness, diversity = make_richness_table(reports, grouped_metadata, taxon)
+    richness, diversity = make_richness_table(reports, grouped_metadata, taxon, site_key)
 
     richness.to_csv(output_dir+"richness_table.txt", sep='\t', index=False)
 
@@ -248,11 +248,11 @@ if __name__ == "__main__":
             for subset in subgroup:
                 run_id = ''.join(subset[0])
                 #turn scientific_name from a list to a string
-                ids_list = get_label(ids_list, site_key, run_id=run_id)
+                ids_list = get_label(ids, site_key, run_id=run_id)
                 names.append(ids_list)
         else:
             #turn scientific_name from a list to a string
-            ids_list = get_label(ids_list, site_key)
+            ids_list = get_label(ids, site_key)
             names.append(ids_list)
 
     #save all text_files in working/processing output directory
