@@ -667,7 +667,9 @@ if __name__ == "__main__":
     #group by site and other identifiers
     grouped_metadata = metadata.groupby(['site', 'control_type_details'])
     #site name to number
-    site_key = json.load(args.site_key)
+    site_key = {}
+    with open(args.site_key, 'r') as f:
+        site_key = json.load(f)
 
     #group by site
     datasets = []

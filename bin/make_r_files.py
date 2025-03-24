@@ -227,7 +227,9 @@ if __name__ == "__main__":
 
     reports = args.reports
     metadata = pd.read_csv(args.metadata)
-    site_key = json.load(args.site_key)
+    site_key = {}
+    with open(args.site_key, 'r') as f:
+        site_key = json.load(f)
     
     #make output text_files directory
     output_dir = args.output_dir
