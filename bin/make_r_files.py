@@ -11,7 +11,7 @@ spikeins = {
     }
 
 def get_label(ids, site_key, run_id=None):
-    ids = [id.lower() for id in ids]
+    ids_list = [id.lower() for id in ids]
 
     ids_list_anon = []
     for id in ids_list:
