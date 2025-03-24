@@ -64,8 +64,8 @@ def get_each_taxon(needed_samples, reports, microbe_type):
                             rank.append(line.split()[3])            
                         #this turns scientific name (which sometimes have multiple words) into a list within a list
                             sci_name.append(line.split()[5:])
-                            print("Appended line in kraken report:")
-                            print(line)
+                            #print("Appended line in kraken report:")
+                            #print(line)
                     else:
                         if current_name == microbe_type:
                             read_counts.append(line.split()[1])
@@ -110,9 +110,9 @@ def get_each_taxon(needed_samples, reports, microbe_type):
     else:
         spike_df = numeric_df.loc[numeric_df["Scientific_Name"].isin(spikein_names)]
     
-    if microbe_type == "Viruses":
-        print("Dataframe with all potential spikeins:")
-        print(spike_df)
+    #if microbe_type == "Viruses":
+    #    print("Dataframe with all potential spikeins:")
+    #    print(spike_df)
 
     #Get sum of spikeins
     spike_df = spike_df.drop(columns=['Scientific_Name', 'Rank'])
@@ -128,9 +128,10 @@ def get_each_taxon(needed_samples, reports, microbe_type):
     else:
         taxon_needed = numeric_df.loc[numeric_df["Scientific_Name"].isin(["Sar", "Discoba", "Metamonada"])]
 
-    if microbe_type == "Viruses":
-        print("Dataframe for domain level Virus counts:")
-        print(taxon_needed)
+    #if microbe_type == "Viruses":
+    #    print("Dataframe for domain level Virus counts:")
+    #    print(taxon_needed)
+
     # Select columns to sum (excluding 'Kingdom' and 'Scientific Name')
     columns_needed = taxon_needed.drop(columns=['Scientific_Name', 'Rank'])
     columns_copy = columns_needed.copy()

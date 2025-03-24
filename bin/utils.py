@@ -102,6 +102,9 @@ def save_perc_and_count_dfs(needed_samples, reports):
                 #add the new dataframe to the list of dataframes
                 dfs_perc.append(df_perc)
                 dfs_count.append(df_count)
+                
+        if not found:
+            print(f"No kraken report for sample {sample} has been provided!")
 
 
     # Merge the DataFrames on a specific column
