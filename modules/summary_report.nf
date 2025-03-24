@@ -53,6 +53,7 @@ process make_report {
     input:
     path reports
     path metadata
+    path site_key
     path template
     path plots
 
@@ -66,6 +67,7 @@ process make_report {
     make_sum_report.py \
       --reports ${reports.join(' ')} \
       --metadata ${metadata} \
+      --site_key ${site_key} \
       --plots_dir ${plots}/ \
       --final_report summary_report/ \
       --template ${template}
@@ -88,10 +90,12 @@ workflow evaluate_negative_controls {
         .fromPath(metadata_file)
         .set { metadata }
 
+    site_key = file(params.site_key, type: "file", checkIfExists:true)
+
     template = file("$baseDir/bin/summary_report_template.html")
 
     make_shannon_script(reports, metadata)
     get_shannon_plot(make_shannon_script.out)
-    make_report(reports, metadata, template, get_shannon_plot.out)
+    make_report(reports, metadata, site_key, template, get_shannon_plot.out)
     println "Report will be generated in ${params.outdir}"
 }

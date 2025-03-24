@@ -17,6 +17,24 @@ spikeins = {
         12242:["Tobamovirus","Tobacco_mosaic_virus"]
     }
 
+def get_label(ids, site_key, run_id=None):
+    ids = [id.lower() for id in ids]
+
+    ids_list_anon = []
+    for id in ids_list:
+        if id in site_key:
+            ids_list_anon.append(site_key[id])
+        else:
+            ids_list_anon.append(id)
+    ids_list = ids_list_anon
+
+    ids_list = '_'.join(ids)
+    if "public" in ids and run_id:
+        ids_list = ids_list.replace('public', 'public_'+run_id) #add run_id to name
+    ids_list = ids_list.replace('_extraction_control', '')
+    ids_list = ids_list.replace('_resp_matrix_mc110', '_matrix')
+    return ids_list
+
 #Create a dataframe for average counts per dataset in each microbe type(taxon)
 def get_each_taxon(needed_samples, reports, microbe_type):
     # Initialize an empty list to store dataframes
@@ -184,7 +202,7 @@ def get_microbial_load(set, needed_samples, reports):
     return transposed_df
 
 #Make microbe count table for each dataset and merge them together
-def make_microbial_count_table(reports, grouped_metadata):
+def make_microbial_count_table(reports, grouped_metadata, site_key):
 
     datasets = [] #total datasets
     samples = [] #samples grouped by datasets
@@ -196,19 +214,14 @@ def make_microbial_count_table(reports, grouped_metadata):
                 for subset in subgroup:
                     run_id = ''.join(subset[0])
                     #turn scientific_name from a list to a string
-                    ids_list = '_'.join(ids)
-                    ids_list = ids_list.replace('public', 'public_'+run_id) #add run_id to name
-                    ids_list = ids_list.replace('_extraction_control', '')
-                    ids_list = ids_list.replace('_resp_matrix_mc110', '_matrix')
+                    ids_list = get_label(ids_list, site_key, run_id=run_id)
 
                     datasets.append(ids_list)
                     table = subset[1] #list of all ids in sub_dataset
                     samples.append(list(table['climb_id'])) #climb id
             else:
                 #turn scientific_name from a list to a string
-                ids_list = '_'.join(ids)
-                ids_list = ids_list.replace('_extraction_control', '')
-                ids_list = ids_list.replace('_resp_matrix_mc110', '_matrix')
+                ids_list = get_label(ids_list, site_key)
                 datasets.append(ids_list)
                 table = sets[1] #list of all ids in dataset
                 samples.append(list(table['climb_id'])) #climb id
@@ -373,7 +386,7 @@ def get_all_taxa(set, needed_samples, reports, taxon_level, filter_count):
     transposed_df['index'] = set
     return transposed_df
 
-def make_richness_table(reports, grouped_metadata, taxon_level, filter_count):
+def make_richness_table(reports, grouped_metadata, taxon_level, filter_count, site_key):
  
     datasets = [] #total datasets
     samples = [] #samples grouped by datasets
@@ -385,19 +398,14 @@ def make_richness_table(reports, grouped_metadata, taxon_level, filter_count):
                 for subset in subgroup:
                     run_id = ''.join(subset[0])
                     #turn scientific_name from a list to a string
-                    ids_list = '_'.join(ids)
-                    ids_list = ids_list.replace('public', 'public_'+run_id) #add run_id to name
-                    ids_list = ids_list.replace('_extraction_control', '')
-                    ids_list = ids_list.replace('_resp_matrix_mc110', '_matrix')
+                    ids_list = get_label(ids_list, site_key, run_id=run_id)
 
                     datasets.append(ids_list)
                     table = subset[1] #list of all ids in sub_dataset
                     samples.append(list(table['climb_id'])) #climb id
             else:
                 #turn scientific_name from a list to a string
-                ids_list = '_'.join(ids)
-                ids_list = ids_list.replace('_extraction_control', '')
-                ids_list = ids_list.replace('_resp_matrix_mc110', '_matrix')
+                ids_list = get_label(ids_list, site_key)
                 datasets.append(ids_list)
                 table = sets[1] #list of all ids in dataset
                 samples.append(list(table['climb_id'])) #climb id
@@ -509,7 +517,7 @@ def make_perc_df(needed_samples, reports):
     no_rank_df = filtered_df.drop(columns=['Rank'])
     return no_rank_df
 
-def get_heatmap(reports, grouped_metadata):
+def get_heatmap(reports, grouped_metadata, site_key):
     
     #group by site
     datasets = []
@@ -524,10 +532,7 @@ def get_heatmap(reports, grouped_metadata):
                 for subset in subgroup:
                     run_id = ''.join(subset[0])
                     #turn scientific_name from a list to a string
-                    ids_list = '_'.join(ids).lower()
-                    ids_list = ids_list.replace('public', 'public_'+run_id) #add run_id to name
-                    ids_list = ids_list.replace('_extraction_control', '')
-                    ids_list = ids_list.replace('_resp_matrix_mc110', '_matrix')
+                    ids_list = get_label(ids_list, site_key, run_id=run_id)
 
                     datasets.append(ids_list)
                     public_datasets.append(ids_list)
@@ -536,9 +541,7 @@ def get_heatmap(reports, grouped_metadata):
                     public_samples.append(list(table['climb_id']))
             else:
                 #turn scientific_name from a list to a string
-                ids_list = '_'.join(ids)
-                ids_list = ids_list.replace('_extraction_control', '')
-                ids_list = ids_list.replace('_resp_matrix_mc110', '_matrix')
+                ids_list = get_label(ids_list, site_key)
                 datasets.append(ids_list)
                 table = sets[1] #list of all ids in dataset
                 samples.append(list(table['climb_id'])) #climb id
@@ -647,6 +650,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Parse text files and a CSV file.")
     parser.add_argument('--reports', nargs='+', help="List of text files", required=True)
     parser.add_argument('--metadata', help="CSV file path", required=True)
+    parser.add_argument('--site_key', help="JSON file specifying site name to number", required=True)
     parser.add_argument('--plots_dir', help="Shannon plots directory", required=True)
     parser.add_argument('--final_report', help="Output directory", required=True)
     parser.add_argument('--template', help="HTMl template", required=True)
@@ -661,6 +665,8 @@ if __name__ == "__main__":
     mscape_directories = []
     #group by site and other identifiers
     grouped_metadata = metadata.groupby(['site', 'control_type_details'])
+    #site name to number
+    site_key = json.load(args.site_key)
 
     #group by site
     datasets = []
@@ -675,10 +681,7 @@ if __name__ == "__main__":
                 for subset in subgroup:
                     run_id = ''.join(subset[0])
                     #turn scientific_name from a list to a string
-                    ids_list = '_'.join(ids)
-                    ids_list = ids_list.replace('public', 'public_'+run_id) #add run_id to name
-                    ids_list = ids_list.replace('_extraction_control', '')
-                    ids_list = ids_list.replace('_resp_matrix_mc110', '_matrix')
+                    ids_list = get_label(ids_list, site_key, run_id=run_id)
 
                     datasets.append(ids_list)
                     public_datasets.append(ids_list)
@@ -687,9 +690,7 @@ if __name__ == "__main__":
                     public_samples.append(list(table['climb_id']))
             else:
                 #turn scientific_name from a list to a string
-                ids_list = '_'.join(ids)
-                ids_list = ids_list.replace('_extraction_control', '')
-                ids_list = ids_list.replace('_resp_matrix_mc110', '_matrix')
+                ids_list = get_label(ids_list, site_key)
                 datasets.append(ids_list)
                 table = sets[1] #list of all ids in dataset
                 samples.append(list(table['climb_id'])) #climb id
@@ -698,7 +699,7 @@ if __name__ == "__main__":
     mscape_datasets = list(filter(lambda item: item not in public_datasets, datasets))
 
     # Read bacteria load
-    data = make_microbial_count_table(reports, grouped_metadata)
+    data = make_microbial_count_table(reports, grouped_metadata, site_key)
 
     microbe_types = ["All", "Bacteria", "Fungi", "Viruses", "Archaea", "Protists"]
     load_list = []
@@ -783,7 +784,7 @@ if __name__ == "__main__":
         richness_tables = []
         
         for taxon in taxons:
-            df = make_richness_table(reports, grouped_metadata, taxon, filter_count)
+            df = make_richness_table(reports, grouped_metadata, taxon, filter_count, site_key)
             df = df.drop(columns=[column_to_drop])
 
             numerical_df = df.drop(columns=["index"])
@@ -844,7 +845,7 @@ if __name__ == "__main__":
     #make bar plots for total read counts (for heatmaps)
     sns.set_style("white")
     #heatmap function
-    average, mscape, mscape_names, both_counts = get_heatmap(reports, grouped_metadata)
+    average, mscape, mscape_names, both_counts = get_heatmap(reports, grouped_metadata, site_key)
 
     mscape_colours = []
     for name in mscape_names:
