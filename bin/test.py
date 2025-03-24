@@ -1,29 +1,15 @@
 #!/usr/bin/env python
 
+import os
+import pandas as pd
+import numpy as np
+
 spikeins = {
         12242:["Tobamovirus","Tobacco_mosaic_virus"]
     }
-    
-def get_label(ids, site_key, run_id=None):
-    ids_list = [id.lower() for id in ids]
-
-    ids_list_anon = []
-    for id in ids_list:
-        if id in site_key:
-            ids_list_anon.append(site_key[id])
-        else:
-            ids_list_anon.append(id)
-    ids_list = ids_list_anon
-
-    ids_list = ' '.join(ids_list)
-    if "public" in ids and run_id:
-        ids_list = ids_list.replace('public', 'public_'+run_id) #add run_id to name
-    ids_list = ids_list.replace('water_extraction_control', '(water)')
-    ids_list = ids_list.replace('resp_matrix_mc110', '(matrix)')
-    return ids_list
 
 def convert_to_numeric(column):
-        if column.name not in ['Rank', 'Scientific_Name']:
+        if column.name not in ['Rank', 'Scientific_Name', "Domain"]:
             return pd.to_numeric(column, errors='coerce')
         else:
             return column
@@ -118,3 +104,11 @@ def save_perc_and_count_dfs(needed_samples, reports):
     # Save to file
     merged_perc_df.to_csv('perc.csv', index=True)
     merged_count_df.to_csv('counts.csv', index=True)
+
+def main():
+    needed_samples = ["NTC_231219","Ntc_231122","Ntc_240105"]
+    reports = ["/Users/rmcolq/Downloads/neg_control_reports/reports/GSTT_NTC/kraken2/NTC_231219.kraken2.report.txt","/Users/rmcolq/Downloads/neg_control_reports/reports/GSTT_NTC/kraken2/Ntc_231213.kraken2.report.txt","/Users/rmcolq/Downloads/neg_control_reports/reports/GSTT_NTC/kraken2/NTC_240208.kraken2.report.txt","/Users/rmcolq/Downloads/neg_control_reports/reports/GSTT_NTC/kraken2/Ntc_240105.kraken2.report.txt","/Users/rmcolq/Downloads/neg_control_reports/reports/GSTT_NTC/kraken2/Ntc_231122.kraken2.report.txt"]
+    save_perc_and_count_dfs(needed_samples, reports)
+
+if __name__ == "__main__":
+    main()
