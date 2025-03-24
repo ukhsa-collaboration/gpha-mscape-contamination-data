@@ -8,7 +8,25 @@ import argparse
 spikeins = {
         12242:["Tobamovirus","Tobacco_mosaic_virus"]
     }
-    
+
+def get_label(ids, site_key, run_id=None):
+    ids = [id.lower() for id in ids]
+
+    ids_list_anon = []
+    for id in ids_list:
+        if id in site_key:
+            ids_list_anon.append(site_key[id])
+        else:
+            ids_list_anon.append(id)
+    ids_list = ids_list_anon
+
+    ids_list = '_'.join(ids)
+    if "public" in ids and run_id:
+        ids_list = ids_list.replace('public', 'public_'+run_id) #add run_id to name
+    ids_list = ids_list.replace('_extraction_control', '')
+    ids_list = ids_list.replace('_resp_matrix_mc110', '_matrix')
+    return ids_list
+
 def get_broad_count(needed_samples, reports, microbe_type, taxon_level):
 
     # Initialize an empty list to store dataframes
@@ -168,18 +186,13 @@ def make_richness_table(reports, grouped_metadata, taxon_level):
             for subset in subgroup:
                 run_id = ''.join(subset[0])
                 #turn scientific_name from a list to a string
-                ids_list = '_'.join(ids).lower()
-                ids_list = ids_list.replace('public', 'public_'+run_id) #add run_id to name
-                ids_list = ids_list.replace('_extraction_control', '')
-                ids_list = ids_list.replace('_resp_matrix_mc110', '_matrix')
+                ids_list = get_label(ids_list, site_key, run_id=run_id)
                 datasets.append(ids_list)
                 table = subset[1] #list of all ids in sub_dataset
                 samples.append(list(table['climb_id'])) #climb id
         else:
             #turn scientific_name from a list to a string
-            ids_list = '_'.join(ids)
-            ids_list = ids_list.replace('_extraction_control', '')
-            ids_list = ids_list.replace('_resp_matrix_mc110', '_matrix')
+            ids_list = get_label(ids_list, site_key)
             datasets.append(ids_list)
             table = sets[1] #list of all ids in dataset
             samples.append(list(table['climb_id'])) #climb id
@@ -207,6 +220,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Parse text files and a CSV file.")
     parser.add_argument('--reports', nargs='+', help="List of text files", required=True)
     parser.add_argument('--metadata', help="CSV file path", required=True)
+    parser.add_argument('--site_key', help="JSON file specifying site name to number", required=True)
     parser.add_argument('--output_dir', help="Shannon plots directory", required=True)
     args = parser.parse_args()
 
@@ -233,16 +247,11 @@ if __name__ == "__main__":
             for subset in subgroup:
                 run_id = ''.join(subset[0])
                 #turn scientific_name from a list to a string
-                ids_list = '_'.join(ids).lower()
-                ids_list = ids_list.replace('public', 'public_'+run_id) #add run_id to name
-                ids_list = ids_list.replace('_extraction_control', '')
-                ids_list = ids_list.replace('_resp_matrix_mc110', '_matrix')
+                ids_list = get_label(ids_list, site_key, run_id=run_id)
                 names.append(ids_list)
         else:
             #turn scientific_name from a list to a string
-            ids_list = '_'.join(ids)
-            ids_list = ids_list.replace('_extraction_control', '')
-            ids_list = ids_list.replace('_resp_matrix_mc110', '_matrix')
+            ids_list = get_label(ids_list, site_key)
             names.append(ids_list)
 
     #save all text_files in working/processing output directory

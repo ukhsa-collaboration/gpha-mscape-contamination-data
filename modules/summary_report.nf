@@ -13,13 +13,14 @@ process make_shannon_script {
     input:
     path reports
     path metadata
+    path site_key
 
     output:
     path "text_files"
 
     script:
     """
-    make_r_files.py --reports ${reports.join(' ')} --metadata ${metadata} --output_dir text_files/
+    make_r_files.py --reports ${reports.join(' ')} --metadata ${metadata} --site_key ${site_key} --output_dir text_files/
     """
 }
 
@@ -94,7 +95,7 @@ workflow evaluate_negative_controls {
 
     template = file("$baseDir/bin/summary_report_template.html")
 
-    make_shannon_script(reports, metadata)
+    make_shannon_script(reports, metadata, site_key)
     get_shannon_plot(make_shannon_script.out)
     make_report(reports, metadata, site_key, template, get_shannon_plot.out)
     println "Report will be generated in ${params.outdir}"
