@@ -9,6 +9,7 @@ import numpy as np
 import seaborn as sns
 import os
 import argparse
+from natsort import natsorted
 import json
 
 from utils import spikeins, convert_to_numeric, get_label
@@ -533,7 +534,7 @@ def get_heatmap(reports, grouped_metadata, site_key):
         perc_df.loc[len(perc_df)] = date_list
 
         row_number = perc_df.index.get_loc(perc_df[perc_df["Scientific_Name"] == "not_applicable"].index[0])
-        perc_df.iloc[row_number, 1:-1] = pd.to_datetime(perc_df.iloc[row_number, 1:-1], format='%Y/%m/%d')
+        perc_df.iloc[row_number, 1:-1] = pd.to_datetime(perc_df.iloc[row_number, 1:-1], format='%Y-%m-%d')
         #Change all "average percentage" columns to their respective dataset names to avoid clashes when merging
         perc_df[set] = perc_df["Perc_Seqs_Overall"]
         perc_df = perc_df.drop(columns=["Perc_Seqs_Overall"])
@@ -846,7 +847,7 @@ if __name__ == "__main__":
     #make bar plots for total read counts (for heatmaps)
     sns.set_style("white")
     #heatmap function
-    average, mscape, mscape_names, both_counts = get_heatmap(reports, grouped_metadata, site_key)
+    average, mscape, mscape_names, both_counts, both_dates = get_heatmap(reports, grouped_metadata, site_key)
 
     mscape_colours = []
     for name in mscape_names:
