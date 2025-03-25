@@ -566,8 +566,10 @@ def get_heatmap(reports, grouped_metadata, site_key):
 
         #make specific dfs for all dataframes in mscape_datasets
         for dataset_name in mscape_datasets:
+            short_name = dataset_name.split("(")[0]
+            category = dataset_name.split("(")[1].replace(")","")
             name_col = "Scientific_Name"
-            df = total_df.loc[:, total_df.columns.str.contains(dataset_name)]
+            df = total_df.loc[:, total_df.columns.str.contains(short_name) & total_df.columns.str.contains(category)]
             df[name_col] = total_df[name_col]
             mscape_dfs.append(df)
         
