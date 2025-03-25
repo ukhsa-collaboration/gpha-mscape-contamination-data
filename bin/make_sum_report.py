@@ -511,7 +511,6 @@ def get_heatmap(reports, grouped_metadata, site_key):
     for set in datasets:
         needed_samples = samples[loop] #our current set of sample names
         perc_df = make_perc_df(needed_samples, reports)
-        save_perc_and_count_dfs(needed_samples, reports)
 
         perc_df = perc_df.rename(columns={c: f"{set}_"+c for c in perc_df.columns if c not in ['Scientific_Name', 'Perc_Seqs_Overall']})
 
@@ -542,7 +541,7 @@ def get_heatmap(reports, grouped_metadata, site_key):
             mscape_samples.append(set)
 
 
-    def sorting(merge_df, type_of_directories, dataset_names, all_dataset_names, any_threshold=None):
+    def sorting(merge_df, type_of_directories, dataset_names, all_dataset_names):
         # Select columns to sum ('Scientific Name')
         columns_to_sum = merge_df[dataset_names]
 
@@ -551,19 +550,10 @@ def get_heatmap(reports, grouped_metadata, site_key):
         merge_df['Average'] = column_sums/len(type_of_directories)
 
         # Calculate the max of values in each row
-        merge_df['Max'] = columns_to_sum.max(axis=1)
+        # merge_df['Max'] = columns_to_sum.max(axis=1)
 
-        if any_threshold:
-            sorted_df = merge_df.sort_values(by="Max", ascending=False)
-            print(sorted_df)
-            sorted_df = pd.read_csv("counts.csv", index=True)
-            merge_df['Max'] = columns_to_sum.max(axis=1)
-            count = merge_df[merge_df['Max'] > any_threshold].shape
-            print(f"Found {count} taxa above threshold {any_threshold}")
-            top_df = sorted_df.head(max(20, count[0]))
-        else:
-            sorted_df = merge_df.sort_values(by="Average", ascending=False)
-            top_df = sorted_df.head(20)
+        sorted_df = merge_df.sort_values(by="Average", ascending=False)
+        top_df = sorted_df.head(20)
     
         total_df = top_df.drop(columns=all_dataset_names)
         total_df = total_df.drop(columns=["Average"])
@@ -615,7 +605,6 @@ def get_heatmap(reports, grouped_metadata, site_key):
 
     sort_by_average, both_counts = sorting(merge_df, samples, datasets, datasets)
     sort_by_mscape, both_counts = sorting(merge_df, mscape_samples, mscape_datasets, datasets)
-    sort_by_mscape, both_counts = sorting(merge_df, mscape_samples, mscape_datasets, datasets, any_threshold=100)
 
     return sort_by_average, sort_by_mscape, mscape_datasets, both_counts 
 
