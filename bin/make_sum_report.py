@@ -482,6 +482,7 @@ def get_heatmap(reports, grouped_metadata, site_key):
     public_datasets = []
     samples = []
     public_samples = []
+    sample_dates = []
 
     for sets in grouped_metadata:
             ids = list(sets[0])
@@ -497,12 +498,16 @@ def get_heatmap(reports, grouped_metadata, site_key):
                     table = subset[1] #list of all ids in sub_dataset
                     samples.append(list(table['climb_id'])) #climb id
                     public_samples.append(list(table['climb_id']))
+                    dates_columns = ['collection_date', 'received_date']
+                    sample_dates.append(table[dates_columns]) #sample dates
             else:
                 #turn scientific_name from a list to a string
                 ids_list = get_label(ids, site_key)
                 datasets.append(ids_list)
                 table = sets[1] #list of all ids in dataset
                 samples.append(list(table['climb_id'])) #climb id
+                dates_columns = ['collection_date', 'received_date']
+                sample_dates.append(table[dates_columns]) #sample dates
             
     
     average_list = []
@@ -512,8 +517,23 @@ def get_heatmap(reports, grouped_metadata, site_key):
         needed_samples = samples[loop] #our current set of sample names
         perc_df = make_perc_df(needed_samples, reports)
 
-        perc_df = perc_df.rename(columns={c: f"{set}_"+c for c in perc_df.columns if c not in ['Scientific_Name', 'Perc_Seqs_Overall']})
+        sample_date_df = sample_dates[loop]
 
+        date_list = ['not_applicable']
+        for index, row in sample_date_df.iterrows():
+            if row['collection_date'] == row['collection_date']:
+                date_list.append(row['collection_date'])
+            elif row['received_date'] == row['received_date']:
+                date_list.append(row['received_date'])
+            else:
+                date_list.append('NaN')
+        date_list.append(100)
+
+        perc_df = perc_df.rename(columns={c: f"{set}_"+c for c in perc_df.columns if c not in ['Scientific_Name', 'Perc_Seqs_Overall']})
+        perc_df.loc[len(perc_df)] = date_list
+
+        row_number = perc_df.index.get_loc(perc_df[perc_df["Scientific_Name"] == "not_applicable"].index[0])
+        perc_df.iloc[row_number, 1:-1] = pd.to_datetime(perc_df.iloc[row_number, 1:-1], format='%Y/%m/%d')
         #Change all "average percentage" columns to their respective dataset names to avoid clashes when merging
         perc_df[set] = perc_df["Perc_Seqs_Overall"]
         perc_df = perc_df.drop(columns=["Perc_Seqs_Overall"])
@@ -560,6 +580,7 @@ def get_heatmap(reports, grouped_metadata, site_key):
 
         both_dfs = []
         both_counts = []
+        both_dates = []
 
         mscape_dfs = []
         publics = "public"
@@ -576,10 +597,17 @@ def get_heatmap(reports, grouped_metadata, site_key):
         loop_count = 0
         sorted_mscapes = []
         sorted_m_counts = []
+        sorted_m_dates = []
         for mscape_df in mscape_dfs:
             #Get rid of dataset as prefixes
             mscape_df = mscape_df.rename(columns={c: c.replace(f"{mscape_datasets[loop_count]}_", "") for c in mscape_df.columns if c not in ['Scientific_Name']})
-            mscape_df.sort_index(axis=1, inplace=True)
+            row_number = mscape_df.index.get_loc(mscape_df[mscape_df["Scientific_Name"] == "not_applicable"].index[0])
+            mscape_df.iloc[row_number] = natsorted(mscape_df.iloc[row_number])
+            new_row_number = mscape_df.index.get_loc(mscape_df[mscape_df["Scientific_Name"] == "not_applicable"].index[0])
+            
+            dates = list(mscape_df.iloc[new_row_number])
+            sorted_m_dates.append(dates)
+            mscape_df = mscape_df[~mscape_df.Scientific_Name.str.contains("not_applicable")]          
             sorted_mscapes.append(mscape_df)
 
             mscape_matrix = mscape_df.drop(columns=["Scientific_Name"])
@@ -591,7 +619,11 @@ def get_heatmap(reports, grouped_metadata, site_key):
         public_df = total_df.loc[:, total_df.columns.str.contains(publics, case=False)]
         public_df["Scientific_Name"] = total_df["Scientific_Name"]
         public_df = public_df.rename(columns={c: c.split("_")[-1] for c in public_df.columns if c not in ['Scientific_Name']})
-        public_df.sort_index(axis=1, inplace=True)
+        row_number = public_df.index.get_loc(public_df[public_df["Scientific_Name"] == "not_applicable"].index[0])
+        public_df.iloc[row_number] = natsorted(public_df.iloc[row_number])
+
+        public_dates = list(public_df.iloc[row_number])
+        public_df = public_df[~public_df.Scientific_Name.str.contains("not_applicable")]
 
         public_matrix = public_df.drop(columns=["Scientific_Name"])
         public_counts = public_matrix.transpose()
@@ -603,12 +635,15 @@ def get_heatmap(reports, grouped_metadata, site_key):
         both_counts.append(sorted_m_counts)
         both_counts.append(public_counts['index'])
 
-        return both_dfs, both_counts
+        both_dates.append(sorted_m_dates)
+        both_dates.append(public_dates)
 
-    sort_by_average, both_counts = sorting(merge_df, samples, datasets, datasets)
-    sort_by_mscape, both_counts = sorting(merge_df, mscape_samples, mscape_datasets, datasets)
+        return both_dfs, both_counts, both_dates
 
-    return sort_by_average, sort_by_mscape, mscape_datasets, both_counts 
+    sort_by_average, both_counts, both_dates = sorting(merge_df, samples, datasets, datasets)
+    sort_by_mscape, both_counts, both_dates = sorting(merge_df, mscape_samples, mscape_datasets, datasets)
+
+    return sort_by_average, sort_by_mscape, mscape_datasets, both_counts, both_dates
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Parse text files and a CSV file.")
@@ -938,7 +973,7 @@ if __name__ == "__main__":
     buf.close()
     plt.close(fig)
     
-
+    #make heatmaps
     def get_two_maps(sort_way):
         heatmap_list = []
         total_samples = 0
