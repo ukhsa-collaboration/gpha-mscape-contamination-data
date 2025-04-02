@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import pandas as pd
-import os
 
 spikeins = {
         12242:["Tobamovirus","Tobacco_mosaic_virus"]
@@ -30,19 +29,20 @@ def convert_to_numeric(column):
         else:
             return column
 
-#Create a dataframe for average counts per dataset in each microbe type(taxon) in "bacteria", "fungi", "viruses", "archaea", and "protists"
-def save_perc_and_count_dfs(needed_samples, reports, df_type):
+def save_perc_and_count_dfs(needed_samples, reports):
     # Initialize an empty list to store dataframes
-    merged_df = None
+    merged_perc_df = None
+    merged_count_df = None
 
-    #Loop over each kraken file in reports directory
+    #   Loop over each kraken file in reports directory
     for sample in needed_samples:
         found = False
-        for filename in os.listdir(reports):
+        for filename in reports:
             if f'{sample}' in filename:
                 found = True
+
                 #open new file and read it line by line
-                file = open(f'{reports}/{filename}')
+                file = open(filename)
 
                 #create 3 lists for count of sequences then rank and scientific name
                 perc_seqs = []
@@ -66,6 +66,7 @@ def save_perc_and_count_dfs(needed_samples, reports, df_type):
                     current_name = columns[5]
                     current_rank = columns[3]
 
+                    # Check for the microbial category in scientific name column and set the flag to start readin
                     if current_name in ["Sar", "Discoba", "Metamonada"]:
                         current_domain = "Protists"
                     elif current_name == "Fungi":
@@ -87,28 +88,34 @@ def save_perc_and_count_dfs(needed_samples, reports, df_type):
                     sci_name.append('_'.join(columns[5:])) #this turns scientific name (which sometimes have multiple words) into a list within a list
                     domain.append(current_domain)
 
+                # Extract the sample ID from sample (climb_id)
+                sample_ID = sample
+
                 # Turn the four lists into a dataframe, using sample ID in place of "% of seqs" or "read counts", depending on whether you want counts or percentages
-                if df_type == "perc":
-                    df = pd.DataFrame({sample: perc_seqs, "Rank": rank, "Scientific_Name": sci_name, "Domain":domain})
-                else:
-                    df = pd.DataFrame({sample: read_counts, "Rank": rank, "Scientific_Name": sci_name, "Domain":domain})
+                df_perc = pd.DataFrame({sample_ID: perc_seqs, "Rank": rank, "Scientific_Name": sci_name, "Domain":domain})
+                df_count = pd.DataFrame({sample_ID: read_counts, "Rank": rank, "Scientific_Name": sci_name, "Domain":domain})
 
                 # Set the index to scientific name for merging later
-                df.set_index(["Scientific_Name", "Rank", "Domain"], inplace=True)
+                df_perc.set_index(["Scientific_Name", "Rank", "Domain"], inplace=True)
+                df_count.set_index(["Scientific_Name", "Rank", "Domain"], inplace=True)
+
                 #add the new dataframe to the merged df
-                if merged_df is None:
-                    merged_df = df
+                if merged_perc_df is None:
+                    merged_perc_df = df_perc
                 else:
-                    merged_df = merged_df.join(df, how="outer")
+                    merged_perc_df = merged_perc_df.join(df_perc, how="outer")
+                if merged_count_df is None:
+                    merged_count_df = df_count
+                else:
+                    merged_count_df = merged_count_df.join(df_count, how="outer")
+
         if not found:
             print(f"No kraken report for sample {sample} has been provided!")
 
 
     # Merge the DataFrames on a specific column
-    merged_df = merged_df.apply(convert_to_numeric).fillna(0)
-    merged_df = merged_df.reset_index()
-
-    return merged_df
+    merged_perc_df = merged_perc_df.apply(convert_to_numeric).fillna(0)
+    merged_count_df = merged_count_df.apply(convert_to_numeric).fillna(0)
 
     # Remove spikeins
     #for spike in spikeins:
@@ -116,5 +123,5 @@ def save_perc_and_count_dfs(needed_samples, reports, df_type):
     #    merged_count_df = merged_count_df.loc[~merged_count_df.index.isin(spikeins[spike])]
 
     # Save to file
-    #merged_perc_df.to_csv('perc.csv', index=True)
-    #merged_count_df.to_csv('counts.csv', index=True)
+    merged_perc_df.to_csv('perc.csv', index=True)
+    merged_count_df.to_csv('counts.csv', index=True)
