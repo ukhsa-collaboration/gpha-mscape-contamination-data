@@ -4,10 +4,10 @@ import os
 import pandas as pd
 import numpy as np
 import argparse
-import json
 
-from utils import spikeins, convert_to_numeric, get_label
-
+spikeins = {
+        12242:["Tobamovirus","Tobacco_mosaic_virus"]
+    }
 
 def get_broad_count(needed_samples, reports, microbe_type, taxon_level):
 
@@ -15,26 +15,24 @@ def get_broad_count(needed_samples, reports, microbe_type, taxon_level):
     dfs = []
     # Loop over each kraken file in reports directory
     for sample in needed_samples:
-        found = False
-        for filename in reports:
-            if f'{sample}' in filename:
-                found = True
+        for filename in os.listdir(reports):
+            if f'{sample}.' in filename and filename.endswith('report.txt'):
                 #open new file and read it line by line
-                file = open(filename)
+                file = open(reports+"/"+filename)
         
                 #create 3 lists for count of sequences then rank and scientific name
                 read_counts = []
                 rank = []
                 sci_name = []
             
-                #only start reading each file when it starts listing our domain
+            #only start reading each file when it starts listing our domain
                 start_reading = False    
 
                 # Iterate over each line in the file
                 for line in file:
                     # Split the line into columns
                     columns = line.split()
-        
+                    
                     #record the current scientific name of this line
                     current_name = columns[5]
                     current_rank = columns[3]
@@ -56,6 +54,7 @@ def get_broad_count(needed_samples, reports, microbe_type, taxon_level):
                         #this turns scientific name (which sometimes have multiple words) into a list within a list
                         sci_name.append(line.split()[5:])
 
+
                 sample_ID = sample
             
                 # Turn the four lists into a dataframe, using sample ID in place of "% of seqs" or "read counts", depending on whether you want counts or percentages
@@ -64,11 +63,8 @@ def get_broad_count(needed_samples, reports, microbe_type, taxon_level):
                 #add the new dataframe to the list of dataframes
                 dfs.append(df_new_file)
 
-        if not found:
-            print(f"No kraken report for sample {sample} has been provided!")
 
     # Merge the DataFrames on a specific column
-    print(len(dfs))
     merged_df = pd.concat(dfs, axis = 0, join= "outer")  # Change join to 'outer' for outer join
     #turn scientific_name from a list to a string
     merged_df["Scientific_Name"] = ['_'.join(lst) for lst in merged_df["Scientific_Name"]]
@@ -77,23 +73,27 @@ def get_broad_count(needed_samples, reports, microbe_type, taxon_level):
     
     
     # Define a function to convert a column to numeric type if it's not 'rank' or 'scientific name'
-
+    def convert_to_numeric(column):
+        if column.name not in ['Rank', 'Scientific_Name']:
+            return pd.to_numeric(column, errors='coerce')
+        else:
+            return column
     # Apply the function to each column
     numeric_df = merged_on_sci.apply(convert_to_numeric)   
     #change NaN to "0"
     numeric_df = numeric_df.fillna(0)
-
+    
     #remove spikeins
     for spike in spikeins:
         numeric_df = numeric_df.loc[~numeric_df["Scientific_Name"].astype(str).isin(spikeins[spike])]
-    
+
     # Define keywords and columns to search
     keywords = [taxon_level] #the taxonomy level I want to filter for
     columns_to_search = ['Rank']
     
     # Boolean indexing to filter rows showing only taxon wanted in the rank column
     filtered_df = numeric_df[numeric_df[columns_to_search].apply(lambda x: x.isin(keywords).any(), axis=1)]
-
+    
     empty_data = {'Scientific_Name': 0}
     transposed_df = pd.DataFrame(empty_data, index=['Scientific_Name'])
     richness_df = pd.DataFrame([])
@@ -152,11 +152,11 @@ def get_broad_category(set, needed_samples, reports, taxon_level):
     return transposed_df, percent_dfs
 
 # Do the above for all directories
-def make_richness_table(reports, grouped_metadata, taxon_level, site_key):
+def make_richness_table(reports, grouped_metadata, taxon_level):
     #group by site
     datasets = []
     samples = []
-    
+
     for sets in grouped_metadata:
         ids = list(sets[0])
         if "public" in ids[0].lower(): #if dataset is public
@@ -164,13 +164,19 @@ def make_richness_table(reports, grouped_metadata, taxon_level, site_key):
             for subset in subgroup:
                 run_id = ''.join(subset[0])
                 #turn scientific_name from a list to a string
-                ids_list = get_label(ids, site_key, run_id=run_id)
+                ids_list = '_'.join(ids)
+                ids_list = ids_list.replace('public', 'public_'+run_id) #add run_id to name
+                ids_list = ids_list.replace('_extraction_control', '')
+                ids_list = ids_list.replace('_resp_matrix_mc110', '_matrix')
+
                 datasets.append(ids_list)
                 table = subset[1] #list of all ids in sub_dataset
                 samples.append(list(table['climb_id'])) #climb id
         else:
             #turn scientific_name from a list to a string
-            ids_list = get_label(ids, site_key)
+            ids_list = '_'.join(ids)
+            ids_list = ids_list.replace('_extraction_control', '')
+            ids_list = ids_list.replace('_resp_matrix_mc110', '_matrix')
             datasets.append(ids_list)
             table = sets[1] #list of all ids in dataset
             samples.append(list(table['climb_id'])) #climb id
@@ -179,9 +185,7 @@ def make_richness_table(reports, grouped_metadata, taxon_level, site_key):
     single_dfs = []
     single_perc_dfs = []
     for set in datasets:
-        print(set)
         needed_samples = samples[loop]
-        print(needed_samples)
         transposed_df, percent_dfs = get_broad_category(set, needed_samples, reports, taxon_level)
         single_dfs.append(transposed_df)
         single_perc_dfs.append(percent_dfs)
@@ -194,52 +198,45 @@ def make_richness_table(reports, grouped_metadata, taxon_level, site_key):
 
     return final_table, single_perc_dfs 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Parse text files and a CSV file.")
-    parser.add_argument('--reports', nargs='+', help="List of text files", required=True)
-    parser.add_argument('--metadata', help="CSV file path", required=True)
-    parser.add_argument('--site_key', help="JSON file specifying site name to number", required=True)
-    parser.add_argument('--output_dir', help="Shannon plots directory", required=True)
-    args = parser.parse_args()
-
-    reports = args.reports
-    metadata = pd.read_csv(args.metadata)
-    site_key = {}
-    with open(args.site_key, 'r') as f:
-        site_key = json.load(f)
+reports = "/Users/angelasun/Downloads/neg_control_reports/all_reports"
+metadata = pd.read_csv("/Users/angelasun/Downloads/neg_control_reports/public_metadata.csv")
     
-    #make output text_files directory
-    output_dir = args.output_dir
-    os.makedirs(output_dir, exist_ok=True) #make directory path into real directory
+#make output text_files directory
+output_dir = "/Users/angelasun/Downloads/local-test/test_files/"
+os.makedirs(output_dir, exist_ok=True) #make directory path into real directory
+#filter for richness data on genus level
+taxon = "G"
 
-    #filter for richness data on genus level
-    taxon = "G"
+grouped_metadata = metadata.groupby(['site', 'control_type_details'])
+richness, diversity = make_richness_table(reports, grouped_metadata, taxon)
 
-    grouped_metadata = metadata.groupby(['site', 'control_type_details'])
-    richness, diversity = make_richness_table(reports, grouped_metadata, taxon, site_key)
+richness.to_csv(output_dir+"richness_table.txt", sep='\t', index=False)
 
-    richness.to_csv(output_dir+"richness_table.txt", sep='\t', index=False)
-
-    names = []
-    for sets in grouped_metadata:
-        ids = list(sets[0])
-        if "public" in ids[0].lower(): #if dataset is public
-            subgroup = sets[1].groupby(['run_id'])
-            for subset in subgroup:
-                run_id = ''.join(subset[0])
-                #turn scientific_name from a list to a string
-                ids_list = get_label(ids, site_key, run_id=run_id)
-                names.append(ids_list)
-        else:
+names = []
+for sets in grouped_metadata:
+    ids = list(sets[0])
+    if "public" in ids[0].lower(): #if dataset is public
+        subgroup = sets[1].groupby(['run_id'])
+        for subset in subgroup:
+            run_id = ''.join(subset[0])
             #turn scientific_name from a list to a string
-            ids_list = get_label(ids, site_key)
+            ids_list = '_'.join(ids)
+            ids_list = ids_list.replace('public', 'public_'+run_id) #add run_id to name
+            ids_list = ids_list.replace('_extraction_control', '')
+            ids_list = ids_list.replace('_resp_matrix_mc110', '_matrix')
             names.append(ids_list)
+    else:
+        #turn scientific_name from a list to a string
+        ids_list = '_'.join(ids)
+        ids_list = ids_list.replace('_extraction_control', '')
+        ids_list = ids_list.replace('_resp_matrix_mc110', '_matrix')
+        names.append(ids_list)
 
-    #save all text_files in working/processing output directory
-    loop = 0
-    for df_set in diversity:
-        df_set[0].to_csv(os.path.join(output_dir, f"{names[loop]}.total.txt"), sep='\t', index=False)
-        df_set[1].to_csv(os.path.join(output_dir, f"{names[loop]}.dna.txt"), sep='\t', index=False)
-        df_set[2].to_csv(os.path.join(output_dir, f"{names[loop]}.rna.txt"), sep='\t', index=False)
-        loop += 1
+#save all text_files in working/processing output directory
+loop = 0
+for df_set in diversity:
+    df_set[0].to_csv(os.path.join(output_dir, f"{names[loop]}.total.txt"), sep='\t', index=False)
+    df_set[1].to_csv(os.path.join(output_dir, f"{names[loop]}.dna.txt"), sep='\t', index=False)
+    df_set[2].to_csv(os.path.join(output_dir, f"{names[loop]}.rna.txt"), sep='\t', index=False)
+    loop += 1
 

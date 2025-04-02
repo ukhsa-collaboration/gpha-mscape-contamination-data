@@ -236,39 +236,41 @@ function toggleElements(showElement, hideElements) {
 <button onclick="toggleElements('.virus', '.load')">Viruses</button>
 <button onclick="toggleElements('.archaea', '.load')">Archaea</button>
 <button onclick="toggleElements('.protist', '.load')">Protists</button>
+<h3 class="divider">    </h3>
+<button>Remove Spike-in</button>
 <br>
 <br>
 <div class="all load">
-<img src="data:image/png;base64,${all_load}" height="500" width="700"
-alt="Embedded Bar Graph depicting the average read count found for all microorganisms in each dataset.">
+    <img src="data:image/png;base64,${all_load}" height="500" width="700"
+    alt="Embedded Bar Graph depicting the average read count found for all microorganisms in each dataset.">
 </div>
 
-<div class="bacteria load", style="display: none">
-<img src="data:image/png;base64,${bac_load}" height="500" width="700"
-alt="Embedded Bar Graph depicting the average read count found for all bacteria in each dataset.">
+<div class="bacteria load" style="display: none">
+    <img src="data:image/png;base64,${bac_load}" height="500" width="700"
+    alt="Embedded Bar Graph depicting the average read count found for all bacteria in each dataset.">
 </div>
 
 <div class="fungi load" style="display: none">
-<img src="data:image/png;base64,${fungi_load}" height="500" width="700"
-alt="Embedded Bar Graph depicting the average read count found for all fungi in each dataset.">
+    <img src="data:image/png;base64,${fungi_load}" height="500" width="700"
+    alt="Embedded Bar Graph depicting the average read count found for all fungi in each dataset.">
 </div>
 
 <div class="virus load" style="display: none">
-<img src="data:image/png;base64,${virus_load}" height="500" width="700"
-alt="Embedded Bar Graph depicting the average read count found for all viruses in each dataset.">
+    <img src="data:image/png;base64,${virus_load}" height="500" width="700"
+    alt="Embedded Bar Graph depicting the average read count found for all viruses in each dataset.">
 </div>
 
 <div class="archaea load" style="display: none">
-<img src="data:image/png;base64,${archaea_load}" height="500" width="700"
-alt="Embedded Bar Graph depicting the average read count found for all archaea in each dataset.">
+    <img src="data:image/png;base64,${archaea_load}" height="500" width="700"
+    alt="Embedded Bar Graph depicting the average read count found for all archaea in each dataset.">
 </div>
 
 <div class="protist load" style="display: none">
-<img src="data:image/png;base64,${protist_load}" height="500" width="700"
-alt="Embedded Bar Graph depicting the average read count found for all protists in each dataset.">
+    <img src="data:image/png;base64,${protist_load}" height="500" width="700"
+    alt="Embedded Bar Graph depicting the average read count found for all protists in each dataset.">
 </div>
 
-<p class="ont_ref" style="text-align: left;"><strong>The average number of reads found in samples of each dataset, displayed on a log scale.</strong> mScape datasets are in bold. Spike-ins have been excluded.</p>
+<p class="ont_ref" style="text-align: left;"><strong>The average number of reads found in samples of each dataset, displayed on a log scale.</strong> mScape datasets are separated into three categories: GSTT (NTC) (water controls), GSTT (N2) (mock human flora), and BIRM. Spike-ins are included. Non-lung studies are coloured in red.</p>
 
 <h3>Diversity and evenness</h3>
 
@@ -386,7 +388,7 @@ alt="Heatmap depicting the top 20 most abundant microbial genera across all mSca
 alt="Heatmap depicting the top 20 most abundant microbial genera across all mScape controls."/>
 </div>
 
-<p class="ont_ref" style="text-align: left;"><strong>The top 20 most abundant microbial genera in mScape datasets and across all datasets combined.</strong> Colour scale indicates the percentage, or proportion of reads in each sample. An average percentage was calculated for every genus within a dataset, then sorted across <strong>1. all datasets</strong> and <strong>2. only mScape datasets</strong> for the top 20 genera. Samples are arranged by date. Blanks (white space) indicate where zero read counts were found.</p> 
+<p class="ont_ref" style="text-align: left;"><strong>The top 20 most abundant microbial genera in mScape datasets and across all datasets combined.</strong> Colour scale indicates the percentage, or proportion of reads in each sample. An average percentage was calculated for every genus within a dataset, then sorted across <strong>1. all datasets</strong> and <strong>2. only mScape datasets</strong> for the top 20 genera. Each sample is arranged in ascending order of total read count. Blanks (white space) indicate where zero read counts were found.</p> 
 <br>
 <br>
 <br>

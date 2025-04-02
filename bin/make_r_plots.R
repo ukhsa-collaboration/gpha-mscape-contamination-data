@@ -5,9 +5,8 @@ library(vegan)
 library(dplyr)
 library(crayon)
 
-args <- commandArgs(trailingOnly = TRUE)
-input_dir <- args[1]
-output_dir <- args[2]
+input_dir <- "/Users/angelasun/Downloads/local-test/test_files/"
+output_dir <- "/Users/angelasun/Downloads/local-test/plots/"
 
 dir.create(output_dir, showWarnings = FALSE)
 
@@ -15,7 +14,7 @@ total_files <- list.files(input_dir, pattern = "*.total.txt", full.names = TRUE)
 dna_files <- list.files(input_dir, pattern = "*.dna.txt", full.names = TRUE)
 rna_files <- list.files(input_dir, pattern = "*.rna.txt", full.names = TRUE)
 
-richness <- read.table(file.path(paste0(input_dir, "richness_table.txt")), sep = "\t", stringsAsFactors = TRUE, header=TRUE, row.names="index")
+richness <- read.table(file.path(paste0(input_dir, "richness_table.txt")), stringsAsFactors = TRUE, header=TRUE, row.names="index")
 
 taxa_list <- c(1, 2, 3)
 
@@ -39,6 +38,7 @@ for (type_of_taxa in taxa_list) {
   median_shannon <- c()
   for (file in file_list) {
     #read data
+    print(file)
     data <- read.table(file, header=TRUE)
     # Calculate Shannon's diversity index
     shannon <- (diversity(data, index = "shannon"))
