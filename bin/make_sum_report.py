@@ -12,163 +12,66 @@ import argparse
 from natsort import natsorted
 import json
 
-from utils import spikeins, convert_to_numeric, get_label
+from utils import spikeins, convert_to_numeric, get_label, make_count_dfs
 
-#Create a dataframe for average counts per dataset in each microbe type(taxon) in "bacteria", "fungi", "viruses", "archaea", and "protists"
-def get_each_taxon(needed_samples, reports, microbe_type):
-    # Initialize an empty list to store dataframes
-    dfs = []
-
-    #Loop over each kraken file in reports directory
-    for sample in needed_samples:
-        found = False
-        for filename in reports:
-            if f'{sample}' in filename:
-                found = True
-                #open new file and read it line by line
-                file = open(filename)
-            
-                #create 3 lists for count of sequences then rank and scientific name
-                read_counts = []
-                rank = []
-                sci_name = []   
-        
-                # Iterate over each line in the file
-                for line in file:
-                    if line.startswith("%"):
-                        continue
-
-                    # Split the line into columns
-                    columns = line.split()
-
-                    #record the current scientific name of this line
-                    current_name = columns[5]
-                    current_id = int(columns[4])
-                        
-                    # Check for the microbial category in scientific name column and set the flag to start readin
-                    if microbe_type == "Protists":
-                        if current_name in ["Sar", "Discoba", "Metamonada"]:
-                            read_counts.append(line.split()[1])
-                            rank.append(line.split()[3])            
-                        #this turns scientific name (which sometimes have multiple words) into a list within a list
-                            sci_name.append(line.split()[5:])
-                    elif microbe_type == "All":
-                        if current_name == "root" or current_id in spikeins:
-                            read_counts.append(line.split()[1])
-                            rank.append(line.split()[3])            
-                        #this turns scientific name (which sometimes have multiple words) into a list within a list
-                            sci_name.append(line.split()[5:])
-                    # Get list of taxa in bacteria, virus, archaea domain 
-                    elif microbe_type == "Viruses":
-                        if current_name == microbe_type or current_id in spikeins:
-                            read_counts.append(line.split()[1])
-                            rank.append(line.split()[3])            
-                        #this turns scientific name (which sometimes have multiple words) into a list within a list
-                            sci_name.append(line.split()[5:])
-                            #print("Appended line in kraken report:")
-                            #print(line)
-                    else:
-                        if current_name == microbe_type:
-                            read_counts.append(line.split()[1])
-                            rank.append(line.split()[3])            
-                        #this turns scientific name (which sometimes have multiple words) into a list within a list
-                            sci_name.append(line.split()[5:])
-                                            
-                # Extract the sample ID from sample (climb_id)
-                sample_ID = sample
-            
-                # Turn the four lists into a dataframe, using sample ID in place of "% of seqs" or "read counts", depending on whether you want counts or percentages
-                df_new_file = pd.DataFrame({sample_ID: read_counts, "Rank": rank, "Scientific_Name": sci_name})
-                
-                #add the new dataframe to the list of dataframes
-                dfs.append(df_new_file)
-
-        if not found:
-            print(f"No kraken report for sample {sample} has been provided!")
-    
-    
-    # Merge the DataFrames on a specific column
-    merged_df = pd.concat(dfs, axis = 0, join= "outer")  # Change join to 'outer' for outer join
-    #turn scientific_name from a list to a string
-    merged_df["Scientific_Name"] = ['_'.join(lst) for lst in merged_df["Scientific_Name"]]
-    #merge on scientific name - this means that no scientific name is repeated if it's present in different dataframes
-    merged_on_sci = merged_df.groupby('Scientific_Name', as_index=False).first()
-
-    # Apply the function to each column
-    numeric_df = merged_on_sci.apply(convert_to_numeric)
-    
-    #change NaN to "0"
-    numeric_df = numeric_df.fillna(0)
-
+#Merge all taxon count dataframes together to get all microbe type count data per dataset
+def get_microbial_load(set, needed_samples, reports):
+    count_df = make_count_dfs(needed_samples, reports)
     #Get list of spikeins and make a spikeins dataframe from main dataframe
     spikein_names = []
     for spike in spikeins:
         spike_list = spikeins[spike]
-        spikein_names.extend(spike_list)
-    
+        spikein_names.append(spike_list[1])
+
     if isinstance(spikein_names, str):
-        spike_df = numeric_df.loc[numeric_df["Scientific_Name"] == spikein_names]
+        spike_df = count_df.loc[count_df["Scientific_Name"] == spikein_names]
     else:
-        spike_df = numeric_df.loc[numeric_df["Scientific_Name"].isin(spikein_names)]
-    
-    #if microbe_type == "Viruses":
-    #    print("Dataframe with all potential spikeins:")
-    #    print(spike_df)
+        spike_df = count_df.loc[count_df["Scientific_Name"].isin(spikein_names)]
 
     #Get sum of spikeins
-    spike_df = spike_df.drop(columns=['Scientific_Name', 'Rank'])
+    spike_df = spike_df.drop(columns=['Scientific_Name', 'Rank', "Domain"])
     copy_df = spike_df.copy()
     copy_df["Sum"] = copy_df.sum(axis=1) #sum for each spikein taxon
     spike_sum = copy_df["Sum"].sum(axis=0) #sum for all spikein taxa combined
-     
-    #Filtering the dataframe to find the total of whichever taxon    
-    if microbe_type != "Protists" and microbe_type != "All":
-        taxon_needed = numeric_df.loc[numeric_df["Scientific_Name"] == microbe_type]
-    elif microbe_type == "All":
-        taxon_needed = numeric_df.loc[numeric_df["Scientific_Name"] == "root"]
-    else:
-        taxon_needed = numeric_df.loc[numeric_df["Scientific_Name"].isin(["Sar", "Discoba", "Metamonada"])]
 
-    #if microbe_type == "Viruses":
-    #    print("Dataframe for domain level Virus counts:")
-    #    print(taxon_needed)
+    #Find total counts for microbe categories that can be found in single rows
+    domains_list = ["Bacteria", "Archaea", "Fungi", "Viruses"]
+    domains_df = count_df.loc[count_df["Scientific_Name"].isin(domains_list)]
+    domains_numeric = domains_df.drop(columns=["Scientific_Name", "Rank", "Domain"])
+    domains_df["Sum"] = domains_numeric.sum(axis=1)
 
-    # Select columns to sum (excluding 'Kingdom' and 'Scientific Name')
-    columns_needed = taxon_needed.drop(columns=['Scientific_Name', 'Rank'])
-    columns_copy = columns_needed.copy()
-    #Get the total counts in each dataset for the phylum we are checking for 
-    columns_sum = columns_copy.sum(axis=1)
-    #Get the sum of all taxa that we are checking for - needed for protists as there are 3 taxa
-    columns_copy['sum'] = columns_sum
-    microbe_sum = columns_copy['sum'].sum(axis=0)
+    #Make initial table
+    table_columns = ["Scientific_Name", "Sum"]
+    current_df = domains_df[table_columns].copy()
+    current_df = current_df.reset_index(drop=True)
 
-    real_count = int(microbe_sum) - int(spike_sum)
+    #Remove spikein from virus sum
+    virus_index = current_df.index.get_loc(current_df[current_df["Scientific_Name"] == "Viruses"].index[0])
+    virus_sum = current_df.loc[virus_index, "Sum"]
+    new_virus_sum = virus_sum - spike_sum
+    current_df.loc[virus_index, "Sum"] = new_virus_sum
 
-    if microbe_type == "Viruses":
-        print(f'Count with spikeins removed: all virus counts({microbe_sum}) - all tobamo virus counts ({spike_sum}) = {real_count}')
-    
-    #Get the total number of columns/samples
-    columns_no = columns_copy.shape[1]
+    #Find Protists sum by making a protist df
+    protist_list = ["Sar", "Discoba", "Metamonada"]
+    protist_df = count_df.loc[count_df["Scientific_Name"].isin(protist_list)]
+    protist_numeric = protist_df.drop(columns=["Scientific_Name", "Rank", "Domain"])
+    protist_df["Sum"] = protist_numeric.sum(axis=1)
+    total_protists = protist_df["Sum"].sum(axis=0)
 
-    #Get average count per sample in a dataset
-    average = real_count/columns_no
+    # Create a dictionary with the data for the new row
+    protist_row = {'Scientific_Name': 'Protists', 'Sum': total_protists}
+    # Append the dictionary to the DataFrame
+    current_df.loc[len(current_df)] = protist_row
 
-    data = {'Name': microbe_type, 'Average Count': average}
-    current_df = pd.DataFrame(data, index=[0])
-    return current_df
+    #Find total sum
+    total_sum = current_df["Sum"].sum()
+    all_row = {'Scientific_Name': 'All', 'Sum': total_sum}
+    # Append the dictionary to the DataFrame
+    current_df.loc[len(current_df)] = all_row
 
-#Merge all taxon count dataframes together to get all microbe type count data per dataset
-def get_microbial_load(set, needed_samples, reports):
-    taxa = ["All", "Bacteria", "Fungi", "Viruses", "Archaea", "Protists"]
-    current_dfs = []
-    for microbe_type in taxa:
-        current_df = get_each_taxon(needed_samples, reports, microbe_type)
-        current_dfs.append(current_df)
-    # Merge the DataFrames on a specific column
-    merged_df = pd.concat(current_dfs, axis = 0, join= "outer")  # Change join to 'outer' for outer join
-    #merge on scientific name - this means that no scientific name is repeated 
-    merged_df = merged_df.groupby('Name', as_index=True).first()
-    transposed_df = merged_df.transpose()
+    current_df.set_index("Scientific_Name", inplace=True)
+
+    transposed_df = current_df.transpose()
     transposed_df.reset_index(inplace=True)
 
     transposed_df['index'] = set
@@ -213,143 +116,43 @@ def make_microbial_count_table(reports, grouped_metadata, site_key):
     final_table.fillna(value=0.0, inplace=True)
     return final_table
 
-def get_species_count(needed_samples, reports, microbe_type, taxon_level, filter_count):
-    # Initialize an empty list to store dataframes
-    dfs = []
-#   Loop over each kraken file in reports directory
-    for sample in needed_samples:
-        for filename in reports:
-            if f'{sample}' in filename:
-                #open new file and read it line by line
-                file = open(filename)
-        
-                #create 3 lists for count of sequences then rank and scientific name
-                read_counts = []
-                rank = []
-                sci_name = []
-            
-            #only start reading each file when it starts listing our domain
-                start_reading = False    
-
-                # Iterate over each line in the file
-                for line in file:
-                    # Split the line into columns
-                    columns = line.split()
-        
-                    #record the current scientific name of this line
-                    current_name = columns[5]
-                    current_rank = columns[3]
-    
-                    # Check for the microbial category in scientific name column and set the flag to start readin
-                    if microbe_type == "Protists":
-                        if current_name in ["Sar", "Discoba", "Metamonada"]:
-                            start_reading = True
-                        else:
-                            if current_rank == "D1":
-                                start_reading = False
-                    # Get list of taxa in Fungi kingdom only
-                    elif microbe_type == "Fungi":
-                        if current_name == microbe_type:
-                            start_reading = True
-                        else:
-                            if current_rank == "K":
-                                start_reading = False
-                    # Get list of taxa in bacteria, virus, archaea domain
-                    elif microbe_type == f'Bacteria > {filter_count}':
-                        if current_name == "Bacteria":
-                            start_reading = True
-                        else:
-                            if current_rank == "D":
-                                start_reading = False  
-                    else:
-                        if current_name == microbe_type:
-                            start_reading = True
-                        else:
-                            if current_rank == "D":
-                                start_reading = False
-                        
-                                    
-                    if start_reading:
-                        read_counts.append(line.split()[1])
-                        rank.append(line.split()[3])            
-                    #this turns scientific name (which sometimes have multiple words) into a list within a list
-                        sci_name.append(line.split()[5:])
-
-                # Extract the sample ID from sample (climb_id)                           
-                sample_ID = sample
-            
-                # Turn the four lists into a dataframe, using sample ID in place of "% of seqs" or "read counts", depending on whether you want counts or percentages
-                df_new_file = pd.DataFrame({sample_ID: read_counts, "Rank": rank, "Scientific_Name": sci_name})
-                
-                #add the new dataframe to the list of dataframes
-                dfs.append(df_new_file)
-
-
-    # Merge the DataFrames on a specific column
-    merged_df = pd.concat(dfs, axis = 0, join= "outer")  # Change join to 'outer' for outer join
-    #turn scientific_name from a list to a string
-    merged_df["Scientific_Name"] = ['_'.join(lst) for lst in merged_df["Scientific_Name"]]
-    #merge on scientific name - this means that no scientific name is repeated if it's present in both the gut and lung dataframes
-    merged_on_sci = merged_df.groupby('Scientific_Name', as_index=False).first()
-
-    # Apply the function to each column
-    numeric_df = merged_on_sci.apply(convert_to_numeric)   
-    #change NaN to "0"
-    numeric_df = numeric_df.fillna(0)
+def get_all_taxa(set, needed_samples, reports, taxon_level, filter_count):
+    count_df = make_count_dfs(needed_samples, reports)
     
     #remove spikeins
     for spike in spikeins:
-        numeric_df = numeric_df.loc[~numeric_df["Scientific_Name"].astype(str).isin(spikeins[spike])]
+        count_df = count_df.loc[~count_df["Scientific_Name"].astype(str).isin(spikeins[spike])]
 
     # Define keywords and columns to search
     keywords = [taxon_level] #the taxonomy level I want to filter for
     columns_to_search = ['Rank']
     
     # Boolean indexing to filter rows showing only genus in the rank column
-    filtered_df = numeric_df[numeric_df[columns_to_search].apply(lambda x: x.isin(keywords).any(), axis=1)]
+    filtered_df = count_df[count_df[columns_to_search].apply(lambda x: x.isin(keywords).any(), axis=1)]
 
     if len(filtered_df.index) > 0 :
-        # Rearrange column 'Scientific Name' to the first position
-        wordy_columns = ['Scientific_Name', 'Rank']
-        # check if columns are not in the wordy_columns list
-        column_order = ['Scientific_Name'] + ['Rank'] + [col for col in filtered_df.columns if col not in wordy_columns]
-        filtered_df = filtered_df[column_order]
+        taxa = ["Bacteria", f"Bacteria > {filter_count}", "Fungi", "Viruses", "Archaea", "Protists"]
+        taxon_counts = []
+        for taxon in taxa:
+            if taxon == f"Bacteria > {filter_count}":
+                current_taxa_df = filtered_df.loc[filtered_df["Domain"] == "Bacteria"]
+                numeric_columns = current_taxa_df.drop(columns=['Scientific_Name', 'Rank', 'Domain'])
+                column_sums = numeric_columns.sum(axis=1) #sum of counts
+                no_columns = numeric_columns.shape[1] #number of columns
+                current_taxa_df["Average"] = column_sums/no_columns
+                filtered_count = current_taxa_df[current_taxa_df["Average"] >= filter_count]
+                taxon_count = filtered_count.shape[0]
 
-        if microbe_type == f"Bacteria > {filter_count}":
-            # Select columns to sum (excluding 'Kingdom' and 'Scientific Name')
-            columns_to_sum = filtered_df.drop(columns=['Scientific_Name', 'Rank'])            
-            # Calculate the sum of values in each row
-            column_sums = columns_to_sum.sum(axis=1)
-            # Count the number of columns
-            num_columns = columns_to_sum.shape[1]
-            #either get a sum of all seqs, or normalise it by dividing by num_columns
-            filtered_df["Average_Counts"] = column_sums/num_columns
-            above_count = filtered_df[filtered_df["Average_Counts"] >= filter_count]
-
-            number = above_count.shape[0]
-        else:
-            number = filtered_df.shape[0]
+            else:
+                current_taxa_df = filtered_df.loc[filtered_df["Domain"] == taxon]
+                taxon_count = current_taxa_df.shape[0]
             
-        data = {'Name': microbe_type, 'Number of Genera': number}
-        df = pd.DataFrame(data, index=[0])
-        return df
+            taxon_counts.append(taxon_count)
 
-def get_all_taxa(set, needed_samples, reports, taxon_level, filter_count):
-    taxa = ["Bacteria", f"Bacteria > {filter_count}", "Fungi", "Viruses", "Archaea", "Protists"]
-    current_dfs = []
-    for microbe_type in taxa:
-        df = get_species_count(needed_samples, reports, microbe_type, taxon_level, filter_count)
-        current_dfs.append(df)
-        
-    #merge all dataframes together
-    table = pd.concat(current_dfs, axis = 0, join = "outer")
-    table = table.groupby('Name', as_index=True).first()
-    table.fillna(value=0.0, inplace=True)
-
-    transposed_df = table.transpose()
+    new_df = pd.DataFrame({"Name": taxa, set: taxon_counts})
+    new_df.set_index("Name", inplace=True)
+    transposed_df = new_df.transpose()
     transposed_df.reset_index(inplace=True)
-
-    transposed_df['index'] = set
     return transposed_df
 
 def make_richness_table(reports, grouped_metadata, taxon_level, filter_count, site_key):

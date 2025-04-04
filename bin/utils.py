@@ -29,10 +29,9 @@ def convert_to_numeric(column):
         else:
             return column
 
-def save_perc_and_count_dfs(needed_samples, reports):
+def make_count_dfs(needed_samples, reports):
     # Initialize an empty list to store dataframes
-    merged_perc_df = None
-    merged_count_df = None
+    dfs = []
 
     #   Loop over each kraken file in reports directory
     for sample in needed_samples:
@@ -88,40 +87,23 @@ def save_perc_and_count_dfs(needed_samples, reports):
                     sci_name.append('_'.join(columns[5:])) #this turns scientific name (which sometimes have multiple words) into a list within a list
                     domain.append(current_domain)
 
-                # Extract the sample ID from sample (climb_id)
-                sample_ID = sample
-
                 # Turn the four lists into a dataframe, using sample ID in place of "% of seqs" or "read counts", depending on whether you want counts or percentages
-                df_perc = pd.DataFrame({sample_ID: perc_seqs, "Rank": rank, "Scientific_Name": sci_name, "Domain":domain})
-                df_count = pd.DataFrame({sample_ID: read_counts, "Rank": rank, "Scientific_Name": sci_name, "Domain":domain})
+                df = pd.DataFrame({sample: read_counts, "Rank": rank, "Scientific_Name": sci_name, "Domain":domain})
 
-                # Set the index to scientific name for merging later
-                df_perc.set_index(["Scientific_Name", "Rank", "Domain"], inplace=True)
-                df_count.set_index(["Scientific_Name", "Rank", "Domain"], inplace=True)
-
-                #add the new dataframe to the merged df
-                if merged_perc_df is None:
-                    merged_perc_df = df_perc
-                else:
-                    merged_perc_df = merged_perc_df.join(df_perc, how="outer")
-                if merged_count_df is None:
-                    merged_count_df = df_count
-                else:
-                    merged_count_df = merged_count_df.join(df_count, how="outer")
+                #add the new dataframe to the list of dataframes
+                dfs.append(df)
 
         if not found:
             print(f"No kraken report for sample {sample} has been provided!")
 
-
     # Merge the DataFrames on a specific column
-    merged_perc_df = merged_perc_df.apply(convert_to_numeric).fillna(0)
-    merged_count_df = merged_count_df.apply(convert_to_numeric).fillna(0)
+    merged_df = pd.concat(dfs, axis = 0, join= "outer")  # Change join to 'outer' for outer join
+    #merge on scientific name - this means that no scientific name is repeated if it's present in different dataframes
+    merged_df = merged_df.groupby('Scientific_Name', as_index=False).first()
+    # Merge the DataFrames on a specific column
+    merged_df = merged_df.apply(convert_to_numeric).fillna(0)
 
     # Remove spikeins
     #for spike in spikeins:
     #    merged_perc_df = merged_perc_df.loc[~merged_perc_df.index.isin(spikeins[spike])]
     #    merged_count_df = merged_count_df.loc[~merged_count_df.index.isin(spikeins[spike])]
-
-    # Save to file
-    merged_perc_df.to_csv('perc.csv', index=True)
-    merged_count_df.to_csv('counts.csv', index=True)
