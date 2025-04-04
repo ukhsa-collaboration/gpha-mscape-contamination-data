@@ -23,6 +23,30 @@ def get_label(ids, site_key, run_id=None):
     ids_list = ids_list.replace('resp_matrix_mc110', '(matrix)')
     return ids_list
 
+def define_datasets(grouped_metadata, site_key):
+    datasets = [] #total datasets
+    samples = [] #samples grouped by datasets
+
+    for sets in grouped_metadata:
+            ids = list(sets[0])
+            if "public" in ids[0].lower(): #if dataset is public
+                subgroup = sets[1].groupby(['run_id'])
+                for subset in subgroup:
+                    run_id = ''.join(subset[0])
+                    #turn scientific_name from a list to a string
+                    ids_list = get_label(ids, site_key, run_id=run_id)
+
+                    datasets.append(ids_list)
+                    table = subset[1] #list of all ids in sub_dataset
+                    samples.append(list(table['climb_id'])) #climb id
+            else:
+                #turn scientific_name from a list to a string
+                ids_list = get_label(ids, site_key)
+                datasets.append(ids_list)
+                table = sets[1] #list of all ids in dataset
+                samples.append(list(table['climb_id'])) #climb id
+    return datasets, samples
+
 def convert_to_numeric(column):
         if column.name not in ['Rank', 'Scientific_Name']:
             return pd.to_numeric(column, errors='coerce')

@@ -12,7 +12,7 @@ import argparse
 from natsort import natsorted
 import json
 
-from utils import spikeins, convert_to_numeric, get_label, make_count_dfs
+from utils import spikeins, convert_to_numeric, get_label, make_count_dfs, define_datasets
 
 #Merge all taxon count dataframes together to get all microbe type count data per dataset
 def get_microbial_load(set, needed_samples, reports):
@@ -80,27 +80,7 @@ def get_microbial_load(set, needed_samples, reports):
 #Make microbe count table for each dataset and merge them together
 def make_microbial_count_table(reports, grouped_metadata, site_key):
 
-    datasets = [] #total datasets
-    samples = [] #samples grouped by datasets
-
-    for sets in grouped_metadata:
-            ids = list(sets[0])
-            if "public" in ids[0].lower(): #if dataset is public
-                subgroup = sets[1].groupby(['run_id'])
-                for subset in subgroup:
-                    run_id = ''.join(subset[0])
-                    #turn scientific_name from a list to a string
-                    ids_list = get_label(ids, site_key, run_id=run_id)
-
-                    datasets.append(ids_list)
-                    table = subset[1] #list of all ids in sub_dataset
-                    samples.append(list(table['climb_id'])) #climb id
-            else:
-                #turn scientific_name from a list to a string
-                ids_list = get_label(ids, site_key)
-                datasets.append(ids_list)
-                table = sets[1] #list of all ids in dataset
-                samples.append(list(table['climb_id'])) #climb id
+    datasets, samples = define_datasets(grouped_metadata, site_key)
 
     loop = 0
     single_dfs = []
@@ -157,27 +137,7 @@ def get_all_taxa(set, needed_samples, reports, taxon_level, filter_count):
 
 def make_richness_table(reports, grouped_metadata, taxon_level, filter_count, site_key):
  
-    datasets = [] #total datasets
-    samples = [] #samples grouped by datasets
-
-    for sets in grouped_metadata:
-            ids = list(sets[0])
-            if "public" in ids[0].lower(): #if dataset is public
-                subgroup = sets[1].groupby(['run_id'])
-                for subset in subgroup:
-                    run_id = ''.join(subset[0])
-                    #turn scientific_name from a list to a string
-                    ids_list = get_label(ids, site_key, run_id=run_id)
-
-                    datasets.append(ids_list)
-                    table = subset[1] #list of all ids in sub_dataset
-                    samples.append(list(table['climb_id'])) #climb id
-            else:
-                #turn scientific_name from a list to a string
-                ids_list = get_label(ids, site_key)
-                datasets.append(ids_list)
-                table = sets[1] #list of all ids in dataset
-                samples.append(list(table['climb_id'])) #climb id
+    datasets, samples = define_datasets(grouped_metadata, site_key)
 
     loop = 0
     single_dfs = []
