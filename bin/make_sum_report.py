@@ -201,6 +201,7 @@ def get_heatmap(reports, grouped_metadata, site_key):
     samples = []
     public_samples = []
     sample_dates = []
+    all_samples = ["Domain", "Scientific_Name", "Rank"]
 
     for sets in grouped_metadata:
             ids = list(sets[0])
@@ -218,6 +219,8 @@ def get_heatmap(reports, grouped_metadata, site_key):
                     public_samples.append(list(table['climb_id']))
                     dates_columns = ['collection_date', 'received_date']
                     sample_dates.append(table[dates_columns]) #sample dates
+
+                    all_samples.extend(list(table['climb_id']))
             else:
                 #turn scientific_name from a list to a string
                 ids_list = get_label(ids, site_key)
@@ -226,14 +229,17 @@ def get_heatmap(reports, grouped_metadata, site_key):
                 samples.append(list(table['climb_id'])) #climb id
                 dates_columns = ['collection_date', 'received_date']
                 sample_dates.append(table[dates_columns]) #sample dates
+
+                all_samples.extend(list(table['climb_id']))
             
     
     average_list = []
-    
+    og_list = []
+
     loop = 0
     for set in datasets:
         needed_samples = samples[loop] #our current set of sample names
-        perc_df = make_perc_df(needed_samples, reports)
+        perc_df, og_df = make_perc_df(needed_samples, reports)
 
         sample_date_df = sample_dates[loop]
 
@@ -251,25 +257,41 @@ def get_heatmap(reports, grouped_metadata, site_key):
         perc_df.loc[len(perc_df)] = date_list
 
         row_number = perc_df.index.get_loc(perc_df[perc_df["Scientific_Name"] == "not_applicable"].index[0])
-        perc_df.iloc[row_number, 1:-1] = pd.to_datetime(perc_df.iloc[row_number, 1:-1], format='%Y-%m-%d')
+        perc_df.iloc[row_number, 1:-1] = pd.to_datetime(perc_df.iloc[row_number, 1:-1], format='%d/%m/%Y')
+        
         #Change all "average percentage" columns to their respective dataset names to avoid clashes when merging
         perc_df[set] = perc_df["Perc_Seqs_Overall"]
         perc_df = perc_df.drop(columns=["Perc_Seqs_Overall"])
         average_list.append(perc_df)
 
+        og_list.append(og_df)
         loop += 1
 
     #First define the merged dataframe by the starting dataframe
     loop_count = 0
     merge_df = average_list[0]
+    og_merge_df = og_list[0]
     #Then merge all other dataframes to the pre-existing dataframe
     for df in average_list:
         loop_count += 1
         if loop_count < len(datasets):
             current_df = average_list[loop_count]
             merge_df = merge_df.merge(current_df, on="Scientific_Name", how="outer")
+            current_og_df = og_list[loop_count]
+            og_merge_df = og_merge_df.merge(current_og_df, on=["Scientific_Name", "Rank", "Domain"], how="outer")
     
     merge_df.fillna(value=0, inplace=True)
+    og_merge_df.fillna(value=0, inplace=True)
+
+    # Rearrange column 'Scientific Name' to the first position
+    wordy_columns = ['Scientific_Name', 'Rank', 'Domain']
+    # check if columns are not in the wordy_columns list
+    column_order = ['Domain'] + ['Scientific_Name'] + ['Rank'] + [col for col in og_merge_df.columns if col not in wordy_columns]
+    og_merge_df = og_merge_df[column_order]
+    og_merge_df.columns = all_samples
+    
+    os.makedirs(f'{output_path}dataframes/', exist_ok=True)
+    og_merge_df.to_csv(f'{output_path}dataframes/percentage_df.csv', index=False)
 
     mscape_datasets = []
     mscape_samples = []
@@ -369,7 +391,7 @@ if __name__ == "__main__":
     parser.add_argument('--metadata', help="CSV file path", required=True)
     parser.add_argument('--site_key', help="JSON file specifying site name to number", required=True)
     parser.add_argument('--plots_dir', help="Shannon plots directory", required=True)
-    parser.add_argument('--final_report', help="Output directory", required=True)
+    parser.add_argument('--final_reports', help="Output directory", required=True)
     parser.add_argument('--template', help="HTMl template", required=True)
     args = parser.parse_args()
 
@@ -377,6 +399,10 @@ if __name__ == "__main__":
     metadata = pd.read_csv(args.metadata)
     plots_dir = args.plots_dir # Import R plots
     palette = pd.read_csv(f'{plots_dir}/colour_palette.txt', delimiter='\t')
+
+    output_path = args.final_reports
+    os.makedirs(output_path, exist_ok=True) #make directory path into real directory
+
     sns.set_style("whitegrid")
     all_directories = []
     mscape_directories = []
@@ -752,9 +778,6 @@ if __name__ == "__main__":
     mscape_maps = get_two_maps(mscape)
     average_maps = get_two_maps(average)
 
-    output_path = args.final_report
-    os.makedirs(output_path, exist_ok=True) #make directory path into real directory
-
     template_dir = args.template
     # Render the template with the Base64 string
     template = Template(filename=template_dir)
@@ -776,8 +799,9 @@ if __name__ == "__main__":
                                 mscape_by_total=average_maps[0], public_by_total=average_maps[1],
                                 mscape_by_mscape=mscape_maps[0], public_by_mscape=mscape_maps[1])
 
+    os.makedirs(f'{output_path}/summary_report/', exist_ok=True)
     # Save the rendered HTML to a file
-    with open(f"{output_path}negcontm_summary.html", "w") as f:
+    with open(f"{output_path}summary_report/neg_contamn_report.html", "w") as f:
         f.write(html_content)
 
     print(f"HTML file generated: {output_path}")
