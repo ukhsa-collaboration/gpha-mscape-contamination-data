@@ -12,11 +12,11 @@ import argparse
 from natsort import natsorted
 import json
 
-from utils import spikeins, convert_to_numeric, get_label, make_count_dfs, define_datasets
+from utils import spikeins, get_label, make_count_and_perc_dfs, define_datasets
 
 #Merge all taxon count dataframes together to get all microbe type count data per dataset
 def get_microbial_load(set, needed_samples, reports):
-    count_df = make_count_dfs(needed_samples, reports)
+    count_df = make_count_and_perc_dfs(needed_samples, reports, "count")
     #Get list of spikeins and make a spikeins dataframe from main dataframe
     spikein_names = []
     for spike in spikeins:
@@ -97,7 +97,7 @@ def make_microbial_count_table(reports, grouped_metadata, site_key):
     return final_table
 
 def get_all_taxa(set, needed_samples, reports, taxon_level, filter_count):
-    count_df = make_count_dfs(needed_samples, reports)
+    count_df = make_count_and_perc_dfs(needed_samples, reports, "count")
     
     #remove spikeins
     for spike in spikeins:
@@ -155,66 +155,20 @@ def make_richness_table(reports, grouped_metadata, taxon_level, filter_count, si
     return final_table 
 
 def make_perc_df(needed_samples, reports):
-    # Initialize an empty list to store dataframes
-    dfs = []
-#   Loop over each kraken file in reports directory
-    for sample in needed_samples:
-        for filename in reports:
-            if f'{sample}' in filename:
-                #open new file and read it line by line
-                file = open(filename)
-        
-                #create 5 lists for %/count of sequences then rank and scientific name
-                perc_seqs = []
-                read_count = []
-                rank = []
-                sci_name = []
-                
-                # Iterate over each line in the file
-                for line in file:
-                    #make the lists
-                    perc_seqs.append(line.split()[0])
-                    read_count.append(line.split()[1])
-                    rank.append(line.split()[3])                                
-                    #this turns scientific name (which sometimes have multiple words) into a list within a list
-                    sci_name.append(line.split()[5:])               
-                                
-
-                #Get total read count from "root"
-                total_reads = read_count[1]
-
-                # Turn the four lists into a dataframe, using sample ID in place of "% of seqs" or "read counts", depending on whether you want counts or percentages
-                df_new_file = pd.DataFrame({total_reads: perc_seqs, "Rank": rank, "Scientific_Name": sci_name})
-                
-                #add the new dataframe to the list of dataframes
-                dfs.append(df_new_file)
-    
-    # Merge the DataFrames on a specific column
-    merged_df = pd.concat(dfs, axis = 0, join= "outer")  # Change join to 'outer' for outer join
-    #turn scientific_name from a list to a string
-    merged_df["Scientific_Name"] = ['_'.join(lst) for lst in merged_df["Scientific_Name"]]
-    #merge on scientific name - this means that no scientific name is repeated if it's present in both the gut and lung dataframes
-    merged_on_sci = merged_df.groupby('Scientific_Name', as_index=False).first()
-
-    # Apply the function to each column
-    numeric_df = merged_on_sci.apply(convert_to_numeric)
-    
+    perc_df = make_count_and_perc_dfs(needed_samples, reports, "perc")
+   
     # Select columns to sum (excluding 'Rank' and 'Scientific Name')
-    columns_to_sum = numeric_df.drop(columns=['Rank', 'Scientific_Name'])
-    
+    columns_to_sum = perc_df.drop(columns=['Rank', 'Scientific_Name', 'Domain'])
     # Calculate the sum of values in each row
     column_sums = columns_to_sum.sum(axis=1)
     # Count the number of columns
-    num_columns = numeric_df.shape[1]
+    num_columns = perc_df.shape[1]
     #either get a sum of all seqs, or normalise it by dividing by num_columns
-    numeric_df["Perc_Seqs_Overall"] = column_sums/num_columns
-    
-    #change NaN to "0"
-    numeric_df = numeric_df.fillna(0)
+    perc_df["Perc_Seqs_Overall"] = column_sums/num_columns
     
     #remove spikeins
     for spike in spikeins:
-        numeric_df = numeric_df.loc[~numeric_df["Scientific_Name"].astype(str).isin(spikeins[spike])]
+        perc_df = perc_df.loc[~perc_df["Scientific_Name"].astype(str).isin(spikeins[spike])]
 
     #Filtering the dataframe    
     # Define keywords and columns to search
@@ -222,7 +176,7 @@ def make_perc_df(needed_samples, reports):
     columns_to_search = ['Rank']
     
     # Boolean indexing to filter rows showing only genus in the rank column
-    genus_df = numeric_df[numeric_df[columns_to_search].apply(lambda x: x.isin(keywords).any(), axis=1)]
+    genus_df = perc_df[perc_df[columns_to_search].apply(lambda x: x.isin(keywords).any(), axis=1)]
     
     # and remove rows with zero values (0 or 0.0)
     keywords_to_remove = [0]
@@ -235,8 +189,8 @@ def make_perc_df(needed_samples, reports):
     column_order = ['Scientific_Name'] + [col for col in filtered_df.columns if col not in wordy_columns]
     filtered_df = filtered_df[column_order]
     
-    #drop column “rank” since they are all Fs, and turn each count into an integer
-    no_rank_df = filtered_df.drop(columns=['Rank'])
+    #drop column “rank” since they are all Gs and drop "domain"
+    no_rank_df = filtered_df.drop(columns=['Rank', 'Domain'])
     return no_rank_df
 
 def get_heatmap(reports, grouped_metadata, site_key):
@@ -432,36 +386,6 @@ if __name__ == "__main__":
     site_key = {}
     with open(args.site_key, 'r') as f:
         site_key = json.load(f)
-
-    #group by site
-    datasets = []
-    public_datasets = []
-    samples = []
-    public_samples = []
-
-    for sets in grouped_metadata:
-            ids = list(sets[0])
-            if "public" in ids[0].lower(): #if dataset is public
-                subgroup = sets[1].groupby(['run_id'])
-                for subset in subgroup:
-                    run_id = ''.join(subset[0])
-                    #turn scientific_name from a list to a string
-                    ids_list = get_label(ids, site_key, run_id=run_id)
-
-                    datasets.append(ids_list)
-                    public_datasets.append(ids_list)
-                    table = subset[1] #list of all ids in sub_dataset
-                    samples.append(list(table['climb_id'])) #climb id
-                    public_samples.append(list(table['climb_id']))
-            else:
-                #turn scientific_name from a list to a string
-                ids_list = get_label(ids, site_key)
-                datasets.append(ids_list)
-                table = sets[1] #list of all ids in dataset
-                samples.append(list(table['climb_id'])) #climb id
-
-    # Using filter and lambda to remove 'mscape' from 'all' for all_other_directories list
-    mscape_datasets = list(filter(lambda item: item not in public_datasets, datasets))
 
     # Read bacteria load
     data = make_microbial_count_table(reports, grouped_metadata, site_key)

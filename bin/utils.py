@@ -53,7 +53,7 @@ def convert_to_numeric(column):
         else:
             return column
 
-def make_count_dfs(needed_samples, reports):
+def make_count_dfs(needed_samples, reports, df_type):
     # Initialize an empty list to store dataframes
     dfs = []
 
@@ -112,7 +112,11 @@ def make_count_dfs(needed_samples, reports):
                     domain.append(current_domain)
 
                 # Turn the four lists into a dataframe, using sample ID in place of "% of seqs" or "read counts", depending on whether you want counts or percentages
-                df = pd.DataFrame({sample: read_counts, "Rank": rank, "Scientific_Name": sci_name, "Domain":domain})
+                if df_type == "perc":
+                    df = pd.DataFrame({read_counts[0]: perc_seqs, "Rank": rank, "Scientific_Name": sci_name, "Domain":domain})
+                else:
+                    df = pd.DataFrame({sample: read_counts, "Rank": rank, "Scientific_Name": sci_name, "Domain":domain})
+
 
                 #add the new dataframe to the list of dataframes
                 dfs.append(df)
