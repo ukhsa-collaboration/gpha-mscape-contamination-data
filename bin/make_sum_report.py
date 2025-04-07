@@ -94,10 +94,14 @@ def make_microbial_count_table(reports, grouped_metadata, site_key):
     final_table = pd.concat(single_dfs, axis = 0, join = "outer")
     final_table = final_table.groupby('index', as_index=False).first()
     final_table.fillna(value=0.0, inplace=True)
+
+    os.makedirs(f'{output_path}dataframes/', exist_ok=True)
+    final_table.to_csv(f'{output_path}/dataframes/total_microbe_counts.csv', index=False)
     return final_table
 
 def get_all_taxa(set, needed_samples, reports, taxon_level, filter_count):
     count_df = make_count_and_perc_dfs(needed_samples, reports, "count")
+    og_count_df = count_df
     
     #remove spikeins
     for spike in spikeins:
@@ -133,7 +137,7 @@ def get_all_taxa(set, needed_samples, reports, taxon_level, filter_count):
     new_df.set_index("Name", inplace=True)
     transposed_df = new_df.transpose()
     transposed_df.reset_index(inplace=True)
-    return transposed_df
+    return transposed_df, og_count_df
 
 def make_richness_table(reports, grouped_metadata, taxon_level, filter_count, site_key):
  
@@ -141,16 +145,33 @@ def make_richness_table(reports, grouped_metadata, taxon_level, filter_count, si
 
     loop = 0
     single_dfs = []
+    og_count_dfs = []
     for set in datasets:
         needed_samples = samples[loop] #our current set of sample names
-        transposed_df = get_all_taxa(set, needed_samples, reports, taxon_level, filter_count)
+        transposed_df, og_count_df = get_all_taxa(set, needed_samples, reports, taxon_level, filter_count)
         single_dfs.append(transposed_df)
+        og_count_dfs.append(og_count_df)
         loop += 1
+    
+    #First define the merged dataframe by the starting dataframe
+    loop_count = 0
+    merge_df = og_count_dfs[0]
+    #Then merge all other dataframes to the pre-existing dataframe
+    for df in og_count_dfs:
+        loop_count += 1
+        if loop_count < len(og_count_dfs):
+            current_df = og_count_dfs[loop_count]
+            merge_df = merge_df.merge(current_df, on=["Scientific_Name", "Rank", "Domain"], how="outer")
+    
+    merge_df.fillna(value=0, inplace=True)
+    merge_df.to_csv(f'{output_path}/dataframes/count_df.csv', index=False)
         
     #merge all dataframes together
     final_table = pd.concat(single_dfs, axis = 0, join = "outer")
     final_table = final_table.groupby('index', as_index=False).first()
     final_table.fillna(value=0.0, inplace=True)
+
+    final_table.to_csv(f'{output_path}/dataframes/{taxon_level}_level_richness.csv', index=False)
 
     return final_table 
 
@@ -290,7 +311,6 @@ def get_heatmap(reports, grouped_metadata, site_key):
     og_merge_df = og_merge_df[column_order]
     og_merge_df.columns = all_samples
     
-    os.makedirs(f'{output_path}dataframes/', exist_ok=True)
     og_merge_df.to_csv(f'{output_path}dataframes/percentage_df.csv', index=False)
 
     mscape_datasets = []
