@@ -102,7 +102,7 @@ def make_microbial_count_table(reports, grouped_metadata, site_key):
 def get_all_taxa(set, needed_samples, reports, taxon_level, filter_count):
     count_df = make_count_and_perc_dfs(needed_samples, reports, "count")
     og_count_df = count_df
-    
+
     #remove spikeins
     for spike in spikeins:
         count_df = count_df.loc[~count_df["Scientific_Name"].astype(str).isin(spikeins[spike])]
@@ -278,7 +278,7 @@ def get_heatmap(reports, grouped_metadata, site_key):
         perc_df.loc[len(perc_df)] = date_list
 
         row_number = perc_df.index.get_loc(perc_df[perc_df["Scientific_Name"] == "not_applicable"].index[0])
-        perc_df.iloc[row_number, 1:-1] = pd.to_datetime(perc_df.iloc[row_number, 1:-1], format='%d/%m/%Y')
+        perc_df.iloc[row_number, 1:-1] = pd.to_datetime(perc_df.iloc[row_number, 1:-1], format='%Y-%m-%d')
         
         #Change all "average percentage" columns to their respective dataset names to avoid clashes when merging
         perc_df[set] = perc_df["Perc_Seqs_Overall"]
