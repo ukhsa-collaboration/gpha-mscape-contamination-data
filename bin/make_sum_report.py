@@ -12,7 +12,7 @@ import argparse
 from natsort import natsorted
 import json
 
-from utils import spikeins, get_label, make_count_and_perc_dfs, define_datasets
+from utils import spikeins, get_label, make_count_and_perc_dfs, define_datasets, define_heatmap_datasets, make_heatmap_df
 
 #Merge all taxon count dataframes together to get all microbe type count data per dataset
 def get_microbial_load(set, needed_samples, reports):
@@ -174,85 +174,14 @@ def make_richness_table(reports, grouped_metadata, taxon_level, filter_count, si
     final_table.to_csv(f'{output_path}/dataframes/{taxon_level}_level_richness.csv', index=False)
     return final_table 
 
-def make_perc_df(needed_samples, reports):
-    perc_df = make_count_and_perc_dfs(needed_samples, reports, "perc")
-   
-    # Select columns to sum (excluding 'Rank' and 'Scientific Name')
-    columns_to_sum = perc_df.drop(columns=['Rank', 'Scientific_Name', 'Domain'])
-    # Calculate the sum of values in each row
-    column_sums = columns_to_sum.sum(axis=1)
-    # Count the number of columns
-    num_columns = perc_df.shape[1]
-    #either get a sum of all seqs, or normalise it by dividing by num_columns
-    perc_df["Perc_Seqs_Overall"] = column_sums/num_columns
-    
-    #remove spikeins
-    for spike in spikeins:
-        perc_df = perc_df.loc[~perc_df["Scientific_Name"].astype(str).isin(spikeins[spike])]
-
-    #Filtering the dataframe    
-    # Define keywords and columns to search
-    keywords = ['G'] #the taxonomy level I want to filter for
-    columns_to_search = ['Rank']
-    
-    # Boolean indexing to filter rows showing only genus in the rank column
-    genus_df = perc_df[perc_df[columns_to_search].apply(lambda x: x.isin(keywords).any(), axis=1)]
-    
-    # and remove rows with zero values (0 or 0.0)
-    keywords_to_remove = [0]
-    # Boolean indexing to filter rows in % of seqs overall that contain 0
-    filtered_df = genus_df[~genus_df["Perc_Seqs_Overall"].astype(float).isin(keywords_to_remove)]
-    
-    # Rearrange column 'Scientific Name' to the first position
-    wordy_columns = ['Scientific_Name', 'Domain']
-    # check if columns are not in the wordy_columns list
-    column_order = ['Domain'] + ['Scientific_Name'] + [col for col in filtered_df.columns if col not in wordy_columns]
-    filtered_df = filtered_df[column_order]
-    
-    #drop column “rank” since they are all Gs and drop "domain"
-    no_rank_df = filtered_df.drop(columns=['Rank'])
-    perc_df = perc_df.drop(columns=["Perc_Seqs_Overall"])
-    return no_rank_df, perc_df
 
 def get_heatmap(reports, grouped_metadata, site_key):
     
-    #group by site
-    datasets = []
-    public_datasets = []
-    samples = []
-    public_samples = []
-    sample_dates = []
+    datasets, public_datasets, samples, public_samples, sample_dates = define_heatmap_datasets(grouped_metadata, site_key)
+
     all_samples = ["Domain", "Scientific_Name", "Rank"]
-
-    for sets in grouped_metadata:
-            ids = list(sets[0])
-            if "public" in ids[0].lower(): #if dataset is public
-                subgroup = sets[1].groupby(['run_id'])
-                for subset in subgroup:
-                    run_id = ''.join(subset[0])
-                    #turn scientific_name from a list to a string
-                    ids_list = get_label(ids, site_key, run_id=run_id)
-
-                    datasets.append(ids_list)
-                    public_datasets.append(ids_list)
-                    table = subset[1] #list of all ids in sub_dataset
-                    samples.append(list(table['climb_id'])) #climb id
-                    public_samples.append(list(table['climb_id']))
-                    dates_columns = ['collection_date', 'received_date']
-                    sample_dates.append(table[dates_columns]) #sample dates
-
-                    all_samples.extend(list(table['climb_id']))
-            else:
-                #turn scientific_name from a list to a string
-                ids_list = get_label(ids, site_key)
-                datasets.append(ids_list)
-                table = sets[1] #list of all ids in dataset
-                samples.append(list(table['climb_id'])) #climb id
-                dates_columns = ['collection_date', 'received_date']
-                sample_dates.append(table[dates_columns]) #sample dates
-
-                all_samples.extend(list(table['climb_id']))
-            
+    for sample_group in samples:
+        all_samples = all_samples + sample_group 
     
     average_list = []
     og_list = []
@@ -260,7 +189,7 @@ def get_heatmap(reports, grouped_metadata, site_key):
     loop = 0
     for set in datasets:
         needed_samples = samples[loop] #our current set of sample names
-        perc_df, og_df = make_perc_df(needed_samples, reports)
+        perc_df, og_df = make_heatmap_df(needed_samples, reports, "perc")
 
         sample_date_df = sample_dates[loop]
 

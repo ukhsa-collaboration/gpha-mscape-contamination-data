@@ -47,13 +47,51 @@ def define_datasets(grouped_metadata, site_key):
                 samples.append(list(table['climb_id'])) #climb id
     return datasets, samples
 
+def define_heatmap_datasets(grouped_metadata, site_key):
+    #group by site
+    datasets = []
+    public_datasets = []
+    samples = []
+    public_samples = []
+    sample_dates = []
+
+
+    for sets in grouped_metadata:
+            ids = list(sets[0])
+            if "public" in ids[0].lower(): #if dataset is public
+                subgroup = sets[1].groupby(['run_id'])
+                for subset in subgroup:
+                    run_id = ''.join(subset[0])
+                    #turn scientific_name from a list to a string
+                    ids_list = get_label(ids, site_key, run_id=run_id)
+
+                    datasets.append(ids_list)
+                    public_datasets.append(ids_list)
+                    table = subset[1] #list of all ids in sub_dataset
+                    samples.append(list(table['climb_id'])) #climb id
+                    public_samples.append(list(table['climb_id']))
+                    dates_columns = ['collection_date', 'received_date']
+                    sample_dates.append(table[dates_columns]) #sample dates
+
+
+            else:
+                #turn scientific_name from a list to a string
+                ids_list = get_label(ids, site_key)
+                datasets.append(ids_list)
+                table = sets[1] #list of all ids in dataset
+                samples.append(list(table['climb_id'])) #climb id
+                dates_columns = ['collection_date', 'received_date']
+                sample_dates.append(table[dates_columns]) #sample dates
+    
+    return datasets, public_datasets, samples, public_samples, sample_dates
+
 def convert_to_numeric(column):
         if column.name not in ['Rank', 'Scientific_Name']:
             return pd.to_numeric(column, errors='coerce')
         else:
             return column
 
-def make_count_dfs(needed_samples, reports, df_type):
+def make_count_and_perc_dfs(needed_samples, reports, df_type):
     # Initialize an empty list to store dataframes
     dfs = []
 
@@ -114,6 +152,8 @@ def make_count_dfs(needed_samples, reports, df_type):
                 # Turn the four lists into a dataframe, using sample ID in place of "% of seqs" or "read counts", depending on whether you want counts or percentages
                 if df_type == "perc":
                     df = pd.DataFrame({read_counts[0]: perc_seqs, "Rank": rank, "Scientific_Name": sci_name, "Domain":domain})
+                elif df_type == "thresh":
+                    df = pd.DataFrame({f'{read_counts[0]}[{sample}]':read_counts, "Rank": rank, "Scientific_Name": sci_name, "Domain": domain})
                 else:
                     df = pd.DataFrame({sample: read_counts, "Rank": rank, "Scientific_Name": sci_name, "Domain":domain})
 
@@ -130,8 +170,47 @@ def make_count_dfs(needed_samples, reports, df_type):
     merged_df = merged_df.groupby('Scientific_Name', as_index=False).first()
     # Merge the DataFrames on a specific column
     merged_df = merged_df.apply(convert_to_numeric).fillna(0)
+    return merged_df
 
-    # Remove spikeins
-    #for spike in spikeins:
-    #    merged_perc_df = merged_perc_df.loc[~merged_perc_df.index.isin(spikeins[spike])]
-    #    merged_count_df = merged_count_df.loc[~merged_count_df.index.isin(spikeins[spike])]
+def make_heatmap_df(needed_samples, reports, df_type):
+    df = make_count_and_perc_dfs(needed_samples, reports, df_type)
+   
+    #remove spikeins
+    for spike in spikeins:
+        no_spike_df = df.loc[~df["Scientific_Name"].astype(str).isin(spikeins[spike])]
+
+    #Filtering the dataframe    
+    # Define keywords and columns to search
+    keywords = ['G'] #the taxonomy level I want to filter for
+    columns_to_search = ['Rank']
+    
+    # Boolean indexing to filter rows showing only genus in the rank column
+    genus_df = no_spike_df[no_spike_df[columns_to_search].apply(lambda x: x.isin(keywords).any(), axis=1)]
+    
+    # Select columns to sum (excluding 'Rank' and 'Scientific Name')
+    columns_to_sum = genus_df.drop(columns=['Rank', 'Scientific_Name', 'Domain'])
+    # Calculate the sum of values in each row
+    column_sums = columns_to_sum.sum(axis=1)
+    # Count the number of columns
+    num_columns = genus_df.shape[1]
+    #either get a sum of all seqs, or normalise it by dividing by num_columns
+    if df_type == "perc":
+        genus_df["Perc_Seqs_Overall"] = column_sums/num_columns
+        filtered_df = genus_df[~genus_df["Perc_Seqs_Overall"].astype(float).isin([0])] # Boolean indexing to filter rows in % of seqs overall that contain 0
+    elif df_type == "thresh":
+        genus_df["Counts_Overall"] = column_sums
+        filtered_df = genus_df[~genus_df["Counts_Overall"].astype(float).isin([0])]
+
+    
+    # Rearrange column 'Scientific Name' to the first position
+    wordy_columns = ['Scientific_Name', 'Domain', "Counts_Overall", "Perc_Seqs_Overall"]
+    # check if columns are not in the wordy_columns list
+    if df_type == "perc":
+        column_order = ['Domain'] + ['Scientific_Name'] + [col for col in filtered_df.columns if col not in wordy_columns] + ["Perc_Seqs_Overall"]
+    elif df_type == "thresh":
+        column_order = ['Domain'] + ['Scientific_Name'] + [col for col in filtered_df.columns if col not in wordy_columns] + ["Counts_Overall"]
+    filtered_df = filtered_df[column_order]
+    
+    #drop column “rank” since they are all Gs 
+    no_rank_df = filtered_df.drop(columns=['Rank'])
+    return no_rank_df, df
