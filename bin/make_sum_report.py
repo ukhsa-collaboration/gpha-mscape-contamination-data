@@ -278,7 +278,7 @@ def get_heatmap(reports, grouped_metadata, site_key):
         perc_df.loc[len(perc_df)] = date_list
 
         row_number = perc_df.index.get_loc(perc_df[perc_df["Scientific_Name"] == "not_applicable"].index[0])
-        perc_df.iloc[row_number, 2:-1] = pd.to_datetime(perc_df.iloc[row_number, 2:-1], format='%d/%m/%Y')
+        perc_df.iloc[row_number, 2:-1] = pd.to_datetime(perc_df.iloc[row_number, 2:-1], format='%Y-%m-%d')
         
         #Change all "average percentage" columns to their respective dataset names to avoid clashes when merging
         perc_df[set] = perc_df["Perc_Seqs_Overall"]
@@ -632,7 +632,7 @@ if __name__ == "__main__":
         if loop == 0:
             plt.ylabel('Total Read Count', fontweight='bold', ha='center', labelpad=20)
             plt.xlabel(f'{mscape_names[loop]}', fontweight='bold', horizontalalignment='center', rotation=90)
-            ax.yaxis.labelpad = 130
+            ax.yaxis.labelpad = 160
         elif loop < (no_mscape-1):
             plt.yticks([])      
             plt.xlabel(f'{mscape_names[loop]}', fontweight='bold', horizontalalignment='center', rotation=90)
@@ -724,12 +724,12 @@ if __name__ == "__main__":
                         last_point = limit
                 
                 # label the classes:
-                sec = ax.secondary_yaxis(location=-1.5)
+                sec = ax.secondary_yaxis(location=-2)
                 sec.set_yticks(ytick_distance, labels=ytick_names)
                 sec.tick_params('y', length=0)
 
                 # lines between the classes:
-                sec2 = ax.secondary_yaxis(location=-1.5)
+                sec2 = ax.secondary_yaxis(location=-2)
                 sec2.set_yticks(ytick_limits, labels=[])
                 sec2.tick_params('y', length=10, width=1, direction="in")
                 ax.set_ylim(-0.5, 19.4)
