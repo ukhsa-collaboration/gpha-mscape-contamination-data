@@ -91,6 +91,72 @@ def convert_to_numeric(column):
         else:
             return column
 
+def make_date_list(sample_date_df):
+
+    date_list = ['', 'Date']
+    for index, row in sample_date_df.iterrows():
+        if row['collection_date'] == row['collection_date']:
+            date_list.append(row['collection_date'])
+        elif row['received_date'] == row['received_date']:
+            date_list.append(row['received_date'])
+        else:
+            date_list.append('NaN')
+    date_list.append(100)
+
+    return date_list
+
+def split_dfs(mscape_datasets, total_df):
+    mscape_dfs = []
+    #make specific dfs for all dataframes in mscape_datasets
+    for dataset_name in mscape_datasets:
+        short_name = dataset_name.split("(")[0]
+        category = dataset_name.split("(")[1].replace(")","")
+        name_col = ["Domain", "Scientific_Name"]
+        df = total_df.loc[:, total_df.columns.str.contains(short_name) & total_df.columns.str.contains(category)]
+        df[name_col] = total_df[name_col].copy()
+        mscape_dfs.append(df)
+    
+    loop_count = 0
+    sorted_mscapes = []
+    sorted_m_counts = []
+
+    for mscape_df in mscape_dfs:
+        #Get rid of dataset as prefixes
+        mscape_df = mscape_df.rename(columns={c: c.replace(f"{mscape_datasets[loop_count]}_", "") for c in mscape_df.columns if c not in ['Scientific_Name', 'Domain']})
+
+        mscape_matrix = mscape_df.drop(columns=["Scientific_Name", 'Domain'])
+        mscape_counts = mscape_matrix.transpose()
+        mscape_counts = mscape_counts.reset_index()
+        sorted_m_counts.append(mscape_counts['index'])
+
+        final_df = mscape_df[~mscape_df.Scientific_Name.str.contains("Date")]
+        sorted_mscapes.append(final_df)
+        loop_count += 1
+    
+    return sorted_mscapes, sorted_m_counts
+
+def save_labelled_df(total_df, all_dates, output_path, df_type):
+        labelled_df = total_df.copy()
+        labelled_df.loc[len(labelled_df)] = all_dates
+
+        set_row = ["", "Dataset"]
+        count_row = ["", "Total Read Count"]
+        name_row = ["Domain", "Scientific_Name"]
+        set_count_name = list(labelled_df.columns)
+        set_row.extend([i.split('_', 1)[0] for i in set_count_name[2:]])
+        count_name = [i.split('_', 1)[1] for i in set_count_name[2:]]
+        count_row.extend([i.split('[', 1)[0].replace("]", "") for i in count_name])
+        name_row.extend([i.split('[', 1)[1].replace("]", "") for i in count_name])
+    
+        labelled_df.columns = name_row #label each sample column by sample name
+        labelled_df.loc[len(labelled_df)] = set_row #label the dataset the sample is from
+        labelled_df.loc[len(labelled_df)] = count_row #label the sample's total count
+
+        #Change datetime timestamp back to string
+        row_number = labelled_df.index.get_loc(labelled_df[labelled_df["Scientific_Name"] == "Date"].index[0])
+        labelled_df.iloc[row_number, 2:] = [i.strftime('%Y-%m-%d') for i in labelled_df.iloc[row_number, 2:]]
+        labelled_df.to_csv(f"{output_path}/dataframes/highest_{df_type}_heatmap.txt", sep='\t', index=False)
+
 def make_count_and_perc_dfs(needed_samples, reports, df_type):
     # Initialize an empty list to store dataframes
     dfs = []
