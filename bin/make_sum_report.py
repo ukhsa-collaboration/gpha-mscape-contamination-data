@@ -268,7 +268,7 @@ def get_heatmap(reports, grouped_metadata, site_key):
 
     total_df = total_df.sort_values(by="Domain", ascending=True)
     total_df = total_df[~total_df.Scientific_Name.str.contains("Date")]
-    
+
     #save heatmap df
     save_labelled_df(total_df, all_dates, output_path, "perc")
 
@@ -279,6 +279,120 @@ def get_heatmap(reports, grouped_metadata, site_key):
     sorted_mscapes, sorted_m_counts = split_dfs(mscape_datasets, total_df)
     
     return sorted_mscapes, sorted_m_counts, mscape_datasets
+
+def get_thresh_heatmap(reports, grouped_metadata, site_key):
+    
+    datasets, public_datasets, samples, public_samples, sample_dates = define_heatmap_datasets(grouped_metadata, site_key)
+    
+    average_list = []
+    
+    loop = 0
+    for set in datasets:
+        needed_samples = samples[loop] #our current set of sample names
+        
+        count_df, og_df = make_heatmap_df(needed_samples, reports, "thresh")
+
+        sample_date_df = sample_dates[loop]
+        date_list = make_date_list(sample_date_df)
+
+        count_df = count_df.rename(columns={c: f"{set}_"+c for c in count_df.columns if c not in ['Scientific_Name', 'Counts_Overall', 'Domain']})
+        
+        #name_line = ["domain", "scientific_name"] + sample_names[loop] + ["counts_overall"]
+        #ßcount_df.loc[len(count_df)] = name_line
+       
+        #add and sort samples by date
+        count_df.loc[len(count_df)] = date_list
+        row_number = count_df.index.get_loc(count_df[count_df["Scientific_Name"] == "Date"].index[0])
+        count_df.iloc[row_number, 2:-1] = pd.to_datetime(count_df.iloc[row_number, 2:-1], format='%d/%m/%Y')
+        #Sort all samples by date
+        count_df.iloc[row_number, 2:-1] = natsorted(count_df.iloc[row_number, 2:-1])
+        #Change all "average percentage" columns to their respective dataset names to avoid clashes when merging
+        count_df[set] = count_df["Counts_Overall"]
+        count_df = count_df.drop(columns=["Counts_Overall"])
+        
+        average_list.append(count_df)
+
+        loop += 1
+
+    #First define the merged dataframe by the starting dataframe
+    loop_count = 0
+    merge_df = average_list[0]
+    #Then merge all other dataframes to the pre-existing dataframe
+    for df in average_list:
+        loop_count += 1
+        if loop_count < len(datasets):
+            current_df = average_list[loop_count]
+            merge_df = merge_df.merge(current_df, on=["Scientific_Name", "Domain"], how="outer")
+    
+    merge_df.fillna(value=0, inplace=True)
+
+    publics = "public"
+    no_pub_df = merge_df.loc[:, ~merge_df.columns.str.contains(publics, case=False)]
+    
+    mscape_datasets = []
+    mscape_samples = []
+    for set in datasets:
+        if set not in public_datasets:
+            mscape_datasets.append(set)
+            mscape_samples.append(set)
+    
+
+    #remove timestamps
+    timestamp_df = no_pub_df.drop(columns=mscape_datasets)
+    row_number = timestamp_df.index.get_loc(timestamp_df[timestamp_df["Scientific_Name"] == "Date"].index[0])
+    date_df = timestamp_df.iloc[row_number]
+   
+    all_dates = list(date_df)
+ 
+    no_pub_df = no_pub_df[~no_pub_df.Scientific_Name.str.contains("Date")]
+  
+    # Rearrange column 'Scientific Name' to the first position
+    wordy_columns = ['Scientific_Name', 'Domain']
+    wordy_columns.extend(mscape_datasets)
+
+    # check if columns are not in the wordy_columns list or "counts_overall" (denoted by mscape_datasets)
+    numeric_columns = [col for col in no_pub_df.columns if col not in wordy_columns]
+    
+    bacteria_df = no_pub_df.loc[no_pub_df["Domain"] == "Bacteria"]
+    bacteria_df = bacteria_df[(bacteria_df[numeric_columns] >= 500).any(axis=1)]
+
+    other_domains = ["Archaea", "Eukaryota", "Viruses", "Fungi"]
+    other_df = no_pub_df.loc[no_pub_df["Domain"].isin(other_domains)]
+    other_df = other_df[(other_df[numeric_columns] >= 50).any(axis=1)]
+
+    thresh_df = pd.concat([bacteria_df,other_df], axis=0, join="outer")
+    thresh_df = thresh_df.groupby(['Domain', 'Scientific_Name'], as_index=False).first()
+    
+    # Select columns to sum ('Scientific Name')
+    columns_to_sum = thresh_df[mscape_datasets]
+    # Calculate the sum of values in each row
+    column_sums = columns_to_sum.sum(axis=1)
+    thresh_df['Count_Sum'] = column_sums
+
+    # Calculate the max of values in each row
+    # merge_df['Max'] = columns_to_sum.max(axis=1)
+
+    sorted_df = thresh_df.sort_values(by="Count_Sum", ascending=False)
+    total_df = sorted_df.drop(columns=mscape_datasets)
+    total_df = total_df.sort_values(by="Domain", ascending=True)
+    total_df = total_df.drop(columns=["Count_Sum"])
+
+    save_labelled_df(total_df, all_dates, output_path, "count")
+
+    #Change name of sample columns to sample total count
+    total_df = total_df.rename(columns={c: c.split("[")[0].replace("]", "") for c in total_df.columns if c not in ['Scientific_Name', 'Domain']})
+   
+    top_df = sorted_df.head(20)
+    top_df = top_df.sort_values(by="Domain", ascending=True)
+    top_df = top_df.drop(columns=["Count_Sum"])
+    top_df = top_df.drop(columns=mscape_datasets)
+    top_df = top_df.rename(columns={c: c.split("[")[0].replace("]", "") for c in top_df.columns if c not in ['Scientific_Name', 'Domain']})
+   
+    #Split dataframes and make a subdataframe per dataset
+    total_mscapes, counts = split_dfs(mscape_datasets, total_df)
+    top_mscapes, counts = split_dfs(mscape_datasets, top_df)
+
+    return top_mscapes, total_mscapes, counts, mscape_datasets
 
 
 if __name__ == "__main__":
@@ -456,7 +570,7 @@ if __name__ == "__main__":
     #make bar plots for total read counts (for heatmaps)
     sns.set_style("white")
     #heatmap function
-    sorted_mscapes, sorted_counts, mscape_names = get_heatmap(reports, grouped_metadata, site_key)
+    top_mscape_perc, sorted_counts, mscape_names = get_heatmap(reports, grouped_metadata, site_key)
 
     heatmap_list = []
     mscape_colours = []
@@ -545,104 +659,130 @@ if __name__ == "__main__":
     buf.close()
     plt.close(fig)
 
+    top_mscape_count, total_mscape_count, sorted_counts, mscape_datasets = get_thresh_heatmap(reports, grouped_metadata, site_key)
+
     #make heatmaps
-    total_samples = 0
-    for df in sorted_mscapes:
-        df.set_index('Scientific_Name', inplace=True)
-        samples = df.columns.tolist()
-        total_samples = total_samples + len(samples)
+    def plot_heatmaps(dataframes, map_type):
+        total_samples = 0
+        for df in dataframes:
+            df.set_index('Scientific_Name', inplace=True)
+            df = df.drop(columns=["Domain"])
+            samples = df.columns.tolist()
+            total_samples = total_samples + len(samples)
 
-    width_ratios = []
-    for df in sorted_mscapes:
-        samples = df.columns.tolist()
-        width = len(samples)/total_samples
-        width_ratios.append(width)
+        width_ratios = []
+        for df in dataframes:
+            samples = df.columns.tolist()
+            width = len(samples)/total_samples
+            width_ratios.append(width)
 
-    no_mscape = len(sorted_mscapes)
+        no_mscape = len(dataframes)
 
-    fig, ax = plt.subplots(figsize=(18,6), ncols=no_mscape, gridspec_kw={'width_ratios': width_ratios})
+        if map_type == "perc" or map_type == "top count":
+            fig, ax = plt.subplots(figsize=(18,6), ncols=no_mscape, gridspec_kw={'width_ratios': width_ratios})
+        else:
+            height = len(dataframes[0].index)
+            height = height * 0.3
+            fig, ax = plt.subplots(figsize=(18, height), ncols=no_mscape, gridspec_kw={'width_ratios': width_ratios})
 
-    loop = 0
-    for df in sorted_mscapes:
-        
-        df.replace(0, np.nan, inplace=True)
-        
-        domain_list = list(df["Domain"])
-        df = df.drop(columns=["Domain"])
+        loop = 0
+        for df in dataframes:
+            df.replace(0, np.nan, inplace=True)
+            domain_list = list(df["Domain"])
+            df = df.drop(columns=["Domain"])
 
-        genus = df.index.tolist()
-        samples = df.columns.tolist()
-        matrix = df.to_numpy()
+            genus = df.index.tolist()
+            samples = df.columns.tolist()
+            matrix = df.to_numpy()
 
-        
-        heatmap = np.reshape(matrix, (len(genus), len(samples)))
-        heatmap = np.array(heatmap, dtype=np.float64)  # Ensure it's numeric
+            heatmap = np.reshape(matrix, (len(genus), len(samples)))
+            heatmap = np.array(heatmap, dtype=np.float64)  # Ensure it's numeric
 
-        ax = plt.subplot(1, no_mscape, loop+1)  
+            ax = plt.subplot(1, no_mscape, loop+1)  
 
-        plot = ax.pcolormesh(samples, genus, heatmap, vmin=0, vmax=100, cmap="magma")
-        
-        plt.xticks([])
-
-        if loop == 0:
-            plt.yticks(genus, rotation=0,fontsize='10')
-            plt.xlabel(mscape_names[loop], fontweight='bold', horizontalalignment='center', rotation=90)
-
-            # Second X-axis
-            domain_dict = pd.DataFrame(domain_list, columns=["x"]).groupby('x').size().to_dict()
+            if map_type == "perc":
+                plot = ax.pcolormesh(samples, genus, heatmap, vmin=0, vmax=100, cmap="magma")
+            else:
+                plot = ax.pcolormesh(samples, genus, heatmap, cmap="magma")
             
-            ytick_limits = [-0.5]
-            ytick_names = []
-            current_count = 0
-            for domain in domain_dict:
-                count = domain_dict[domain]
-                ratio = (count * 0.97) + current_count
+            plt.xticks([])
 
-                ytick_limits.append(ratio)
-                ytick_names.append(domain)
-                current_count = ratio
+            if loop == 0:
+                plt.yticks(genus,rotation=0,fontsize='10')
+                plt.xlabel(mscape_datasets[loop], fontweight='bold', horizontalalignment='center', rotation=90)
 
-            ytick_distance = []
-            last_point = 0
-            for limit in ytick_limits:
-                if limit == -0.5:
-                    last_point = -0.5
+                # Second X-axis
+                domain_dict = pd.DataFrame(domain_list, columns=["x"]).groupby('x').size().to_dict()
+
+                ytick_limits = [-0.5]
+                ytick_names = []
+                current_count = 0
+                for domain in domain_dict:
+                    count = domain_dict[domain]
+
+                    if map_type == "perc" or map_type == "top count":
+                        ratio = (count * 0.97) + current_count
+                    else:
+                        ratio = (count) + current_count
+
+                    ytick_limits.append(ratio)
+                    ytick_names.append(domain)
+                    current_count = ratio
+
+
+                ytick_distance = []
+                last_point = 0
+                for limit in ytick_limits:
+                    if limit == -0.5:
+                        last_point = -0.5
+                    else:
+                        current_point = limit - last_point
+                        halfway = current_point/2
+                        label = last_point + halfway
+                        ytick_distance.append(label)
+                        last_point = limit
+            
+                # label the classes:
+                sec = ax.secondary_yaxis(location=-2)
+                sec.set_yticks(ytick_distance, labels=ytick_names)
+                sec.tick_params('y', length=0)
+
+                # lines between the classes:
+                sec2 = ax.secondary_yaxis(location=-2)
+                sec2.set_yticks(ytick_limits, labels=[])
+                sec2.tick_params('y', length=10, width=1, direction="in")
+
+                if map_type == "perc" or map_type == "top count":
+                    ax.set_ylim(-0.5, 19.4)
                 else:
-                    current_point = limit - last_point
-                    halfway = current_point/2
-                    label = last_point + halfway
-                    ytick_distance.append(label)
-                    last_point = limit
-            
-            # label the classes:
-            sec = ax.secondary_yaxis(location=-2)
-            sec.set_yticks(ytick_distance, labels=ytick_names)
-            sec.tick_params('y', length=0)
+                    ax.set_ylim(-0.5, len(genus))
 
-            # lines between the classes:
-            sec2 = ax.secondary_yaxis(location=-2)
-            sec2.set_yticks(ytick_limits, labels=[])
-            sec2.tick_params('y', length=10, width=1, direction="in")
-            ax.set_ylim(-0.5, 19.4)
+            elif loop < (no_mscape-1):
+                plt.yticks([])      
+                plt.xlabel(mscape_datasets[loop], fontweight='bold', horizontalalignment='center', rotation=90)
+            elif loop == (no_mscape-1):
+                plt.yticks([])
+                fig.colorbar(plot, ax=ax, aspect=30)
+                plt.xlabel(mscape_datasets[loop], fontweight='bold', horizontalalignment='center', rotation=90)
+            loop += 1
+        plt.subplots_adjust(wspace=0.02, hspace=0)
 
-        elif loop < (no_mscape-1):
-            plt.yticks([])      
-            plt.xlabel(mscape_names[loop], fontweight='bold', horizontalalignment='center', rotation=90)
-        elif loop == (no_mscape-1):
-            plt.yticks([])
-            fig.colorbar(plot, ax=ax, aspect=30)
-            plt.xlabel(mscape_names[loop], fontweight='bold', horizontalalignment='center', rotation=90)
-        loop += 1
-    plt.subplots_adjust(wspace=0.02, hspace=0)
+        # Save the figure as a Base64 string
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', bbox_inches='tight')
+        buf.seek(0)
+        heatmap = base64.b64encode(buf.read()).decode('utf-8')
+        buf.close()
+        plt.close(fig)
 
-    # Save the figure as a Base64 string
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png', bbox_inches='tight')
-    buf.seek(0)
-    heatmap = base64.b64encode(buf.read()).decode('utf-8')
-    heatmap_list.append(heatmap)
-    buf.close()
-    plt.close(fig)
+        return heatmap
+
+    heatmap_list.append(plot_heatmaps(top_mscape_perc, "perc"))
+    heatmap_list.append(plot_heatmaps(top_mscape_count, "top count"))
+    heatmap_list.append(plot_heatmaps(total_mscape_count, "total count"))
+
+    total_map_height = (total_mscape_count[0].shape[0])*22.5
+
 
     template_dir = args.template
     # Render the template with the Base64 string
@@ -663,7 +803,7 @@ if __name__ == "__main__":
                                 rna_diversity=rna_diversity, rna_evenness=rna_evenness,
 
                                 mscape_counts=heatmap_list[0], 
-                                mscape_heatmap=heatmap_list[1])
+                                top_perc_heatmap=heatmap_list[1], top_count_heatmap=heatmap_list[2], total_count_heatmap=heatmap_list[3], total_map_height=total_map_height)
 
     os.makedirs(f'{output_path}/summary_report/', exist_ok=True)
     # Save the rendered HTML to a file
