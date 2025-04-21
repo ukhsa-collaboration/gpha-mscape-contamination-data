@@ -364,29 +364,33 @@ function clickFunction(str) {
 <button onclick="toggleElements('.barplots', '.heatmap')">Total reads in each sample</button>
 <button onclick="toggleElements('.total_perc', '.heatmap')">Top 20 genera by relative proportion</button>
 <button onclick="toggleElements('.top_count', '.heatmap')">Top 20 genera by absolute count</button>
-<button onclick="toggleElements('.total_count', '.heatmap')">Top genera by count</button>
+<button onclick="toggleElements('.total_count', '.heatmap')">Top ${genera_count} genera by count</button>
 
 <div class="heatmap barplots", style="display: none">
+    <p style="text-align: center;">Total reads in each sample</p>
     <img src="data:image/png;base64,${mscape_counts}" height="450" width="1100" 
     alt="Heatmap depicting the top 20 most abundant microbial genera across all mScape controls."/>
 </div>
 
 <div class="heatmap total_perc">
+    <p style="text-align: center;">Top 20 Genera By Relative Proportion</p>
     <img src="data:image/png;base64,${top_perc_heatmap}" height="450" width="1100" 
     alt="Heatmap depicting the top 20 most abundant microbial genera across all mScape controls by percentage of reads within sample."/>
 </div>
 
 <div class="heatmap top_count", style="display: none">
+    <p style="text-align: center;">Top 20 Genera By Absolute Count</p>
     <img src="data:image/png;base64,${top_count_heatmap}" height="450" width="1100" 
     alt="Heatmap depicting the top 20 most abundant microbial genera across all mScape controls by total counts."/>
 </div>
 
 <div class="heatmap total_count", style="display: none">
+    <p style="text-align: center;">Top ${genera_count} Genera By Absolute Count</p>
     <img src="data:image/png;base64,${total_count_heatmap}" height="${total_map_height}" width="1100" 
     alt="Heatmap depicting the top 20 most abundant microbial genera across all mScape controls by total counts."/>
 </div>
 
-<p class="ont_ref" style="text-align: left;"><strong>The most abundant microbial genera in mSCAPE datasets </strong> and <strong>0. the total reads in each sample</strong>, horizontally arranged by collection date. All microbial genera were sorted by <strong>1. proportion of reads within each sample and filtered for the top 20</strong>. Simultaneously, microbial genera were filtered by all bacteria over an absolute threshold of 500 reads and all archaea, eukaryota, fungi, protists, and viruses over 50 reads in any of the samples. These were filtered for <strong>2. top 20 only</strong> and <strong>3. all genera included</strong>. Colour scale indicates the percentage, or proportion of reads in each sample. Blanks (white space) indicate where zero read counts were found.</p> 
+<p class="ont_ref" style="text-align: left;"><strong>The most abundant microbial genera in mSCAPE datasets </strong> and <strong>0. the total reads in each sample</strong>, horizontally arranged by collection date. All microbial genera were sorted by <strong>1. proportion of reads within each sample and filtered for the top 20</strong>. Simultaneously, microbial genera were filtered by all bacteria over an absolute threshold of 500 reads and all archaea, eukaryota, fungi, protists, and viruses over 50 reads in any of the samples. These were filtered for <strong>2. top 20 only</strong> and <strong>3. all ${genera_count} genera over the threshold</strong>. Colour scale indicates the percentage, or proportion of reads in each sample. Blanks (white space) indicate where zero read counts were found.</p> 
 <br>
 <br>
 <br>
