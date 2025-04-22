@@ -86,7 +86,7 @@ def define_heatmap_datasets(grouped_metadata, site_key):
     return datasets, public_datasets, samples, public_samples, sample_dates
 
 def convert_to_numeric(column):
-        if column.name not in ['Rank', 'Scientific_Name']:
+        if column.name not in ['Rank', 'Scientific_Name', 'Domain']:
             return pd.to_numeric(column, errors='coerce')
         else:
             return column
