@@ -204,9 +204,11 @@ def make_count_and_perc_dfs(needed_samples, reports, df_type):
                         current_domain = "Viruses"
                     elif current_name == "Archaea":
                         current_domain = "Archaea"
+                    elif current_name == "Eukaryota":
+                        current_domain = "Eukaryota"
                     elif (current_domain == "Protists" and current_rank == "D1") \
                         or (current_domain == "Fungi" and current_rank == "K") \
-                        or (current_domain in ["Bacteria","Viruses","Archaea"] and current_rank == "D"):
+                        or (current_domain in ["Bacteria","Viruses","Archaea","Eukaryota"] and current_rank == "D"):
                         current_domain = None
 
                     perc_seqs.append(columns[0])

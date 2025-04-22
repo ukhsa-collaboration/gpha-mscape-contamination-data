@@ -198,7 +198,7 @@ def get_heatmap(reports, grouped_metadata, site_key):
         perc_df.loc[len(perc_df)] = date_list
 
         row_number = perc_df.index.get_loc(perc_df[perc_df["Scientific_Name"] == "Date"].index[0])
-        perc_df.iloc[row_number, 2:-1] = pd.to_datetime(perc_df.iloc[row_number, 2:-1], format='%d/%m/%Y')
+        perc_df.iloc[row_number, 2:-1] = pd.to_datetime(perc_df.iloc[row_number, 2:-1], format='%Y-%m-%d')
         
         #Change all "average percentage" columns to their respective dataset names to avoid clashes when merging
         perc_df[set] = perc_df["Perc_Seqs_Overall"]
@@ -303,7 +303,7 @@ def get_thresh_heatmap(reports, grouped_metadata, site_key):
         #add and sort samples by date
         count_df.loc[len(count_df)] = date_list
         row_number = count_df.index.get_loc(count_df[count_df["Scientific_Name"] == "Date"].index[0])
-        count_df.iloc[row_number, 2:-1] = pd.to_datetime(count_df.iloc[row_number, 2:-1], format='%d/%m/%Y')
+        count_df.iloc[row_number, 2:-1] = pd.to_datetime(count_df.iloc[row_number, 2:-1], format='%Y-%m-%d')
         #Sort all samples by date
         count_df.iloc[row_number, 2:-1] = natsorted(count_df.iloc[row_number, 2:-1])
         #Change all "average percentage" columns to their respective dataset names to avoid clashes when merging
