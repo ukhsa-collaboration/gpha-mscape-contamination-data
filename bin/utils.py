@@ -125,9 +125,12 @@ def split_dfs(mscape_datasets, total_df):
         mscape_df = mscape_df.rename(columns={c: c.replace(f"{mscape_datasets[loop_count]}_", "") for c in mscape_df.columns if c not in ['Scientific_Name', 'Domain']})
 
         mscape_matrix = mscape_df.drop(columns=["Scientific_Name", 'Domain'])
-        mscape_counts = mscape_matrix.transpose()
-        mscape_counts = mscape_counts.reset_index()
-        sorted_m_counts.append(mscape_counts['index'])
+        
+        name_list = mscape_matrix.columns
+        name_list = [i.split('[', 1)[0] for i in name_list]
+        name_list = [int(i) for i in name_list]
+        
+        sorted_m_counts.append(name_list)
 
         final_df = mscape_df[~mscape_df.Scientific_Name.str.contains("Date")]
         sorted_mscapes.append(final_df)
@@ -219,7 +222,7 @@ def make_count_and_perc_dfs(needed_samples, reports, df_type):
 
                 # Turn the four lists into a dataframe, using sample ID in place of "% of seqs" or "read counts", depending on whether you want counts or percentages
                 if df_type == "perc":
-                    df = pd.DataFrame({read_counts[0]: perc_seqs, "Rank": rank, "Scientific_Name": sci_name, "Domain":domain})
+                    df = pd.DataFrame({f'{read_counts[0]}[{sample}]': perc_seqs, "Rank": rank, "Scientific_Name": sci_name, "Domain":domain})
                 elif df_type == "thresh":
                     df = pd.DataFrame({f'{read_counts[0]}[{sample}]':read_counts, "Rank": rank, "Scientific_Name": sci_name, "Domain": domain})
                 else:

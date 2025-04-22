@@ -274,7 +274,7 @@ def get_heatmap(reports, grouped_metadata, site_key):
     save_labelled_df(total_df, all_dates, output_path, "perc")
 
     #Change name of sample columns to sample total count
-    total_df = total_df.rename(columns={c: c.split("[")[0].replace("]", "") for c in total_df.columns if c not in ['Scientific_Name', 'Domain']})
+    #total_df = total_df.rename(columns={c: c.split("[")[0].replace("]", "") for c in total_df.columns if c not in ['Scientific_Name', 'Domain']})
 
     #Split dataframes and make a subdataframe per dataset
     sorted_mscapes, sorted_m_counts = split_dfs(mscape_datasets, total_df)
@@ -381,13 +381,13 @@ def get_thresh_heatmap(reports, grouped_metadata, site_key):
     save_labelled_df(total_df, all_dates, output_path, "count")
 
     #Change name of sample columns to sample total count
-    total_df = total_df.rename(columns={c: c.split("[")[0].replace("]", "") for c in total_df.columns if c not in ['Scientific_Name', 'Domain']})
+    #total_df = total_df.rename(columns={c: c.split("[")[0].replace("]", "") for c in total_df.columns if c not in ['Scientific_Name', 'Domain']})
    
     top_df = sorted_df.head(20)
     top_df = top_df.sort_values(by="Domain", ascending=True)
     top_df = top_df.drop(columns=["Count_Sum"])
     top_df = top_df.drop(columns=mscape_datasets)
-    top_df = top_df.rename(columns={c: c.split("[")[0].replace("]", "") for c in top_df.columns if c not in ['Scientific_Name', 'Domain']})
+    #top_df = top_df.rename(columns={c: c.split("[")[0].replace("]", "") for c in top_df.columns if c not in ['Scientific_Name', 'Domain']})
    
     #Split dataframes and make a subdataframe per dataset
     total_mscapes, counts = split_dfs(mscape_datasets, total_df)
@@ -584,13 +584,13 @@ if __name__ == "__main__":
     total_samples = 0
 
     #Get number of total samples
-    for df in sorted_counts:
+    for df in top_mscape_perc:
             samples = df.index
             total_samples = total_samples + len(samples)
 
     # Get list of relative width ratios for each subplot
     width_ratios = []
-    for df in sorted_counts:
+    for df in top_mscape_perc:
         samples = df.index
         width = len(samples)/total_samples
         width_ratios.append(width)
@@ -604,8 +604,7 @@ if __name__ == "__main__":
     all_counts = []
 
     for count_list in sorted_counts: 
-        counts = count_list.tolist() 
-        all_counts = all_counts + counts
+        all_counts = all_counts + count_list
 
     # Convert strings to integers using
     # list comprehension
