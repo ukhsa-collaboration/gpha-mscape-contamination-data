@@ -264,7 +264,7 @@ def get_heatmap(reports, grouped_metadata, site_key):
     sorted_df = no_pub_df.sort_values(by="Average", ascending=False)
     top_df = sorted_df.head(21)
 
-    total_df = total_df[~total_df.Scientific_Name.str.contains("Date")]
+    top_df = top_df[~top_df.Scientific_Name.str.contains("Date")]
 
     total_df = top_df.drop(columns=mscape_datasets)
     total_df = total_df.drop(columns=["Average"])
