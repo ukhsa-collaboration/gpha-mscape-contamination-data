@@ -74,7 +74,7 @@ def get_microbial_load(set, needed_samples, reports):
     transposed_df = current_df.transpose()
     transposed_df.reset_index(inplace=True)
 
-    transposed_df['index'] = set
+    transposed_df['index'] = dataset
     return transposed_df
 
 #Make microbe count table for each dataset and merge them together
@@ -84,9 +84,9 @@ def make_microbial_count_table(reports, grouped_metadata, site_key):
 
     loop = 0
     single_dfs = []
-    for set in datasets:
+    for dataset in datasets:
         needed_samples = samples[loop] #our current set of sample names
-        transposed_df = get_microbial_load(set, needed_samples, reports) #get dataset name, sample names, and all reports
+        transposed_df = get_microbial_load(dataset, needed_samples, reports) #get dataset name, sample names, and all reports
         single_dfs.append(transposed_df)
         loop += 1
         
@@ -99,7 +99,7 @@ def make_microbial_count_table(reports, grouped_metadata, site_key):
     final_table.to_csv(f'{output_path}/dataframes/total_microbe_counts.csv', index=False)
     return final_table
 
-def get_all_taxa(set, needed_samples, reports, taxon_level, filter_count):
+def get_all_taxa(dataset, needed_samples, reports, taxon_level, filter_count):
     count_df = make_count_and_perc_dfs(needed_samples, reports, "count")
     og_count_df = count_df
 
@@ -133,7 +133,7 @@ def get_all_taxa(set, needed_samples, reports, taxon_level, filter_count):
             
             taxon_counts.append(taxon_count)
 
-    new_df = pd.DataFrame({"Name": taxa, set: taxon_counts})
+    new_df = pd.DataFrame({"Name": taxa, dataset: taxon_counts})
     new_df.set_index("Name", inplace=True)
     transposed_df = new_df.transpose()
     transposed_df.reset_index(inplace=True)
@@ -146,9 +146,9 @@ def make_richness_table(reports, grouped_metadata, taxon_level, filter_count, si
     loop = 0
     single_dfs = []
     og_count_dfs = []
-    for set in datasets:
+    for dataset in datasets:
         needed_samples = samples[loop] #our current set of sample names
-        transposed_df, og_count_df = get_all_taxa(set, needed_samples, reports, taxon_level, filter_count)
+        transposed_df, og_count_df = get_all_taxa(dataset, needed_samples, reports, taxon_level, filter_count)
         single_dfs.append(transposed_df)
         og_count_dfs.append(og_count_df)
         loop += 1
@@ -187,21 +187,21 @@ def get_heatmap(reports, grouped_metadata, site_key):
     og_list = []
 
     loop = 0
-    for set in datasets:
+    for dataset in datasets:
         needed_samples = samples[loop] #our current set of sample names
         perc_df, og_df = make_heatmap_df(needed_samples, reports, "perc")
 
         sample_date_df = sample_dates[loop]
         date_list = make_date_list(sample_date_df)
 
-        perc_df = perc_df.rename(columns={c: f"{set}_"+c for c in perc_df.columns if c not in ['Domain', 'Scientific_Name', 'Perc_Seqs_Overall']})
+        perc_df = perc_df.rename(columns={c: f"{dataset}_"+c for c in perc_df.columns if c not in ['Domain', 'Scientific_Name', 'Perc_Seqs_Overall']})
         perc_df.loc[len(perc_df)] = date_list
 
         row_number = perc_df.index.get_loc(perc_df[perc_df["Scientific_Name"] == "Date"].index[0])
         perc_df.iloc[row_number, 2:-1] = pd.to_datetime(perc_df.iloc[row_number, 2:-1], format='%Y-%m-%d')
         
         #Change all "average percentage" columns to their respective dataset names to avoid clashes when merging
-        perc_df[set] = perc_df["Perc_Seqs_Overall"]
+        perc_df[dataset] = perc_df["Perc_Seqs_Overall"]
         perc_df = perc_df.drop(columns=["Perc_Seqs_Overall"])
         average_list.append(perc_df)
 
@@ -238,10 +238,10 @@ def get_heatmap(reports, grouped_metadata, site_key):
 
     mscape_datasets = []
     mscape_samples = []
-    for set in datasets:
-        if set not in public_datasets:
-            mscape_datasets.append(set)
-            mscape_samples.append(set)
+    for dataset in datasets:
+        if dataset not in public_datasets:
+            mscape_datasets.append(dataset)
+            mscape_samples.append(dataset)
 
     #get list of dates
     timestamp_df = no_pub_df.drop(columns=mscape_datasets)
@@ -287,7 +287,7 @@ def get_thresh_heatmap(reports, grouped_metadata, site_key):
     average_list = []
     
     loop = 0
-    for set in datasets:
+    for dataset in datasets:
         needed_samples = samples[loop] #our current set of sample names
         
         count_df, og_df = make_heatmap_df(needed_samples, reports, "thresh")
@@ -295,7 +295,7 @@ def get_thresh_heatmap(reports, grouped_metadata, site_key):
         sample_date_df = sample_dates[loop]
         date_list = make_date_list(sample_date_df)
 
-        count_df = count_df.rename(columns={c: f"{set}_"+c for c in count_df.columns if c not in ['Scientific_Name', 'Counts_Overall', 'Domain']})
+        count_df = count_df.rename(columns={c: f"{dataset}_"+c for c in count_df.columns if c not in ['Scientific_Name', 'Counts_Overall', 'Domain']})
         
         #name_line = ["domain", "scientific_name"] + sample_names[loop] + ["counts_overall"]
         #ßcount_df.loc[len(count_df)] = name_line
@@ -307,7 +307,7 @@ def get_thresh_heatmap(reports, grouped_metadata, site_key):
         #Sort all samples by date
         count_df.iloc[row_number, 2:-1] = natsorted(count_df.iloc[row_number, 2:-1])
         #Change all "average percentage" columns to their respective dataset names to avoid clashes when merging
-        count_df[set] = count_df["Counts_Overall"]
+        count_df[dataset] = count_df["Counts_Overall"]
         count_df = count_df.drop(columns=["Counts_Overall"])
         
         average_list.append(count_df)
@@ -331,10 +331,10 @@ def get_thresh_heatmap(reports, grouped_metadata, site_key):
     
     mscape_datasets = []
     mscape_samples = []
-    for set in datasets:
-        if set not in public_datasets:
-            mscape_datasets.append(set)
-            mscape_samples.append(set)
+    for dataset in datasets:
+        if dataset not in public_datasets:
+            mscape_datasets.append(dataset)
+            mscape_samples.append(dataset)
     
 
     #remove timestamps
