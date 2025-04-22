@@ -783,7 +783,7 @@ if __name__ == "__main__":
     heatmap_list.append(plot_heatmaps(total_mscape_count, "total count"))
 
     total_map_height = (total_mscape_count[0].shape[0])*22.5
-
+    genera_count = total_mscape_count[0].shape[0]
 
     template_dir = args.template
     # Render the template with the Base64 string
@@ -804,7 +804,7 @@ if __name__ == "__main__":
                                 rna_diversity=rna_diversity, rna_evenness=rna_evenness,
 
                                 mscape_counts=heatmap_list[0], 
-                                top_perc_heatmap=heatmap_list[1], top_count_heatmap=heatmap_list[2], total_count_heatmap=heatmap_list[3], total_map_height=total_map_height)
+                                top_perc_heatmap=heatmap_list[1], top_count_heatmap=heatmap_list[2], total_count_heatmap=heatmap_list[3], total_map_height=total_map_height, genera_count=genera_count)
 
     os.makedirs(f'{output_path}/summary_report/', exist_ok=True)
     # Save the rendered HTML to a file
