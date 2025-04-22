@@ -15,7 +15,7 @@ import json
 from utils import spikeins, get_label, make_count_and_perc_dfs, define_datasets, define_heatmap_datasets, make_heatmap_df, make_date_list, split_dfs, save_labelled_df
 
 #Merge all taxon count dataframes together to get all microbe type count data per dataset
-def get_microbial_load(set, needed_samples, reports):
+def get_microbial_load(dataset, needed_samples, reports):
     count_df = make_count_and_perc_dfs(needed_samples, reports, "count")
     #Get list of spikeins and make a spikeins dataframe from main dataframe
     spikein_names = []
