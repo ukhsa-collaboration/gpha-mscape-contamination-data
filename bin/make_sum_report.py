@@ -46,10 +46,11 @@ def get_microbial_load(set, needed_samples, reports):
     current_df = current_df.reset_index(drop=True)
 
     #Remove spikein from virus sum
-    virus_index = current_df.index.get_loc(current_df[current_df["Scientific_Name"] == "Viruses"].index[0])
-    virus_sum = current_df.loc[virus_index, "Sum"]
-    new_virus_sum = virus_sum - spike_sum
-    current_df.loc[virus_index, "Sum"] = new_virus_sum
+    if (current_df[current_df["Scientific_Name"] == "Viruses"].size > 0):
+        virus_index = current_df.index.get_loc(current_df[current_df["Scientific_Name"] == "Viruses"].index[0])
+        virus_sum = current_df.loc[virus_index, "Sum"]
+        new_virus_sum = virus_sum - spike_sum
+        current_df.loc[virus_index, "Sum"] = new_virus_sum
 
     #Find Protists sum by making a protist df
     protist_list = ["Sar", "Discoba", "Metamonada"]
