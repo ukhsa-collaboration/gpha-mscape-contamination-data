@@ -110,9 +110,10 @@ def split_dfs(mscape_datasets, total_df):
     #make specific dfs for all dataframes in mscape_datasets
     for dataset_name in mscape_datasets:
         short_name = dataset_name.split("(")[0]
+        short_name_p = short_name + "\("
         category = dataset_name.split("(")[1].replace(")","")
         name_col = ["Domain", "Scientific_Name"]
-        df = total_df.loc[:, total_df.columns.str.contains(short_name) & total_df.columns.str.contains(category)]
+        df = total_df.loc[:, total_df.columns.str.contains(short_name_p) & total_df.columns.str.contains(category)]
         df[name_col] = total_df[name_col].copy()
         mscape_dfs.append(df)
     
@@ -125,7 +126,7 @@ def split_dfs(mscape_datasets, total_df):
         mscape_df = mscape_df.rename(columns={c: c.replace(f"{mscape_datasets[loop_count]}_", "") for c in mscape_df.columns if c not in ['Scientific_Name', 'Domain']})
 
         mscape_matrix = mscape_df.drop(columns=["Scientific_Name", 'Domain'])
-        
+
         name_list = mscape_matrix.columns
         name_list = [i.split('[', 1)[0] for i in name_list]
         name_list = [int(i) for i in name_list]
