@@ -702,9 +702,9 @@ if __name__ == "__main__":
             ax = plt.subplot(1, no_mscape, loop+1)  
 
             if map_type == "perc":
-                plot = ax.pcolormesh(samples, genus, heatmap, vmin=0, vmax=100, cmap="magma")
+                plot = ax.pcolormesh(samples, genus, heatmap, vmin=0, vmax=100, cmap="magma_r")
             else:
-                plot = ax.pcolormesh(samples, genus, heatmap, cmap="magma")
+                plot = ax.pcolormesh(samples, genus, heatmap, cmap="magma_r")
             
             plt.xticks([])
 
@@ -744,12 +744,12 @@ if __name__ == "__main__":
                         last_point = limit
             
                 # label the classes:
-                sec = ax.secondary_yaxis(location=-2)
+                sec = ax.secondary_yaxis(location=-3)
                 sec.set_yticks(ytick_distance, labels=ytick_names)
                 sec.tick_params('y', length=0)
 
                 # lines between the classes:
-                sec2 = ax.secondary_yaxis(location=-2)
+                sec2 = ax.secondary_yaxis(location=-3)
                 sec2.set_yticks(ytick_limits, labels=[])
                 sec2.tick_params('y', length=10, width=1, direction="in")
 
