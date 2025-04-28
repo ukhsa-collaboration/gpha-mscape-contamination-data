@@ -59,7 +59,7 @@ process make_report {
     path plots
 
     output:
-    path "summary_report/*.html"
+    path "final_reports/*.html"
 
     publishDir "${params.outdir}/", mode: 'copy' // Publish final report to local directory specified in params.config
 
@@ -70,7 +70,7 @@ process make_report {
       --metadata ${metadata} \
       --site_key ${site_key} \
       --plots_dir ${plots}/ \
-      --final_report summary_report/ \
+      --final_report final_reports/ \
       --template ${template}
     """
 }
