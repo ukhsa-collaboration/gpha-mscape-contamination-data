@@ -178,7 +178,7 @@ def make_richness_table(reports, grouped_metadata, taxon_level, filter_count, si
 
 def get_heatmap(reports, grouped_metadata, site_key):
     
-    datasets, public_datasets, samples, public_samples, sample_dates = define_heatmap_datasets(grouped_metadata, site_key)
+    datasets, mscape_datasets, samples, mscape_samples, sample_dates, mscape_dates = define_heatmap_datasets(grouped_metadata, site_key)
 
     all_samples = ["Domain", "Scientific_Name", "Rank"]
     for sample_group in samples:
@@ -237,13 +237,6 @@ def get_heatmap(reports, grouped_metadata, site_key):
     publics = "public"
     no_pub_df = merge_df.loc[:, ~merge_df.columns.str.contains(publics, case=False)]
 
-    mscape_datasets = []
-    mscape_samples = []
-    for dataset in datasets:
-        if dataset not in public_datasets:
-            mscape_datasets.append(dataset)
-            mscape_samples.append(dataset)
-
     #get list of dates
     timestamp_df = no_pub_df.drop(columns=mscape_datasets)
     row_number = timestamp_df.index.get_loc(timestamp_df[timestamp_df["Scientific_Name"] == "Date"].index[0])
@@ -284,7 +277,7 @@ def get_heatmap(reports, grouped_metadata, site_key):
 
 def get_thresh_heatmap(reports, grouped_metadata, site_key):
     
-    datasets, public_datasets, samples, public_samples, sample_dates = define_heatmap_datasets(grouped_metadata, site_key)
+    datasets, mscape_datasets, samples, mscape_samples, sample_dates, mscape_dates = define_heatmap_datasets(grouped_metadata, site_key)
     
     average_list = []
     
@@ -331,14 +324,6 @@ def get_thresh_heatmap(reports, grouped_metadata, site_key):
     publics = "public"
     no_pub_df = merge_df.loc[:, ~merge_df.columns.str.contains(publics, case=False)]
     
-    mscape_datasets = []
-    mscape_samples = []
-    for dataset in datasets:
-        if dataset not in public_datasets:
-            mscape_datasets.append(dataset)
-            mscape_samples.append(dataset)
-    
-
     #remove timestamps
     timestamp_df = no_pub_df.drop(columns=mscape_datasets)
     row_number = timestamp_df.index.get_loc(timestamp_df[timestamp_df["Scientific_Name"] == "Date"].index[0])
@@ -358,7 +343,7 @@ def get_thresh_heatmap(reports, grouped_metadata, site_key):
     bacteria_df = no_pub_df.loc[no_pub_df["Domain"] == "Bacteria"]
     bacteria_df = bacteria_df[(bacteria_df[numeric_columns] >= 500).any(axis=1)]
 
-    other_domains = ["Archaea", "Eukaryota", "Viruses", "Fungi"]
+    other_domains = ["Archaea", "Eukaryota", "Viruses", "Fungi", "Protists"]
     other_df = no_pub_df.loc[no_pub_df["Domain"].isin(other_domains)]
     other_df = other_df[(other_df[numeric_columns] >= 50).any(axis=1)]
 

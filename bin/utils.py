@@ -50,11 +50,11 @@ def define_datasets(grouped_metadata, site_key):
 def define_heatmap_datasets(grouped_metadata, site_key):
     #group by site
     datasets = []
-    public_datasets = []
+    mscape_datasets = []
     samples = []
-    public_samples = []
+    mscape_samples = []
     sample_dates = []
-
+    mscape_dates = []
 
     for sets in grouped_metadata:
             ids = list(sets[0])
@@ -64,26 +64,25 @@ def define_heatmap_datasets(grouped_metadata, site_key):
                     run_id = ''.join(subset[0])
                     #turn scientific_name from a list to a string
                     ids_list = get_label(ids, site_key, run_id=run_id)
-
                     datasets.append(ids_list)
-                    public_datasets.append(ids_list)
                     table = subset[1] #list of all ids in sub_dataset
                     samples.append(list(table['climb_id'])) #climb id
-                    public_samples.append(list(table['climb_id']))
                     dates_columns = ['collection_date', 'received_date']
                     sample_dates.append(table[dates_columns]) #sample dates
-
 
             else:
                 #turn scientific_name from a list to a string
                 ids_list = get_label(ids, site_key)
                 datasets.append(ids_list)
+                mscape_datasets.append(ids_list)
                 table = sets[1] #list of all ids in dataset
                 samples.append(list(table['climb_id'])) #climb id
+                mscape_samples.append(list(table['climb_id']))
                 dates_columns = ['collection_date', 'received_date']
                 sample_dates.append(table[dates_columns]) #sample dates
+                mscape_dates.append(table[dates_columns])
     
-    return datasets, public_datasets, samples, public_samples, sample_dates
+    return datasets, mscape_datasets, samples, mscape_samples, sample_dates, mscape_dates
 
 def convert_to_numeric(column):
         if column.name not in ['Rank', 'Scientific_Name', 'Domain']:
