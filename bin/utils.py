@@ -124,19 +124,11 @@ def split_dfs(mscape_datasets, total_df):
         #Get rid of dataset as prefixes
         mscape_df = mscape_df.rename(columns={c: c.replace(f"{mscape_datasets[loop_count]}_", "") for c in mscape_df.columns if c not in ['Scientific_Name', 'Domain']})
 
-        mscape_matrix = mscape_df.drop(columns=["Scientific_Name", 'Domain'])
-
-        name_list = mscape_matrix.columns
-        name_list = [i.split('[', 1)[0] for i in name_list]
-        name_list = [int(i) for i in name_list]
-        
-        sorted_m_counts.append(name_list)
-
         final_df = mscape_df[~mscape_df.Scientific_Name.str.contains("Date")]
         sorted_mscapes.append(final_df)
         loop_count += 1
     
-    return sorted_mscapes, sorted_m_counts
+    return sorted_mscapes
 
 def save_labelled_df(total_df, all_dates, output_path, df_type):
         labelled_df = total_df.copy()
@@ -145,15 +137,12 @@ def save_labelled_df(total_df, all_dates, output_path, df_type):
         set_row = ["", "Dataset"]
         count_row = ["", "Total Read Count"]
         name_row = ["Domain", "Scientific_Name"]
-        set_count_name = list(labelled_df.columns)
-        set_row.extend([i.split('_', 1)[0] for i in set_count_name[2:]])
-        count_name = [i.split('_', 1)[1] for i in set_count_name[2:]]
-        count_row.extend([i.split('[', 1)[0].replace("]", "") for i in count_name])
-        name_row.extend([i.split('[', 1)[1].replace("]", "") for i in count_name])
+        set_name = list(labelled_df.columns)
+        set_row.extend([i.split('_', 1)[0] for i in set_name[2:]])
+        name_row.extend([i.split('_', 1)[1] for i in set_name[2:]])
     
         labelled_df.columns = name_row #label each sample column by sample name
         labelled_df.loc[len(labelled_df)] = set_row #label the dataset the sample is from
-        labelled_df.loc[len(labelled_df)] = count_row #label the sample's total count
 
         #Change datetime timestamp back to string
         row_number = labelled_df.index.get_loc(labelled_df[labelled_df["Scientific_Name"] == "Date"].index[0])
@@ -168,7 +157,7 @@ def make_count_and_perc_dfs(needed_samples, reports, df_type):
     for sample in needed_samples:
         found = False
         for filename in reports:
-            if f'{sample}' in filename:
+            if sample in filename:
                 found = True
 
                 #open new file and read it line by line
@@ -222,9 +211,7 @@ def make_count_and_perc_dfs(needed_samples, reports, df_type):
 
                 # Turn the four lists into a dataframe, using sample ID in place of "% of seqs" or "read counts", depending on whether you want counts or percentages
                 if df_type == "perc":
-                    df = pd.DataFrame({f'{read_counts[0]}[{sample}]': perc_seqs, "Rank": rank, "Scientific_Name": sci_name, "Domain":domain})
-                elif df_type == "thresh":
-                    df = pd.DataFrame({f'{read_counts[0]}[{sample}]':read_counts, "Rank": rank, "Scientific_Name": sci_name, "Domain": domain})
+                    df = pd.DataFrame({sample: perc_seqs, "Rank": rank, "Scientific_Name": sci_name, "Domain":domain})
                 else:
                     df = pd.DataFrame({sample: read_counts, "Rank": rank, "Scientific_Name": sci_name, "Domain":domain})
 
@@ -252,7 +239,10 @@ def make_heatmap_df(needed_samples, reports, df_type):
 
     #Filtering the dataframe    
     # Define keywords and columns to search
-    keywords = ['G'] #the taxonomy level I want to filter for
+    if df_type in ("perc", "count"):
+        keywords = ['G'] #the taxonomy level I want to filter for
+    elif df_type == "thresh":
+        keywords = ['G', 'R', 'U']
     columns_to_search = ['Rank']
     
     # Boolean indexing to filter rows showing only genus in the rank column
@@ -268,7 +258,7 @@ def make_heatmap_df(needed_samples, reports, df_type):
     if df_type == "perc":
         genus_df["Perc_Seqs_Overall"] = column_sums/num_columns
         filtered_df = genus_df[~genus_df["Perc_Seqs_Overall"].astype(float).isin([0])] # Boolean indexing to filter rows in % of seqs overall that contain 0
-    elif df_type == "thresh":
+    elif df_type == "thresh" or df_type == "count":
         genus_df["Counts_Overall"] = column_sums
         filtered_df = genus_df[~genus_df["Counts_Overall"].astype(float).isin([0])]
 
@@ -278,7 +268,7 @@ def make_heatmap_df(needed_samples, reports, df_type):
     # check if columns are not in the wordy_columns list
     if df_type == "perc":
         column_order = ['Domain'] + ['Scientific_Name'] + [col for col in filtered_df.columns if col not in wordy_columns] + ["Perc_Seqs_Overall"]
-    elif df_type == "thresh":
+    elif df_type == "thresh" or df_type == "count":
         column_order = ['Domain'] + ['Scientific_Name'] + [col for col in filtered_df.columns if col not in wordy_columns] + ["Counts_Overall"]
     filtered_df = filtered_df[column_order]
     

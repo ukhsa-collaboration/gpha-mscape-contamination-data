@@ -359,18 +359,31 @@ function clickFunction(str) {
 <p class="ont_ref" style="text-align: left;"><strong>The total number of microbial taxa found in each dataset, indicating richness.</strong> Due to the abundance of the Bacteria domain in kraken classifications, we may restrict the number of bacterial taxa to those with an average of ${filter_count} counts or more in each dataset. <u>Species-level data should be interpreted with extra caution due to high risk of false classifications.</u></p>
 </section>
 
+<h3>Proportion of classified reads</h3>
+
+<button onclick="toggleElements('.absolute', '.stackedclass')">Absolute Reads</button>
+<button onclick="toggleElements('.relative', '.stackedclass')">Relative Reads</button>
+
+<div class="stackedclass absolute">
+    <p style="text-align: center;">Absolute Reads in Each Sample</p>
+    <img src="data:image/png;base64,${absolute_class}" height="450" width="1100" 
+    alt="Stacked barplot depicting the absolute total reads for each sample across all mScape controls."/>
+</div>
+
+<div class="stackedclass relative", style="display: none">
+    <p style="text-align: center;">Relative Reads in Each Sample</p>
+    <img src="data:image/png;base64,${relative_class}" height="450" width="1100" 
+    alt="Stacked barplot depicting the relative proportion of classified and unclassified reads for each sample across all mScape controls."/>
+</div>
+
+<p><strong>Comparison of classified reads to unclassified reads</strong>, depicted as <strong>1. absolute total counts</strong> and <strong>2. relative proportion</strong> in each sample. Every sample is horizontally sorted by sampling date and grouped by their dataset.</p>
+
 <h3>Distribution of the most abundant contaminants</h3>
 
-<button onclick="toggleElements('.barplots', '.heatmap')">Total reads in each sample</button>
 <button onclick="toggleElements('.total_perc', '.heatmap')">Top 20 genera by relative proportion</button>
 <button onclick="toggleElements('.top_count', '.heatmap')">Top 20 genera by absolute count</button>
 <button onclick="toggleElements('.total_count', '.heatmap')">Top ${genera_count} genera by count</button>
 
-<div class="heatmap barplots", style="display: none">
-    <p style="text-align: center;">Total Reads in Each Sample</p>
-    <img src="data:image/png;base64,${mscape_counts}" height="450" width="1100" 
-    alt="Heatmap depicting the top 20 most abundant microbial genera across all mScape controls."/>
-</div>
 
 <div class="heatmap total_perc">
     <p style="text-align: center;">Top 20 Genera By Relative Proportion</p>
@@ -387,10 +400,10 @@ function clickFunction(str) {
 <div class="heatmap total_count", style="display: none">
     <p style="text-align: center;">Top ${genera_count} Genera By Absolute Count</p>
     <img src="data:image/png;base64,${total_count_heatmap}" height="${total_map_height}" width="1100" 
-    alt="Heatmap depicting the top 20 most abundant microbial genera across all mScape controls by total counts."/>
+    alt="Heatmap depicting the top ${genera_count} most abundant microbial genera across all mScape controls by total counts."/>
 </div>
 
-<p class="ont_ref" style="text-align: left;"><strong>The most abundant microbial genera in mSCAPE datasets </strong> and <strong>0. the total reads in each sample</strong>, horizontally arranged by collection date. All microbial genera were sorted by <strong>1. proportion of reads within each sample and filtered for the top 20</strong>. Simultaneously, microbial genera were filtered by all bacteria over an absolute threshold of 500 reads and all archaea, eukaryota, fungi, protists, and viruses over 50 reads in any of the samples. These were filtered for <strong>2. top 20 only</strong> and <strong>3. all ${genera_count} genera over the threshold</strong>. Colour scale indicates the percentage, or proportion of reads in each sample. Blanks (white space) indicate where zero read counts were found.</p> 
+<p class="ont_ref" style="text-align: left;"><strong>The most abundant microbial genera in mSCAPE datasets </strong> horizontally arranged by sampling date. All microbial genera were sorted by <strong>1. proportion of reads within each sample and filtered for the top 20</strong>. Simultaneously, microbial genera were filtered by all bacteria over an absolute threshold of 500 reads and all archaea, eukaryota, fungi, protists, and viruses over 50 reads in any of the samples. These were filtered for <strong>2. top 20 only</strong> and <strong>3. all ${genera_count} genera over the threshold</strong>. Colour scale indicates the percentage, or proportion of reads in each sample. Blanks (white space) indicate where zero read counts were found.</p> 
 <br>
 <br>
 <br>

@@ -2,6 +2,7 @@
 
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
 import io
 import base64
 from mako.template import Template
@@ -271,9 +272,9 @@ def get_heatmap(reports, grouped_metadata, site_key):
     #total_df = total_df.rename(columns={c: c.split("[")[0].replace("]", "") for c in total_df.columns if c not in ['Scientific_Name', 'Domain']})
 
     #Split dataframes and make a subdataframe per dataset
-    sorted_mscapes, sorted_m_counts = split_dfs(mscape_datasets, total_df)
+    sorted_mscapes = split_dfs(mscape_datasets, total_df)
     
-    return sorted_mscapes, sorted_m_counts, mscape_datasets
+    return sorted_mscapes, mscape_datasets
 
 def get_thresh_heatmap(reports, grouped_metadata, site_key):
     
@@ -332,7 +333,10 @@ def get_thresh_heatmap(reports, grouped_metadata, site_key):
     all_dates = list(date_df)
  
     no_pub_df = no_pub_df[~no_pub_df.Scientific_Name.str.contains("Date")]
-  
+    
+    classified_count = no_pub_df.loc[no_pub_df["Scientific_Name"].isin(["root", "unclassified"])]
+    classified_count = classified_count.drop(columns=mscape_datasets)
+
     # Rearrange column 'Scientific Name' to the first position
     wordy_columns = ['Scientific_Name', 'Domain']
     wordy_columns.extend(mscape_datasets)
@@ -376,10 +380,11 @@ def get_thresh_heatmap(reports, grouped_metadata, site_key):
     #top_df = top_df.rename(columns={c: c.split("[")[0].replace("]", "") for c in top_df.columns if c not in ['Scientific_Name', 'Domain']})
    
     #Split dataframes and make a subdataframe per dataset
-    total_mscapes, counts = split_dfs(mscape_datasets, total_df)
-    top_mscapes, counts = split_dfs(mscape_datasets, top_df)
+    total_mscapes = split_dfs(mscape_datasets, total_df)
+    top_mscapes = split_dfs(mscape_datasets, top_df)
+    class_mscapes = split_dfs(mscape_datasets, classified_count)
 
-    return top_mscapes, total_mscapes, counts, mscape_datasets
+    return top_mscapes, total_mscapes, class_mscapes, mscape_datasets
 
 
 if __name__ == "__main__":
@@ -557,96 +562,127 @@ if __name__ == "__main__":
     #make bar plots for total read counts (for heatmaps)
     sns.set_style("white")
     #heatmap function
-    top_mscape_perc, sorted_counts, mscape_names = get_heatmap(reports, grouped_metadata, site_key)
+    top_mscape_perc, mscape_names = get_heatmap(reports, grouped_metadata, site_key)
+    top_mscape_count, total_mscape_count, class_counts, mscape_datasets = get_thresh_heatmap(reports, grouped_metadata, site_key)
+
+    stacked_class = []
+    
+    def make_stacked_class(class_counts, mscape_names, bar_type):
+        mscape_colours = []
+        for name in mscape_names:
+            # Find corresponding value in column "colours"
+            output = list(palette.loc[palette['name_order'] == name, 'colours'])
+            output = ''.join(output)
+            mscape_colours.append(output)
+
+        total_samples = 0
+
+        #Get number of total samples
+        for df in class_counts:
+                columns = int(df.shape[1])
+                samples = columns-2
+                total_samples = total_samples + samples
+
+        # Get list of relative width ratios for each subplot
+        width_ratios = []
+        for df in class_counts:
+            samples = df.shape[1] - 2
+            width = samples/total_samples
+            width_ratios.append(width)
+
+        no_mscape = len(class_counts)
+
+        # Figure Size
+        fig, ax = plt.subplots(figsize=(18,6), ncols=no_mscape, gridspec_kw={'width_ratios': width_ratios})
+
+        #make all mscape subplots
+        loop = 0
+        for df in class_counts:
+            df = df.drop(columns=["Domain"])
+            df.set_index("Scientific_Name", inplace = True)
+            tdf = df.transpose()
+            tdf.reset_index(inplace=True)
+            
+            if bar_type == "relative":
+                # Turning it into percentages
+                columns_to_sum = tdf.drop(columns=["index"])   
+                sample_sums = columns_to_sum.sum(axis=1)
+                sample_sums.replace(0, np.nan, inplace=True)
+                sample_sums.fillna(0.000000001)
+                # Define a function to convert a column to % within sample if it's not 'index'
+                def make_relative(column):
+                    if column.name not in ['index']:
+                        return column/sample_sums
+                    else:
+                        return column
+                # Apply the function to each column
+                relative_df = tdf.apply(make_relative)
+
+            ax = plt.subplot(1, no_mscape, loop+1)
+
+            # Convert strings to integers using
+            # list comprehension
+            #int_counts = [int(item) for item in all_counts]
+
+            #max_value = max(int_counts)
+            # upper_lim = max_value + (max_value/10) # ensures linear graphs will be 110% in height/y-axis
+            colours = [mscape_colours[loop]]
+            colours.append("#adb5bd")
+
+            #make all mscape subplots
+            if bar_type == "absolute":
+                tdf.plot(
+                        x='index', kind='bar', stacked=True, ax=ax, width=0.98, color=colours
+                    )
+            else:
+                relative_df.plot(
+                        x='index', kind='bar', stacked=True, ax=ax, width=0.98, color=colours
+                    )
+            #ax.ticklabel_format(style='plain')
+            plt.xticks([])
+
+            if loop == 0:
+                if bar_type == "absolute":
+                    plt.ylabel('Total Read Count', fontweight='bold', ha='center', labelpad=20)
+                else:
+                    plt.ylabel('Relative Read Count', fontweight='bold', ha='center', labelpad=20)
+                plt.xlabel("")
+                ax.get_legend().remove()
+            elif loop < (no_mscape-1):
+                plt.yticks([])
+                plt.xlabel("")     
+                ax.get_legend().remove()
+            elif loop == (no_mscape-1):
+                plt.yticks([])
+                plt.xlabel("")
+                ax.get_legend().remove()
+
+                legend_elements = []
+                name_loop = 0
+                for color in mscape_colours:
+                    legend_elements.append(Patch(facecolor=color, label=mscape_names[name_loop]))
+                    name_loop += 1
+
+                legend_elements.append(Patch(facecolor="#adb5bd", label="unclassified"))
+                # Create the figure
+                ax.legend(handles=legend_elements, bbox_to_anchor=(1.04, 1), loc="upper left")
+            loop += 1
+            plt.subplots_adjust(wspace=0.02, hspace=0)
+            #plt.xlim([0,len(int_index)])
+
+        # Save the figure as a Base64 string
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', bbox_inches='tight')
+        buf.seek(0)
+        counts = base64.b64encode(buf.read()).decode('utf-8')
+        stacked_class.append(counts)
+        buf.close()
+        plt.close(fig)
+    
+    make_stacked_class(class_counts, mscape_names, "absolute")
+    make_stacked_class(class_counts, mscape_names, "relative")
 
     heatmap_list = []
-    mscape_colours = []
-    for name in mscape_names:
-        # Find corresponding value in column "colours"
-        output = list(palette.loc[palette['name_order'] == name, 'colours'])
-        output = ''.join(output)
-        mscape_colours.append(output)
-
-    total_samples = 0
-
-    #Get number of total samples
-    for df in top_mscape_perc:
-            samples = df.index
-            total_samples = total_samples + len(samples)
-
-    # Get list of relative width ratios for each subplot
-    width_ratios = []
-    for df in top_mscape_perc:
-        samples = df.index
-        width = len(samples)/total_samples
-        width_ratios.append(width)
-
-        no_mscape = len(sorted_counts)
-
-    # Figure Size
-    fig, ax = plt.subplots(figsize=(18,6), ncols=no_mscape, gridspec_kw={'width_ratios': width_ratios})
-
-    # Normalise counts for all mscape dataset subplots on the same y-scale
-    all_counts = []
-
-    for count_list in sorted_counts: 
-        all_counts = all_counts + count_list
-
-    # Convert strings to integers using
-    # list comprehension
-    int_counts = [int(item) for item in all_counts]
-
-    max_value = max(int_counts)
-    upper_lim = max_value + (max_value/10) # ensures linear graphs will be 110% in height/y-axis
-
-    #make all mscape subplots
-    loop = 0
-    for count_list in sorted_counts:
-        df = pd.DataFrame({"Total Counts": count_list})
-        df["Total Counts"] = pd.to_numeric(df["Total Counts"])    
-        counts = df["Total Counts"]
-        index = df.index.to_list()
-        # Convert strings to integers using
-        # list comprehension
-        int_index = [int(item) for item in index]
-
-        ax = plt.subplot(1, no_mscape, loop+1)
-
-        # Optional: convert y-axis to Logarithmic scale
-        #plt.yscale("log")
-        # OR: set y-lim to something above 10% of highest value
-        ax.set_ylim([0, upper_lim])
-
-        # Horizontal Bar Plot
-        ax.bar(int_index, counts, color=mscape_colours[loop])
-        ax.ticklabel_format(style='plain')
-        plt.xticks([])
-
-        if loop == 0:
-            plt.ylabel('Total Read Count', fontweight='bold', ha='center', labelpad=20)
-            plt.xlabel(f'{mscape_names[loop]}', fontweight='bold', horizontalalignment='center', rotation=90)
-            ax.yaxis.labelpad = 160
-        elif loop < (no_mscape-1):
-            plt.yticks([])      
-            plt.xlabel(f'{mscape_names[loop]}', fontweight='bold', horizontalalignment='center', rotation=90)
-        elif loop == (no_mscape-1):
-            plt.yticks([])
-            plt.xlabel(f'{mscape_names[loop]}', fontweight='bold', horizontalalignment='center', rotation=90)
-        loop += 1
-        plt.subplots_adjust(wspace=0.02, hspace=0)
-        plt.xlim([0,len(int_index)])
-
-    # Save the figure as a Base64 string
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png', bbox_inches='tight')
-    buf.seek(0)
-    counts = base64.b64encode(buf.read()).decode('utf-8')
-    heatmap_list.append(counts)
-    buf.close()
-    plt.close(fig)
-
-    top_mscape_count, total_mscape_count, sorted_counts, mscape_datasets = get_thresh_heatmap(reports, grouped_metadata, site_key)
-
     #make heatmaps
     def plot_heatmaps(dataframes, map_type):
         total_samples = 0
@@ -676,6 +712,7 @@ if __name__ == "__main__":
             df.replace(0, np.nan, inplace=True)
             domain_list = list(df["Domain"])
             df = df.drop(columns=["Domain"])
+            
 
             genus = df.index.tolist()
             samples = df.columns.tolist()
@@ -688,8 +725,10 @@ if __name__ == "__main__":
 
             if map_type == "perc":
                 plot = ax.pcolormesh(samples, genus, heatmap, vmin=0, vmax=100, cmap="magma_r")
+                
             else:
                 plot = ax.pcolormesh(samples, genus, heatmap, cmap="magma_r")
+        
             
             plt.xticks([])
 
@@ -788,8 +827,8 @@ if __name__ == "__main__":
                                 dna_diversity=dna_diversity, dna_evenness=dna_evenness,
                                 rna_diversity=rna_diversity, rna_evenness=rna_evenness,
 
-                                mscape_counts=heatmap_list[0], 
-                                top_perc_heatmap=heatmap_list[1], top_count_heatmap=heatmap_list[2], total_count_heatmap=heatmap_list[3], total_map_height=total_map_height, genera_count=genera_count)
+                                absolute_class=stacked_class[0], relative_class=stacked_class[1],
+                                top_perc_heatmap=heatmap_list[0], top_count_heatmap=heatmap_list[1], total_count_heatmap=heatmap_list[2], total_map_height=total_map_height, genera_count=genera_count)
 
     os.makedirs(f'{output_path}/final_reports/', exist_ok=True)
     # Save the rendered HTML to a file
