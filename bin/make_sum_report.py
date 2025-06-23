@@ -830,9 +830,10 @@ if __name__ == "__main__":
                                 absolute_class=stacked_class[0], relative_class=stacked_class[1],
                                 top_perc_heatmap=heatmap_list[0], top_count_heatmap=heatmap_list[1], total_count_heatmap=heatmap_list[2], total_map_height=total_map_height, genera_count=genera_count)
 
-    os.makedirs(f'{output_path}/final_reports/', exist_ok=True)
+    #os.makedirs(f'{output_path}/', exist_ok=True)
+    print(output_path)
     # Save the rendered HTML to a file
-    with open(f"{output_path}final_reports/neg_contamn_report.html", "w") as f:
+    with open(f"{output_path}/summary_report.html", "w") as f:
         f.write(html_content)
 
     print(f"HTML file generated: {output_path}")

@@ -1,3 +1,4 @@
+include { evaluate_by_site } from './modules/site_report'
 include { evaluate_negative_controls } from './modules/summary_report'
 
 // Check if required parameters are provided
@@ -11,4 +12,5 @@ if (!params.metadata) {
 
 workflow {
     evaluate_negative_controls()
+    evaluate_by_site()
 }
