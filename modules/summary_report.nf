@@ -47,7 +47,7 @@ process get_shannon_plot {
  * A python script which produces output for making the html report
  */
 
-process make_report {
+process make_summary_report {
 
     container 'community.wave.seqera.io/library/pip_mako_matplotlib_natsort_pruned:44e99f335376fa3b'
 
@@ -59,7 +59,7 @@ process make_report {
     path plots
 
     output:
-    path "final_reports/"
+    path "summary_reports/"
 
     publishDir "${params.outdir}/", mode: 'copy' // Publish final report to local directory specified in params.config
 
@@ -70,7 +70,7 @@ process make_report {
       --metadata ${metadata} \
       --site_key ${site_key} \
       --plots_dir ${plots}/ \
-      --final_report final_reports/ \
+      --final_report summary_reports/ \
       --template ${template}
     """
 }
@@ -97,6 +97,6 @@ workflow evaluate_negative_controls {
 
     make_shannon_script(reports, metadata, site_key)
     get_shannon_plot(make_shannon_script.out)
-    make_report(reports, metadata, site_key, template, get_shannon_plot.out)
+    make_summary_report(reports, metadata, site_key, template, get_shannon_plot.out)
     println "Report will be generated in ${params.outdir}"
 }
