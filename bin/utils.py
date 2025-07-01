@@ -166,6 +166,7 @@ def make_count_and_perc_dfs(needed_samples, reports, df_type):
                 #create 3 lists for count of sequences then rank and scientific name
                 perc_seqs = []
                 read_counts = []
+                taxid = []
                 rank = []
                 sci_name = []
                 domain = []
@@ -205,15 +206,16 @@ def make_count_and_perc_dfs(needed_samples, reports, df_type):
 
                     perc_seqs.append(columns[0])
                     read_counts.append(columns[1])
+                    taxid.append(columns[4])
                     rank.append(current_rank)
                     sci_name.append('_'.join(columns[5:])) #this turns scientific name (which sometimes have multiple words) into a list within a list
                     domain.append(current_domain)
 
                 # Turn the four lists into a dataframe, using sample ID in place of "% of seqs" or "read counts", depending on whether you want counts or percentages
                 if df_type == "perc":
-                    df = pd.DataFrame({sample: perc_seqs, "Rank": rank, "Scientific_Name": sci_name, "Domain":domain})
+                    df = pd.DataFrame({sample: perc_seqs, "Rank": rank, "Scientific_Name": sci_name, "Domain":domain, "Taxon_ID": taxid})
                 else:
-                    df = pd.DataFrame({sample: read_counts, "Rank": rank, "Scientific_Name": sci_name, "Domain":domain})
+                    df = pd.DataFrame({sample: read_counts, "Rank": rank, "Scientific_Name": sci_name, "Domain":domain, "Taxon_ID": taxid})
 
 
                 #add the new dataframe to the list of dataframes
@@ -232,10 +234,11 @@ def make_count_and_perc_dfs(needed_samples, reports, df_type):
 
 def make_heatmap_df(needed_samples, reports, df_type):
     df = make_count_and_perc_dfs(needed_samples, reports, df_type)
-   
+    no_taxid_df = df.drop(columns=["Taxon_ID"])
+
     #remove spikeins
     for spike in spikeins:
-        no_spike_df = df.loc[~df["Scientific_Name"].astype(str).isin(spikeins[spike])]
+        no_spike_df = no_taxid_df.loc[~no_taxid_df["Scientific_Name"].astype(str).isin(spikeins[spike])]
 
     #Filtering the dataframe    
     # Define keywords and columns to search

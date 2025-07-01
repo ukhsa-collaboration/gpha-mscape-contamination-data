@@ -402,7 +402,7 @@ function toggleElements(showElement, hideElements) {
     </div>
 </div>
 
-<p class="ont_ref" style="text-align: left;"><strong>The absolute abundance of reads found in each sample in [site].</strong>, displaying the top 10 taxa across the site.</p>
+<p class="ont_ref" style="text-align: left;"><strong>The absolute abundance of reads found in each sample in ${site_name}.</strong>, displaying the top 10 taxa across the site.</p>
 
 <script>
 function clickFunction(str) {
@@ -436,11 +436,19 @@ function clickFunction(str) {
 <br>
 
 <h3>Pathogenicity of identified contaminants</h3>
+<button onclick="toggleElements('.zepto', '.map')">ZeptoMetrix</button>
 <button onclick="toggleElements('.patho', '.map')">Pathogenic | Potentially Pathogenic</button>
 <button onclick="toggleElements('.oppor', '.map')">Opportunistic | Potentially Opportunistic</button>
 <button onclick="toggleElements('.comme', '.map')">Generally Commensal | Commensal</button>
 
-<div class="patho map" style="display: inline-block">
+<div class="zepto map" style="display: inline-block">
+    <img src="data:image/png;base64,${zepto_map}" height="${zepto_count}*5" width="${width}*64"
+    alt="Embedded heatmap depicting the read count found for zeptomatrix control taxa.">
+
+    <p>Taxa also present in the ZeptoMetrix Respiratory Panel for positive controls. Viruses were searched at a Family level and all other taxa were searched at a Genus level.</p>
+</div>
+
+<div class="patho map" style="display: none">
     <img src="data:image/png;base64,${patho_map}" height="${patho_count}*5" width="${width}*64"
     alt="Embedded heatmap depicting the read count found for pathogenic/potentially pathogenic contaminant taxa.">
 </div>
@@ -456,7 +464,7 @@ function clickFunction(str) {
 </div>
 
 <p style="padding-bottom: 0;"><strong>${annotation}</strong></p>
-<p><strong>A non-exhaustive list of contaminants grouped by pathogenicity, as indicated by existing literature*</strong>. White spaces indicate where 0 counts have been found. Note: only ${nonan_taxa}/${all_taxa} taxa have been indicated with a measure of pathogenicity and represented here. *References can be found on github.com/aq-sun/contamination-data.</p>
+<p><strong>A non-exhaustive list of contaminants grouped by pathogenicity, as indicated by existing literature*</strong>. White spaces indicate where 0 counts have been found. Note: only ${nonan_taxa}/${all_taxa} taxa have been cross-referenced with literature so far and represented here. *References can be found on github.com/aq-sun/contamination-data.</p>
 
 <br>
 <br>

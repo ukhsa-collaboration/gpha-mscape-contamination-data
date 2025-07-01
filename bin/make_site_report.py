@@ -10,12 +10,30 @@ import numpy as np
 import seaborn as sns
 import os
 import argparse
-from natsort import natsorted
 import json
 import urllib.request
+from natsort import natsorted
 from matplotlib.colors import LinearSegmentedColormap
 
-from utils import define_heatmap_datasets, make_heatmap_df, make_date_list
+from utils import define_heatmap_datasets, make_heatmap_df, make_date_list, convert_to_numeric
+
+def sort_by_date(count_df, date_list):
+    #add and sort samples by date
+    count_df.loc[len(count_df)] = date_list
+    row_number = count_df.index.get_loc(count_df[count_df["Scientific_Name"] == "Date"].index[0])
+    count_df.iloc[row_number, 2:-1] = pd.to_datetime(count_df.iloc[row_number, 2:-1], format='%Y-%m-%d')
+    #Sort all samples by date
+    count_df.iloc[row_number, 2:-1] = natsorted(count_df.iloc[row_number, 2:-1])
+
+    #get timestamps line and turn to list
+    timestamp_df = count_df.drop(columns="Counts_Overall")
+    row_number = timestamp_df.index.get_loc(timestamp_df[timestamp_df["Scientific_Name"] == "Date"].index[0])
+    date_df = timestamp_df.iloc[row_number]
+    dates = list(date_df)
+    #remove timestamps
+    count_df = count_df[~count_df.Scientific_Name.str.contains("Date")]
+    return count_df
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Parse text files and a CSV file.")
@@ -25,6 +43,7 @@ if __name__ == "__main__":
     parser.add_argument('--final_reports', help="Output directory", required=True)
     parser.add_argument('--template', help="HTMl template", required=True)
     parser.add_argument('--reference', help="CSV file for dictionary of contaminants", required=True)
+    parser.add_argument('--hcids', help="CSV file for HCID contaminants", required=True)
     args = parser.parse_args()
 
     reports = args.reports
@@ -49,35 +68,24 @@ if __name__ == "__main__":
     for needed_samples in mscape_samples:
 
         count_df, og_df = make_heatmap_df(needed_samples, reports, "count")
+        print(count_df.columns)
+        #count_df = count_df.drop(columns=["Taxon_ID"]) #drop taxon id column
 
         sample_date_df = mscape_dates[site_loop]
         date_list = make_date_list(sample_date_df)
 
         #name_line = ["domain", "scientific_name"] + sample_names[loop] + ["counts_overall"]
         #ßcount_df.loc[len(count_df)] = name_line
-
-        #add and sort samples by date
-        count_df.loc[len(count_df)] = date_list
-        row_number = count_df.index.get_loc(count_df[count_df["Scientific_Name"] == "Date"].index[0])
-        count_df.iloc[row_number, 2:-1] = pd.to_datetime(count_df.iloc[row_number, 2:-1], format='%Y-%m-%d')
-        #Sort all samples by date
-        count_df.iloc[row_number, 2:-1] = natsorted(count_df.iloc[row_number, 2:-1])
-
-        #get timestamps line and turn to list
-        timestamp_df = count_df.drop(columns="Counts_Overall")
-        row_number = timestamp_df.index.get_loc(timestamp_df[timestamp_df["Scientific_Name"] == "Date"].index[0])
-        date_df = timestamp_df.iloc[row_number]
-        dates = list(date_df)
-        #remove timestamps
-        count_df = count_df[~count_df.Scientific_Name.str.contains("Date")]
+        
+        count_df = sort_by_date(count_df, date_list)
 
         sorted_df = count_df.sort_values(by="Counts_Overall", ascending=False)
 
         def make_domain_df(sorted_df, domain):
             domain_df = sorted_df.loc[sorted_df["Domain"] == domain]
 
-            top_df = domain_df.head(10)
-            bottom_df = domain_df.tail(-10)
+            top_df = domain_df.head(10) #top 10
+            bottom_df = domain_df.tail(-10) #all taxa apart from top 10
 
             # Rearrange column 'Scientific Name' to the first position
             wordy_columns = ['Scientific_Name', 'Domain']
@@ -193,48 +201,99 @@ if __name__ == "__main__":
         abs_plots, abs_legends, abs_axes = make_abundance_plots(absolute_dfs)
         rel_plots, rel_legends, rel_axes = make_abundance_plots(relative_dfs)
 
-        sns.set_style("darkgrid")
+        present_hcids = pd.read_csv(args.hcids)
+        sns.set_style("dark")
 
-        with urllib.request.urlopen("https://raw.githubusercontent.com/artic-network/scylla/refs/heads/main/resources/hcid.json") as url:
-            hcids = json.load(url)
+        #organise mapped_required details for heatmap purposes
+        present_hcids["split_counts"] = present_hcids["mapped_required_details"].str.split('|')
 
-        hcid_list = []
-        for entry in hcids:
-            name = entry["name"]
-            name = name.replace(' ','_')
-            hcid_list.append(name)
+        nested = []
+        for entry in present_hcids["split_counts"]:
+            new_entry = []
+            for element in entry:
+                element = element.split(':')
+                new_entry.append(element)
+            nested.append(new_entry)
 
-        hcid_df = og_df.loc[og_df['Scientific_Name'].isin(hcid_list)==True]
+        present_hcids["nested_counts"] = nested
 
-        hcid_df = hcid_df.drop(columns=["Domain", "Rank"])
-        for hcid in hcid_list:
-            hcid_exist = og_df.loc[og_df['Scientific_Name'].str.contains(hcid)]
-            if len(hcid_exist.index) == 0:
-                empty_hcid = [hcid]
-                loop = 1
-                while loop < len(hcid_df.columns):
-                    empty_hcid.append(0)
-                    loop += 1
-                hcid_df = pd.concat([pd.DataFrame([empty_hcid], columns=hcid_df.columns), hcid_df], ignore_index=True)
+        #get data from each flagged sample
+        sample_list = []
+        for row in present_hcids["nested_counts"]:
+            for element in row:
+                sample_list.append(element[0])
 
-        hcid_df.set_index('Scientific_Name', inplace=True)
-        hcid_df.replace(0, np.nan, inplace=True)
+        #make sure sample names column headers aren't identical
+        uniq_samples = [i for i in set(sample_list)]
 
-        genus = hcid_df.index.tolist()
-        samples = hcid_df.columns.tolist()
-        matrix = hcid_df.to_numpy()
+        for sample in uniq_samples:
+            present_hcids[sample] = "NaN"
 
+        for row in present_hcids["name"]:
+            row_index = present_hcids.index[present_hcids['name'] == row].tolist()
+            for element in present_hcids.at[row_index[0], "nested_counts"]:
+                name = element[0]
+                present_hcids.at[row_index[0], name] = element[1]
+
+        sub_columns = ['name', 'mapped_count'] + uniq_samples
+        sub_df = present_hcids[sub_columns]
+
+        #create custom colours
+        custom_colors = ['#ffffff', '#ff0000','#750000']
+        custom_cmap = LinearSegmentedColormap.from_list('count', custom_colors)
+
+        #wrangle data for heatmap
+        sub_df.set_index("name", inplace=True)
+
+        mapped_count = list(sub_df["mapped_count"])
+        sub_df = sub_df.drop(columns=["mapped_count"])
+
+        taxa = sub_df.index.tolist()
+        samples = sub_df.columns.tolist()
+        matrix = sub_df.to_numpy()
+
+        heatmap = np.reshape(matrix, (len(taxa), len(samples)))
+        heatmap = np.array(heatmap, dtype=np.float64)  # Ensure it's numeric
+
+        heatmap = heatmap.astype('float')
+        heatmap[heatmap == 0] = 'nan' # or use np.nan
+
+        nummap = np.nan_to_num(heatmap) #change all nan to 0
+        highest = nummap.max() #get highest count 
+
+        sub_df = sub_df.replace("NaN", 0)
+        sub_df = sub_df.apply(convert_to_numeric)
+
+        xlabels = []
+        for sample in sub_df:
+            sample_count = sub_df[sample].sum()
+            if int(sample_count) > 0:
+                xlabels.append(sample)
+            else:
+                xlabels.append("")
+
+        #make plot
         fig, ax = plt.subplots(figsize=(18, 7))
-        sns.heatmap(hcid_df, linewidth=1, cmap="OrRd") #cbar_kws={'label': 'Reads', 'orientation': 'horizontal'}
-        hcidmap = np.reshape(matrix, (len(genus), len(samples)))
-        hcidmap = np.array(hcidmap, dtype=np.float64)
-        #plot = ax.pcolormesh(samples, genus, hcidmap, cmap='OrRd')
+        im = ax.imshow(heatmap, vmin=0, cmap=custom_cmap)
 
+        cax = fig.add_axes([ax.get_position().x1+0.05,ax.get_position().y0,0.02,ax.get_position().height])
+        cbar = plt.colorbar(im, cax=cax)
+        cbar.outline.set_color('black')
 
-        #plt.colorbar(plot, ax=ax)
-        plt.xticks([])
-        plt.xlabel("Samples")
-        plt.ylabel("")
+        ax.set_xticks(range(len(samples)),labels=xlabels, rotation=90)
+        ax.set_yticks(range(len(taxa)), labels=taxa)
+        ax.tick_params(labelsize="large")
+
+        #y_distance = [i for i in len()
+        sec = ax.secondary_yaxis(location=1)
+        sec.set_yticks(range(len(taxa)), labels=mapped_count)
+        sec.tick_params('y', length=8)
+
+        # Minor ticks
+        ax.set_xticks(np.arange(-.5, len(samples), 1), minor=True)
+        ax.set_yticks(np.arange(-.5, len(taxa), 1), minor=True)
+        # Gridlines based on minor ticks
+        ax.grid(which='minor', color='w', linestyle='-', linewidth=1.5)
 
         buf = io.BytesIO()
         plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0.1)
@@ -243,7 +302,7 @@ if __name__ == "__main__":
         buf.close()
         plt.close(fig)
 
-        hcid_height = hcid_df.shape[0] * 23
+        hcid_height = sub_df.shape[0] * 23
 
         #Label heatmap by pathogenicity
         sns.set_style("white")
@@ -272,10 +331,6 @@ if __name__ == "__main__":
                 pathogenicity.append("NaN")
 
         new_df["Pathogenicity"] = pathogenicity
-        #wordy_cols = ["Scientific_Name", "Pathogenicity"]
-        #num_cols = new_df.drop(columns=wordy_cols)
-        #num_cols["total_counts"] = num_cols.sum(axis=1)
-        #new_df["total_counts"] = num_cols["total_counts"]
 
         sorted_df = new_df.sort_values(by="Counts_Overall", ascending=False)
         sorted_df = sorted_df[(sorted_df["Counts_Overall"] > 0)]
@@ -284,6 +339,41 @@ if __name__ == "__main__":
         sortfilt_df = filtered_df.sort_values(by="Pathogenicity", ascending=False)
 
         clean_df = sortfilt_df[~sortfilt_df.Pathogenicity.str.contains("NaN")]
+
+        # get zeptometrix contamination from og_df (with all ranks)
+        drop_df = og_df.drop(columns=["Taxon_ID", "Rank", "Domain"])
+        og_date_list = date_list[1:-1]
+
+        #add and sort samples by date
+        drop_df.loc[len(drop_df)] = og_date_list
+        row_number = drop_df.index.get_loc(drop_df[drop_df["Scientific_Name"] == "Date"].index[0])
+        drop_df.iloc[row_number, 1:] = pd.to_datetime(drop_df.iloc[row_number, 1:], format='%Y-%m-%d')
+        #Sort all samples by date
+        drop_df.iloc[row_number, 1:] = natsorted(drop_df.iloc[row_number, 1:])
+
+        #get timestamps line and turn to list
+        row_number = drop_df.index.get_loc(drop_df[drop_df["Scientific_Name"] == "Date"].index[0])
+        timestamps = drop_df.iloc[row_number]
+        #remove timestamps
+        drop_df = drop_df[~drop_df.Scientific_Name.str.contains("Date")]
+
+        #get zeptometrix control df
+        zepto = ["Bordetella", "Chlamydia", "Mycoplasmoides", "Adenoviridae", "Orthomyxoviridae", "Pneumoviridae", "Paramyxoviridae", "Picornaviridae", "Pneumoviridae", "Coronaviridae"]
+        zepto_df = drop_df[drop_df.Scientific_Name.isin(zepto)]
+
+        #sort zeptometrix df by total count
+        num_zepto = zepto_df.drop(columns="Scientific_Name")
+        zepto_df["total_count"] = num_zepto.sum(axis=1)
+        zepto_df = zepto_df.sort_values(by="total_count", ascending=False)
+        zepto_df = zepto_df.drop(columns="total_count")
+
+        if len(zepto_df.index) == 0:
+            empty_row = ["None"]
+            loop = 1
+            while loop < len(zepto_df.columns):
+                empty_row.append(0)
+                loop += 1
+            zepto_df = pd.concat([pd.DataFrame([empty_row], columns=zepto_df.columns), zepto_df], ignore_index=True)
 
         #Get number of taxa 
         all_taxa = sortfilt_df.shape[0]
@@ -311,6 +401,9 @@ if __name__ == "__main__":
             df_names.append(current_df_names)
             df_list.append(current_df_list)
 
+        df_names = [["zeptometrix"]] + df_names
+        df_list = [[zepto_df]] + df_list
+
         #make separate heatmaps for each subset of grouped_df
         annotation = []
         taxa_sums = []
@@ -320,6 +413,7 @@ if __name__ == "__main__":
 
             total_taxa = 0
             for df in current_df_list:
+                print(df)
                 taxa_no = df.shape[0]
                 total_taxa = total_taxa + taxa_no
             taxa_sums.append(total_taxa)
@@ -360,8 +454,11 @@ if __name__ == "__main__":
 
                 current_patho = patho_list[name_loop]
 
-                if current_patho == "pathogenic":
-                    # Custom color list for the colormap (e.g., shades of blue, green, red, and purple)
+                if current_patho == "zeptometrix":
+                    custom_colors = ['#000000', '#5A1073']
+                    shorthand = "Z"
+                elif current_patho == "pathogenic":
+                    # Custom color list for the colormap (e.g., shades of green, yellow, red)
                     custom_colors = ['#000000', '#ff0000']
                     shorthand = "P"
                 elif current_patho == "potentially_pathogenic":
@@ -443,8 +540,8 @@ if __name__ == "__main__":
                                     bac_abun_l=abs_legends[0], fungi_abun_l=abs_legends[1], archaea_abun_l=abs_legends[2], virus_abun_l=abs_legends[3], protist_abun_l=abs_legends[4],
                                     bac_rel=rel_plots[0], fungi_rel=rel_plots[1], archaea_rel=rel_plots[2], virus_rel=rel_plots[3], protist_rel=rel_plots[4],
                                     hcidmap=hcidmap, hcid_height=hcid_height,
-                                    patho_map = heatmaps[0], oppor_map = heatmaps[1], comme_map = heatmaps[2],
-                                    patho_count = taxa_sums[0], oppor_count = taxa_sums[1], comme_count = taxa_sums[2],
+                                    zepto_map = heatmaps[0], patho_map = heatmaps[1], oppor_map = heatmaps[2], comme_map = heatmaps[3],
+                                    zepto_count = taxa_sums[0], patho_count = taxa_sums[1], oppor_count = taxa_sums[2], comme_count = taxa_sums[3],
                                     all_taxa = all_taxa, nonan_taxa = nonan_taxa, width=width, annotation=annotation)
 
         # Save the rendered HTML to a file

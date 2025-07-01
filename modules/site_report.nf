@@ -13,6 +13,7 @@ process make_site_report {
     input:
     path reports
     path metadata
+    path hcids
     path site_key
     path template
     path reference
@@ -27,6 +28,7 @@ process make_site_report {
     make_site_report.py \
       --reports ${reports.join(' ')} \
       --metadata ${metadata} \
+      --hcids ${hcids} \
       --site_key ${site_key} \
       --final_report site_reports/ \
       --template ${template} \
@@ -50,11 +52,12 @@ workflow evaluate_by_site {
         .fromPath(metadata_file)
         .set { metadata }
 
+    hcids = file(params.hcids, type: "file", checkIfExists:true)
     site_key = file(params.site_key, type: "file", checkIfExists:true)
 
     template = file("$baseDir/bin/site_report_template.html")
     reference = file("$baseDir/bin/contaminant_dict.csv")
 
-    make_site_report(reports, metadata, site_key, template, reference)
+    make_site_report(reports, metadata, hcids, site_key, template, reference)
     println "Report will be generated in ${params.outdir}"
 }

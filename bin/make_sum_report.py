@@ -18,6 +18,8 @@ from utils import spikeins, get_label, make_count_and_perc_dfs, define_datasets,
 #Merge all taxon count dataframes together to get all microbe type count data per dataset
 def get_microbial_load(dataset, needed_samples, reports):
     count_df = make_count_and_perc_dfs(needed_samples, reports, "count")
+    count_df = count_df.drop(columns=["Taxon_ID"])
+
     #Get list of spikeins and make a spikeins dataframe from main dataframe
     spikein_names = []
     for spike in spikeins:
@@ -102,8 +104,8 @@ def make_microbial_count_table(reports, grouped_metadata, site_key):
     return final_table
 
 def get_all_taxa(dataset, needed_samples, reports, taxon_level, filter_count):
-    count_df = make_count_and_perc_dfs(needed_samples, reports, "count")
-    og_count_df = count_df
+    og_count_df = make_count_and_perc_dfs(needed_samples, reports, "count")
+    count_df = og_count_df.drop(columns=["Taxon_ID"])
 
     #remove spikeins
     for spike in spikeins:
@@ -163,8 +165,14 @@ def make_richness_table(reports, grouped_metadata, taxon_level, filter_count, si
         loop_count += 1
         if loop_count < len(og_count_dfs):
             current_df = og_count_dfs[loop_count]
-            merge_df = merge_df.merge(current_df, on=["Scientific_Name", "Rank", "Domain"], how="outer")
+            merge_df = merge_df.merge(current_df, on=["Scientific_Name", "Rank", "Taxon_ID", "Domain"], how="outer")
     
+    # Rearrange column 'Scientific Name' to the first position
+    wordy_columns = ['Scientific_Name', 'Rank', 'Domain', 'Taxon_ID']
+    # check if columns are not in the wordy_columns list
+    column_order = ['Domain'] + ['Scientific_Name'] + ["Taxon_ID"] + ['Rank'] + [col for col in merge_df.columns if col not in wordy_columns]
+    merge_df = merge_df[column_order]
+
     merge_df.fillna(value=0, inplace=True)
     merge_df.to_csv(f'{output_path}/dataframes/count_df.csv', index=False)
         
@@ -181,7 +189,7 @@ def get_heatmap(reports, grouped_metadata, site_key):
     
     datasets, mscape_datasets, samples, mscape_samples, sample_dates, mscape_dates = define_heatmap_datasets(grouped_metadata, site_key)
 
-    all_samples = ["Domain", "Scientific_Name", "Rank"]
+    all_samples = ["Domain", "Scientific_Name", "Taxon_ID", "Rank"]
     for sample_group in samples:
         all_samples = all_samples + sample_group         
     
@@ -221,15 +229,15 @@ def get_heatmap(reports, grouped_metadata, site_key):
             current_df = average_list[loop_count]
             merge_df = merge_df.merge(current_df, on=['Domain', "Scientific_Name"], how="outer")
             current_og_df = og_list[loop_count]
-            og_merge_df = og_merge_df.merge(current_og_df, on=["Scientific_Name", "Rank", "Domain"], how="outer")
+            og_merge_df = og_merge_df.merge(current_og_df, on=["Scientific_Name", "Rank", "Taxon_ID", "Domain"], how="outer")
     
     merge_df.fillna(value=0, inplace=True)
     og_merge_df.fillna(value=0, inplace=True)
 
     # Rearrange column 'Scientific Name' to the first position
-    wordy_columns = ['Scientific_Name', 'Rank', 'Domain']
+    wordy_columns = ['Scientific_Name', 'Rank', 'Domain', 'Taxon_ID']
     # check if columns are not in the wordy_columns list
-    column_order = ['Domain'] + ['Scientific_Name'] + ['Rank'] + [col for col in og_merge_df.columns if col not in wordy_columns]
+    column_order = ['Domain'] + ['Scientific_Name'] + ["Taxon_ID"] + ['Rank'] + [col for col in og_merge_df.columns if col not in wordy_columns]
     og_merge_df = og_merge_df[column_order]
     og_merge_df.columns = all_samples
 
