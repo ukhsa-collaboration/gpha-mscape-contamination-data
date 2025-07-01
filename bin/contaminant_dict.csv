@@ -8,7 +8,7 @@ Mycobacterium,pathogenic,soil_water,ultrapure_water,extraction_kit,food,,,
 Bacillus,potentially_pathogenic,soil_water,ultrapure_water,extraction_kit,lab,food,,
 Limnobacter,commensal,soil_water,ultrapure_water,extraction_kit,,,,
 Xanthomonas,opportunistic,skin,soil_water,extraction_kit,,,,
-Corynebacterium,potentially_pathogenic,skin,resp_tract,mouth,pcr_mix,extraction_kit,pcr,lab
+Corynebacterium,generally_commensal,skin,resp_tract,mouth,pcr_mix,extraction_kit,pcr,lab
 Alcaligenes,,skin,soil_water,taq_polymerase,pcr,,,
 Staphylococcus,potentially_pathogenic,skin,resp_tract,extraction_kit,lab,food,,
 Acinetobacter,potentially_pathogenic,skin,soil_water,resp_tract,extraction_kit,lab,,
