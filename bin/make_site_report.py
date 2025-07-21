@@ -43,7 +43,7 @@ if __name__ == "__main__":
     parser.add_argument('--final_reports', help="Output directory", required=True)
     parser.add_argument('--template', help="HTMl template", required=True)
     parser.add_argument('--reference', help="CSV file for dictionary of contaminants", required=True)
-    parser.add_argument('--hcids', help="CSV file for HCID contaminants", required=True)
+    parser.add_argument('--hcids', nargs='+', help="List of CSV file for HCID contaminants", required=True)
     args = parser.parse_args()
 
     reports = args.reports
@@ -201,56 +201,55 @@ if __name__ == "__main__":
         abs_plots, abs_legends, abs_axes = make_abundance_plots(absolute_dfs)
         rel_plots, rel_legends, rel_axes = make_abundance_plots(relative_dfs)
 
-        present_hcids = pd.read_csv(args.hcids)
         sns.set_style("dark")
 
         #organise mapped_required details for heatmap purposes
-        present_hcids["split_counts"] = present_hcids["mapped_required_details"].str.split('|')
 
-        nested = []
-        for entry in present_hcids["split_counts"]:
-            new_entry = []
-            for element in entry:
-                element = element.split(':')
-                new_entry.append(element)
-            nested.append(new_entry)
+        #hcids = ["/../../../Ntc_231205_hcid_counts.csv", "/../../../Ntc_240119_hcid_counts.csv"]
+        hcids = args.hcids
+        
+        #keep count_df column order for listing samples
+        hcid_df = pd.DataFrame(columns=count_df.columns) 
 
-        present_hcids["nested_counts"] = nested
+        #${unique_id}_hcid_counts.csv
+        #find all taxa with counts above threshold (min_count)
+        tables = []
+        for table in hcids:
+            sample_id = table.split("_hcid")[0] #unique id
+            hcid_table = pd.read_csv(table)
+            
+            if sample_id in hcid_df.columns:
 
-        #get data from each flagged sample
-        sample_list = []
-        for row in present_hcids["nested_counts"]:
-            for element in row:
-                sample_list.append(element[0])
+                hcid_table[sample_id] = hcid_table["mapped_count"]
+                needed_columns = ["name", sample_id]
+                sub_table = hcid_table[needed_columns]
 
-        #make sure sample names column headers aren't identical
-        uniq_samples = [i for i in set(sample_list)]
+                tables.append(sub_table)
+            else:
+                hcid_df["Scientific_Name"] = hcid_table["name"]
 
-        for sample in uniq_samples:
-            present_hcids[sample] = "NaN"
+        if len(tables) > 0:
+            # Merge the DataFrames on a specific column
+            merged_table = pd.concat(tables, axis = 0, join= "outer")  # Change join to 'outer' for outer join
+            #merge on hcid name - this means that no scientific name is repeated if it's present in different dataframes
+            merged_table = merged_table.groupby('name', as_index=False).first()
 
-        for row in present_hcids["name"]:
-            row_index = present_hcids.index[present_hcids['name'] == row].tolist()
-            for element in present_hcids.at[row_index[0], "nested_counts"]:
-                name = element[0]
-                present_hcids.at[row_index[0], name] = element[1]
+            #move taxa names over to hcid_df
+            hcid_df["Scientific_Name"] = merged_table["name"]
 
-        sub_columns = ['name', 'mapped_count'] + uniq_samples
-        sub_df = present_hcids[sub_columns]
+            #replace hcid_df blank columns with merged_table columns if there are counts 
+            for sample in hcid_df.columns:
+                if sample in list(merged_table.columns):
+                    hcid_df[sample] = merged_table[sample]
 
-        #create custom colours
-        custom_colors = ['#ffffff', '#ff0000','#750000']
-        custom_cmap = LinearSegmentedColormap.from_list('count', custom_colors)
+        hcid_df.fillna(0, inplace=True)
 
         #wrangle data for heatmap
-        sub_df.set_index("name", inplace=True)
+        hcid_df.set_index("Scientific_Name", inplace=True)
 
-        mapped_count = list(sub_df["mapped_count"])
-        sub_df = sub_df.drop(columns=["mapped_count"])
-
-        taxa = sub_df.index.tolist()
-        samples = sub_df.columns.tolist()
-        matrix = sub_df.to_numpy()
+        taxa = hcid_df.index.tolist()
+        samples = hcid_df.columns.tolist()
+        matrix = hcid_df.to_numpy()
 
         heatmap = np.reshape(matrix, (len(taxa), len(samples)))
         heatmap = np.array(heatmap, dtype=np.float64)  # Ensure it's numeric
@@ -259,20 +258,25 @@ if __name__ == "__main__":
         heatmap[heatmap == 0] = 'nan' # or use np.nan
 
         nummap = np.nan_to_num(heatmap) #change all nan to 0
-        highest = nummap.max() #get highest count 
+        highest = nummap.max() #get highest count
 
-        sub_df = sub_df.replace("NaN", 0)
-        sub_df = sub_df.apply(convert_to_numeric)
+        hcid_df = hcid_df.replace("NaN", 0)
+        hcid_df = hcid_df.apply(convert_to_numeric)
 
+        #only keep x-labels with counts
         xlabels = []
-        for sample in sub_df:
-            sample_count = sub_df[sample].sum()
+        for sample in hcid_df:
+            sample_count = hcid_df[sample].sum()
             if int(sample_count) > 0:
                 xlabels.append(sample)
             else:
                 xlabels.append("")
 
-        #make plot
+        #create custom colours
+        custom_colors = ['#ffffff', '#ff0000','#750000']
+        custom_cmap = LinearSegmentedColormap.from_list('count', custom_colors)
+
+        #make plot 
         fig, ax = plt.subplots(figsize=(18, 7))
         im = ax.imshow(heatmap, vmin=0, cmap=custom_cmap)
 
@@ -284,9 +288,14 @@ if __name__ == "__main__":
         ax.set_yticks(range(len(taxa)), labels=taxa)
         ax.tick_params(labelsize="large")
 
+        hcid_df["total"] = hcid_df.sum(axis=1)
+        total = list(hcid_df["total"])
+        total = [int(i) for i in total]
+        hcid_df = hcid_df.drop(columns=["total"])
+
         #y_distance = [i for i in len()
         sec = ax.secondary_yaxis(location=1)
-        sec.set_yticks(range(len(taxa)), labels=mapped_count)
+        sec.set_yticks(range(len(taxa)), labels=total)
         sec.tick_params('y', length=8)
 
         # Minor ticks
@@ -302,7 +311,7 @@ if __name__ == "__main__":
         buf.close()
         plt.close(fig)
 
-        hcid_height = sub_df.shape[0] * 23
+        hcid_height = hcid_df.shape[0] * 23
 
         #Label heatmap by pathogenicity
         sns.set_style("white")
@@ -377,7 +386,10 @@ if __name__ == "__main__":
 
         #Get number of taxa 
         all_taxa = sortfilt_df.shape[0]
-        nonan_taxa = clean_df.shape[0]
+        nonan_taxa = clean_df.shape[0] #get the number of taxa recognised through lit review
+
+        #remove zeptometrix taxa from clean_df
+        clean_df = clean_df[~clean_df.Scientific_Name.isin(zepto)]
 
         df_list = []
         df_names = []

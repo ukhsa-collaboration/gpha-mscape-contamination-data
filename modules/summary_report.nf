@@ -83,7 +83,7 @@ workflow evaluate_negative_controls {
         .flatten()
         .collect()
         .set { reports }
-    reports.view()
+    //reports.view()
 
 
     metadata_file = file(params.metadata, type: "file", checkIfExists:true)
