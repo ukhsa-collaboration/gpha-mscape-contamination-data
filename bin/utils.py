@@ -2,7 +2,7 @@
 import pandas as pd
 
 spikeins = {
-        12242:["Tobamovirus","Tobacco_mosaic_virus"]
+        12242:["Virgaviridae","Tobamovirus","Tobacco_mosaic_virus"]
     }
 
 def get_label(ids, site_key, run_id=None):
@@ -248,22 +248,30 @@ def make_heatmap_df(needed_samples, reports, df_type):
         keywords = ['G', 'R', 'U']
     columns_to_search = ['Rank']
     
-    # Boolean indexing to filter rows showing only genus in the rank column
+    #filter for virus families
+    virus_df = no_spike_df[no_spike_df['Domain'] == "Viruses"]
+    virusfam_df = virus_df[virus_df['Rank'] == "F"]
+
+    # Boolean indexing to filter rows showing only genus/family in the rank column
     genus_df = no_spike_df[no_spike_df[columns_to_search].apply(lambda x: x.isin(keywords).any(), axis=1)]
-    
+    genus_df = genus_df[~genus_df.Domain.str.contains("Viruses", na=False)] #remove viruses from dataframe
+
+    #Add viruses back in as family
+    genusfam = pd.concat([genus_df, virusfam_df], axis = 0)
+
     # Select columns to sum (excluding 'Rank' and 'Scientific Name')
-    columns_to_sum = genus_df.drop(columns=['Rank', 'Scientific_Name', 'Domain'])
+    columns_to_sum = genusfam.drop(columns=['Rank', 'Scientific_Name', 'Domain'])
     # Calculate the sum of values in each row
     column_sums = columns_to_sum.sum(axis=1)
     # Count the number of columns
-    num_columns = genus_df.shape[1]
+    num_columns = columns_to_sum.shape[1]
     #either get a sum of all seqs, or normalise it by dividing by num_columns
     if df_type == "perc":
-        genus_df["Perc_Seqs_Overall"] = column_sums/num_columns
-        filtered_df = genus_df[~genus_df["Perc_Seqs_Overall"].astype(float).isin([0])] # Boolean indexing to filter rows in % of seqs overall that contain 0
+        genusfam["Perc_Seqs_Overall"] = column_sums/num_columns
+        filtered_df = genusfam[~genusfam["Perc_Seqs_Overall"].astype(float).isin([0])] # Boolean indexing to filter rows in % of seqs overall that contain 0
     elif df_type == "thresh" or df_type == "count":
-        genus_df["Counts_Overall"] = column_sums
-        filtered_df = genus_df[~genus_df["Counts_Overall"].astype(float).isin([0])]
+        genusfam["Counts_Overall"] = column_sums
+        filtered_df = genusfam[~genusfam["Counts_Overall"].astype(float).isin([0])]
 
     
     # Rearrange column 'Scientific Name' to the first position

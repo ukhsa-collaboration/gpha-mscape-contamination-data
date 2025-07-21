@@ -10,10 +10,6 @@ if (!params.metadata) {
     exit 1, "Please provide --metadata when running Nextflow."
 }
 
-if (!params.hcids) {
-    exit 1, "Please provide --hcids when running Nextflow."
-}
-
 if (!params.site_key) {
     exit 1, "Please provide --site_key when running Nextflow."
 }
