@@ -15,7 +15,7 @@ import urllib.request
 from natsort import natsorted
 from matplotlib.colors import LinearSegmentedColormap
 
-from utils import define_heatmap_datasets, make_heatmap_df, make_date_list, convert_to_numeric
+from utils import define_heatmap_datasets, make_heatmap_df, make_date_list, convert_to_numeric, filter_multiples
 
 def sort_by_date(count_df, date_list):
     #add and sort samples by date
@@ -49,7 +49,8 @@ if __name__ == "__main__":
     reports = args.reports
     metadata = pd.read_csv(args.metadata)
     template_dir = args.template
-    niche_table = pd.read_csv(args.reference)
+    #pip install openpyxl
+    niche_table = pd.read_excel(args.reference)
     output_path = args.final_reports
     os.makedirs(output_path, exist_ok=True) #make directory path into real directory
     os.makedirs(f'{output_path}site_reports/', exist_ok=True)
@@ -316,18 +317,23 @@ if __name__ == "__main__":
         #Label heatmap by pathogenicity
         sns.set_style("white")
         heatmaps = []
-        
-        #transpose and rearrange table for data wrangling
-        transposed_table = niche_table.transpose()
-        transposed_table.reset_index(inplace=True)
-        transposed_table.columns = transposed_table.iloc[0]
-        transposed_table = transposed_table.drop(transposed_table.index[0])
 
-        pathogenic_df = transposed_table.iloc[:1]
-        pathogenic_df = pathogenic_df.dropna(axis=1, how='all')
+        #transpose niche_table data and subset for pathogenics
+        patho_cols = ["Taxa", "Pathogenicity"]
+        pathogenic_table = niche_table[patho_cols]
+        pathogenic_table.fillna("NaN", inplace=True)
+        pathogenic_table.set_index("Taxa", inplace=True)
+        pathogenic_df = pathogenic_table.transpose()
 
         non_genus = ['root', 'unclassified']
         new_df = count_df[~count_df.Scientific_Name.isin(non_genus)]
+
+        exclude_cols = ["Domain", "Niche", "Scientific_Name", "Counts_Overall"]
+        include_cols = [col for col in new_df.columns if col not in exclude_cols]
+
+
+        # Boolean indexing to filter rows showing only genus/family in the rank column
+        new_df = new_df[new_df[include_cols].apply(lambda x: filter_multiples(x), axis=1)]
 
         pathogenicity = []
         for index, row in new_df.iterrows():
@@ -542,7 +548,186 @@ if __name__ == "__main__":
 
             loop += 1
 
+        exclude_cols = ["Domain", "Niche", "Scientific_Name", "Counts_Overall"]
+        include_cols = [col for col in count_df.columns if col not in exclude_cols]
+
+        # Boolean indexing to filter rows showing only genus/family in the rank column
+        filtered_df = count_df[count_df[include_cols].apply(lambda x: filter_multiples(x), axis=1)]
+
+        nichemaps = []
+        filtered_niche = filtered_df.drop(columns=["Domain"])
+        colnames = list(filtered_niche["Scientific_Name"])
+
+        filtered_table = niche_table.drop(columns=["Pathogenicity", "Reference"])
+        filtered_table.set_index("Taxa", inplace=True)
+        niche_df = filtered_table.transpose()
+
+        all_niches = []
+        for index, row in niche_df.iterrows():
+            niche = list(niche_df.loc[index])
+            new_niche = []
+            for ele in niche:
+                if isinstance(ele, str) and "," in ele:
+                    ele = ele.split(",")
+                    new_niche.extend(ele)
+                elif isinstance(ele, str):
+                    new_niche.append(ele)
+            niche_list = list(set(new_niche))
+            all_niches.append(niche_list)
+
+        niche_colours = {"soil_water": '#008000', "air": '#308695', "skin": '#bd9a73', "food": '#ffbf00', "mouth": '#ff69b4', "gut": '#ff7e70', "soft_tissue": '#ff746c', "resp_tract": '#0234d2',
+                                "sterile_water": '#0cafff', "taq_polymerase": '#89f336', "primer": '#f26724', "lysing_enzymes": '#40e0d0', "pcr_mix": '#e0b0ff',
+                                "extraction_kit": '#d55e00', "lab": "#009e73", "pcr": "#cc79ac"}
+        
+        niche_shorthand = {"soft_tissue": 'tissue', "resp_tract": 'resp',
+                                "sterile_water": 'water', "taq_polymerase": 'taq', "lysing_enzymes": 'LE', "pcr_mix": 'PCR',
+                                "extraction_kit": 'kit'}
+
+        #create a dictionary for all niche categories, listing taxa they're found in as values
+        niche_dict = {}
+        count_dict = {}
+        for taxon in niche_df:
+            if taxon in colnames: #if taxon is in site, start looking for its niches from niche_df
+                niche_list = list(niche_df[taxon])
+                new_niche = []
+                for niche in niche_list:
+                    if isinstance(niche, str) and "," in niche:
+                        niche = niche.split(",")
+                        new_niche.extend(niche)
+                    elif isinstance(niche, str):
+                        new_niche.append(niche)
+                #niche = [x for x in niche if str(x) != 'nan']
+                for category in new_niche:
+                    needed_line = filtered_niche[filtered_niche["Scientific_Name"] == taxon]
+                    count = list(needed_line["Counts_Overall"])
+                    if category in niche_dict:
+                        niche_dict[category].append(taxon)
+                        count_dict[category].extend(count)
+                    else:
+                        niche_dict[category] = [taxon]
+                        count_dict[category] = count
+
+        grouped_niches = []
+        for niche_group in all_niches: #[lab], [human], [industry]
+            site_by_niche = []
+            for niche in niche_dict: #soil_water, primer, taq...
+                current_niche = []
+                if niche in niche_group: #e.g. soil_water in [soil_water, air...
+                    for index, row in filtered_df.iterrows():
+                        taxon_name = row["Scientific_Name"]
+                        
+                        if taxon_name in niche_dict[niche]: #if pseudomonas in niche_dict[soil_water...
+                            current_niche.append(niche)
+                        else:
+                            current_niche.append("NaN")
+
+                    filtered_df["Niche"] = current_niche
+                    subset = filtered_df[filtered_df["Niche"] == niche]
+                    subset = subset.sort_values(by="Counts_Overall", ascending=False)
+                    subset = subset.drop(columns=["Domain"])
+                    site_by_niche.append(subset)
+            grouped_niches.append(site_by_niche)
+
+        lab_taxa = []
+        for every_niche in grouped_niches[0]: #find only niches in lab section
+            taxa = list(every_niche["Scientific_Name"])
+            lab_taxa.extend(taxa)
+
+        lab_taxa = list(dict.fromkeys(lab_taxa))
+
+        final_groups = [grouped_niches[0]]
+
+        loop = 1
+        while loop < 3:
+            filtered_groups = []
+            for group in grouped_niches[loop]:
+                filtered_group = group.loc[~group["Scientific_Name"].astype(str).isin(lab_taxa)]
+                if len(filtered_group.index) > 0:
+                    filtered_groups.append(filtered_group)
+            loop += 1
+            final_groups.append(filtered_groups)
+
+        niche_sums = []
+        niche_annotations = []
+        for niche_group in final_groups:
+            total_taxa = 0
+            for df in niche_group:
+                taxa_no = df.shape[0]
+                total_taxa = total_taxa + taxa_no
+            niche_sums.append(total_taxa)
+
+            height_ratios = []
+            for df in niche_group:
+                taxa_no = df.shape[0]
+                height = taxa_no/total_taxa
+                height_ratios.append(height)
+
+            height = total_taxa*0.3
+            width = niche_group[0].shape[1] * 0.32
+            
+            no_subplot = len(niche_group)
+            fig, axs = plt.subplots(figsize=(width,height), nrows=no_subplot, gridspec_kw={'height_ratios': height_ratios})
+
+            df_loop = 0
+            for map_df in niche_group:
+
+                map_df.set_index("Scientific_Name", inplace=True)
+                map_df.replace(0, np.nan, inplace=True)
+                
+                niche_name = list(map_df["Niche"])[0]
+                map_df = map_df.drop(columns=["Niche", "Counts_Overall"])
+
+                genus = map_df.index.tolist()
+                samples = map_df.columns.tolist()
+                matrix = map_df.to_numpy()
+                
+                heatmap = np.reshape(matrix, (len(genus), len(samples)))
+                heatmap = np.array(heatmap, dtype=np.float64)  # Ensure it's numeric
+
+                ax = plt.subplot(no_subplot, 1, df_loop+1)
+
+                for niche in niche_colours:
+                    if niche_name == niche:
+                        custom_colors = ['#000000', niche_colours[niche]]
+                        if niche in niche_shorthand and len(genus) < 3: #if shorthand is needed
+                            shorthand = niche_shorthand[niche]
+                            niche_annotations.append(f'{shorthand} = {niche}')
+       
+                # Create a ListedColormap using the custom colors
+                custom_cmap = LinearSegmentedColormap.from_list('niche', custom_colors)
+                #plot = ax.pcolormesh(samples, genus, heatmap, cmap=custom_cmap)
+                im = ax.imshow(heatmap, cmap=custom_cmap)
+
+                #plt.xticks([])
+                #plt.yticks(genus,rotation=0,fontsize='10')
+                #plt.ylabel(current_patho, labelpad=40)
+                ax.set_xticks([])
+                ax.set_yticks(range(len(genus)), labels=genus)
+                if niche_name in niche_shorthand and len(genus) < 3:
+                    ax.set_ylabel(niche_shorthand[niche_name], labelpad = 40, rotation=0)
+                else:
+                    ax.set_ylabel(niche_name, labelpad = 40, rotation=0)
+                cax = fig.add_axes([ax.get_position().x1+0.1,ax.get_position().y0,0.02,ax.get_position().height])
+            
+                cbar = plt.colorbar(im, cax=cax)
+
+
+                df_loop += 1
+
+            fig.align_ylabels(axs)
+                              
+            plt.subplots_adjust(wspace=0, hspace=0.02)
+            buf = io.BytesIO()
+            plt.savefig(buf, format='png', bbox_inches='tight')
+            buf.seek(0)
+            map = base64.b64encode(buf.read()).decode('utf-8')
+            nichemaps.append(map)
+            buf.close()
+            plt.close(fig)
+
+
         annotation = ', '.join(annotation)
+        niche_annotations = ', '.join(niche_annotations)
         site_name = mscape_datasets[site_loop]
 
         # Render the template with the Base64 string
@@ -554,7 +739,9 @@ if __name__ == "__main__":
                                     hcidmap=hcidmap, hcid_height=hcid_height,
                                     zepto_map = heatmaps[0], patho_map = heatmaps[1], oppor_map = heatmaps[2], comme_map = heatmaps[3],
                                     zepto_count = taxa_sums[0], patho_count = taxa_sums[1], oppor_count = taxa_sums[2], comme_count = taxa_sums[3],
-                                    all_taxa = all_taxa, nonan_taxa = nonan_taxa, width=width, annotation=annotation)
+                                    all_taxa = all_taxa, nonan_taxa = nonan_taxa, width=width, annotation=annotation,
+                                    lab_map = nichemaps[0], human_map = nichemaps[1], industry_map = nichemaps[2],
+                                    lab_count = niche_sums[0],human_count = niche_sums[1], industry_count = niche_sums[2], niche_annotations=niche_annotations)
 
         # Save the rendered HTML to a file
         with open(f"{output_path}site_reports/{site_name}_report.html", "w") as f:

@@ -286,3 +286,7 @@ def make_heatmap_df(needed_samples, reports, df_type):
     #drop column “rank” since they are all Gs 
     no_rank_df = filtered_df.drop(columns=['Rank'])
     return no_rank_df, df
+
+def filter_multiples(x):
+    filtered_x = x[x>=5] #find columns with over or equal to 2 counts
+    return len(filtered_x) >= 3 #filter for rows with >= 2 counts in >=2 columns
