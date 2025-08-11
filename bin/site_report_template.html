@@ -425,15 +425,6 @@ function clickFunction(str) {
 </script>
 <br>
 <br>
-<br>
-
-<h3 class="hcid">Presence of High Consequence Infectious Diseases (HCIDs) </h3>
-<img src="data:image/png;base64,${hcidmap}" height="${hcid_height}" width="1150"
-    alt="Heatmap depicting any reads for High Consequence Infectious Diseases (HCIDs) in every sample."/>
-    <p><strong>Number of reads for any and all High Consequence Infectious Diseases (HCIDs)</strong>, as outlined by UKHSA. List of taxa are taken from github.com/artic-network/scylla.</p>
-<br>
-<br>
-<br>
 
 <h3>Pathogenicity of identified contaminants</h3>
 <button onclick="toggleElements('.zepto', '.map')">ZeptoMetrix</button>
@@ -488,7 +479,7 @@ function clickFunction(str) {
 </div>
 
 <p style="padding-bottom: 0;"><strong>${niche_annotations}</strong></p>
-<p><strong>A non-exhaustive list of contaminants grouped by niche, as indicated by existing literature*</strong>. Taxa have been filtered for those appearing in more than 3 samples with higher than 5 reads. When taxa overlap between lab environment and other niches, we assume that the cause of their contamination is the lab environment and remove them from the other plots. White spaces indicate where 0 counts have been found. Note: only ${nonan_taxa}/${all_taxa} taxa over the threshold have been cross-referenced with literature so far and represented here. *References can be found on github.com/aq-sun/contamination-data.</p>
+<p><strong>A non-exhaustive list of contaminants grouped by niche, as indicated by existing literature*</strong>. Taxa have been filtered for those appearing in more than 3 samples with over 5 reads. When taxa overlap between lab environment and other niches, we assume that the cause of their contamination is the lab environment and remove them from the other plots. White spaces indicate where 0 counts have been found. Note: only ${nonan_taxa}/${all_taxa} taxa over the threshold have been cross-referenced with literature so far and represented here. *References can be found on github.com/aq-sun/contamination-data.</p>
 
 <br>
 <br>
