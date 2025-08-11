@@ -248,7 +248,7 @@ img {
 <script>
 function toggleElements(showElement, hideElements) {
     document.querySelectorAll(hideElements).forEach(el => el.style.display = "none");
-    document.querySelector(showElement).style.display = "inline-block";
+    document.querySelector(showElement).style.display = "block";
 }
 </script>
 
@@ -445,7 +445,7 @@ function clickFunction(str) {
     <img src="data:image/png;base64,${zepto_map}" height="${zepto_count}*5" width="${width}*64"
     alt="Embedded heatmap depicting the read count found for zeptomatrix control taxa.">
 
-    <p>Taxa also present in the ZeptoMetrix Respiratory Panel for positive controls. Viruses were searched at a Family level and all other taxa were searched at a Genus level.</p>
+    <p>Taxa also present in the ZeptoMetrix Respiratory Panel for positive controls.</p>
 </div>
 
 <div class="patho map" style="display: none">
@@ -464,7 +464,31 @@ function clickFunction(str) {
 </div>
 
 <p style="padding-bottom: 0;"><strong>${annotation}</strong></p>
-<p><strong>A non-exhaustive list of contaminants grouped by pathogenicity, as indicated by existing literature*</strong>. White spaces indicate where 0 counts have been found. Note: only ${nonan_taxa}/${all_taxa} taxa have been cross-referenced with literature so far and represented here. *References can be found on github.com/aq-sun/contamination-data.</p>
+<p><strong>A non-exhaustive list of contaminants grouped by pathogenicity, as indicated by existing literature*</strong>. Taxa have been filtered for those appearing in more than 3 samples with over 5 reads. White spaces indicate where 0 counts have been found. Note: only ${nonan_taxa}/${all_taxa} taxa over the threshold have been cross-referenced with literature so far and represented here. *References can be found on github.com/aq-sun/contamination-data.</p>
+
+<h3>Possible sources of contamination</h3>
+<button onclick="toggleElements('.lab', '.niche')">Lab Environment</button>
+<button onclick="toggleElements('.human', '.niche')">Human</button>
+<button onclick="toggleElements('.industry', '.niche')">Industry</button>
+
+<div class="lab niche" style="display: block">
+    <img src="data:image/png;base64,${lab_map}" height="${lab_count}*5" width="${width}*64"
+    alt="Embedded heatmap depicting the read count found for zeptomatrix control taxa.">
+</div>
+
+<div class="human niche" style="display: none">
+    <img src="data:image/png;base64,${human_map}" height="${human_count}*5" width="${width}*64"
+    alt="Embedded heatmap depicting the read count found for pathogenic/potentially pathogenic contaminant taxa.">
+</div>
+
+<div class="industry niche" style="display: none">
+    <p>Previously found as industrial reagent contaminants in literature.</p>
+    <img src="data:image/png;base64,${industry_map}" height="${industry_count}*5" width="${width}*64"
+    alt="Embedded heatmap depicting the read count found for opportunistic/potentially opportunistic contaminant taxa.">
+</div>
+
+<p style="padding-bottom: 0;"><strong>${niche_annotations}</strong></p>
+<p><strong>A non-exhaustive list of contaminants grouped by niche, as indicated by existing literature*</strong>. Taxa have been filtered for those appearing in more than 3 samples with higher than 5 reads. When taxa overlap between lab environment and other niches, we assume that the cause of their contamination is the lab environment and remove them from the other plots. White spaces indicate where 0 counts have been found. Note: only ${nonan_taxa}/${all_taxa} taxa over the threshold have been cross-referenced with literature so far and represented here. *References can be found on github.com/aq-sun/contamination-data.</p>
 
 <br>
 <br>
