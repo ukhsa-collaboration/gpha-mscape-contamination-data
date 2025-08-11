@@ -206,113 +206,6 @@ if __name__ == "__main__":
 
         #organise mapped_required details for heatmap purposes
 
-        #hcids = ["/../../../Ntc_231205_hcid_counts.csv", "/../../../Ntc_240119_hcid_counts.csv"]
-        hcids = args.hcids
-        
-        #keep count_df column order for listing samples
-        hcid_df = pd.DataFrame(columns=count_df.columns) 
-
-        #${unique_id}_hcid_counts.csv
-        #find all taxa with counts above threshold (min_count)
-        tables = []
-        for table in hcids:
-            sample_id = table.split("_hcid")[0] #unique id
-            hcid_table = pd.read_csv(table)
-            
-            if sample_id in hcid_df.columns:
-
-                hcid_table[sample_id] = hcid_table["mapped_count"]
-                needed_columns = ["name", sample_id]
-                sub_table = hcid_table[needed_columns]
-
-                tables.append(sub_table)
-            else:
-                hcid_df["Scientific_Name"] = hcid_table["name"]
-
-        if len(tables) > 0:
-            # Merge the DataFrames on a specific column
-            merged_table = pd.concat(tables, axis = 0, join= "outer")  # Change join to 'outer' for outer join
-            #merge on hcid name - this means that no scientific name is repeated if it's present in different dataframes
-            merged_table = merged_table.groupby('name', as_index=False).first()
-
-            #move taxa names over to hcid_df
-            hcid_df["Scientific_Name"] = merged_table["name"]
-
-            #replace hcid_df blank columns with merged_table columns if there are counts 
-            for sample in hcid_df.columns:
-                if sample in list(merged_table.columns):
-                    hcid_df[sample] = merged_table[sample]
-
-        hcid_df.fillna(0, inplace=True)
-
-        #wrangle data for heatmap
-        hcid_df.set_index("Scientific_Name", inplace=True)
-
-        taxa = hcid_df.index.tolist()
-        samples = hcid_df.columns.tolist()
-        matrix = hcid_df.to_numpy()
-
-        heatmap = np.reshape(matrix, (len(taxa), len(samples)))
-        heatmap = np.array(heatmap, dtype=np.float64)  # Ensure it's numeric
-
-        heatmap = heatmap.astype('float')
-        heatmap[heatmap == 0] = 'nan' # or use np.nan
-
-        nummap = np.nan_to_num(heatmap) #change all nan to 0
-        highest = nummap.max() #get highest count
-
-        hcid_df = hcid_df.replace("NaN", 0)
-        hcid_df = hcid_df.apply(convert_to_numeric)
-
-        #only keep x-labels with counts
-        xlabels = []
-        for sample in hcid_df:
-            sample_count = hcid_df[sample].sum()
-            if int(sample_count) > 0:
-                xlabels.append(sample)
-            else:
-                xlabels.append("")
-
-        #create custom colours
-        custom_colors = ['#ffffff', '#ff0000','#750000']
-        custom_cmap = LinearSegmentedColormap.from_list('count', custom_colors)
-
-        #make plot 
-        fig, ax = plt.subplots(figsize=(18, 7))
-        im = ax.imshow(heatmap, vmin=0, cmap=custom_cmap)
-
-        cax = fig.add_axes([ax.get_position().x1+0.05,ax.get_position().y0,0.02,ax.get_position().height])
-        cbar = plt.colorbar(im, cax=cax)
-        cbar.outline.set_color('black')
-
-        ax.set_xticks(range(len(samples)),labels=xlabels, rotation=90)
-        ax.set_yticks(range(len(taxa)), labels=taxa)
-        ax.tick_params(labelsize="large")
-
-        hcid_df["total"] = hcid_df.sum(axis=1)
-        total = list(hcid_df["total"])
-        total = [int(i) for i in total]
-        hcid_df = hcid_df.drop(columns=["total"])
-
-        #y_distance = [i for i in len()
-        sec = ax.secondary_yaxis(location=1)
-        sec.set_yticks(range(len(taxa)), labels=total)
-        sec.tick_params('y', length=8)
-
-        # Minor ticks
-        ax.set_xticks(np.arange(-.5, len(samples), 1), minor=True)
-        ax.set_yticks(np.arange(-.5, len(taxa), 1), minor=True)
-        # Gridlines based on minor ticks
-        ax.grid(which='minor', color='w', linestyle='-', linewidth=1.5)
-
-        buf = io.BytesIO()
-        plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0.1)
-        buf.seek(0)
-        hcidmap = base64.b64encode(buf.read()).decode('utf-8')
-        buf.close()
-        plt.close(fig)
-
-        hcid_height = hcid_df.shape[0] * 23
 
         #Label heatmap by pathogenicity
         sns.set_style("white")
@@ -431,7 +324,6 @@ if __name__ == "__main__":
 
             total_taxa = 0
             for df in current_df_list:
-                print(df)
                 taxa_no = df.shape[0]
                 total_taxa = total_taxa + taxa_no
             taxa_sums.append(total_taxa)
@@ -441,6 +333,14 @@ if __name__ == "__main__":
                 taxa_no = df.shape[0]
                 height = taxa_no/total_taxa
                 height_ratios.append(height)
+            
+            df_max = []
+            df_min = []
+            for df in current_df_list:
+                print(df)
+                df = df.drop(columns=["Scientific_Name"])
+                df_max.append(max(df.max()))
+                df_min.append(min(df.min()))
 
             #define figure dimensions
             height = total_taxa*0.3
@@ -500,7 +400,7 @@ if __name__ == "__main__":
                 # Create a ListedColormap using the custom colors
                 custom_cmap = LinearSegmentedColormap.from_list('pathogenicity', custom_colors)
                 #plot = ax.pcolormesh(samples, genus, heatmap, cmap=custom_cmap, vmax=1000)
-                im = ax.imshow(heatmap, cmap=custom_cmap)
+                im = ax.imshow(heatmap, vmin=min(df_min), vmax=max(df_max), cmap=custom_cmap)
 
                 #plt.xticks([])
                 #plt.yticks(genus,rotation=0,fontsize='10')
@@ -575,9 +475,7 @@ if __name__ == "__main__":
             niche_list = list(set(new_niche))
             all_niches.append(niche_list)
 
-        niche_colours = {"soil_water": '#008000', "air": '#308695', "skin": '#bd9a73', "food": '#ffbf00', "mouth": '#ff69b4', "gut": '#ff7e70', "soft_tissue": '#ff746c', "resp_tract": '#0234d2',
-                                "sterile_water": '#0cafff', "taq_polymerase": '#89f336', "primer": '#f26724', "lysing_enzymes": '#40e0d0', "pcr_mix": '#e0b0ff',
-                                "extraction_kit": '#d55e00', "lab": "#009e73", "pcr": "#cc79ac"}
+        niche_colours = ['#77dd77','#ffc5d3', '#8fd3f4']
         
         niche_shorthand = {"soft_tissue": 'tissue', "resp_tract": 'resp',
                                 "sterile_water": 'water', "taq_polymerase": 'taq', "lysing_enzymes": 'LE', "pcr_mix": 'PCR',
@@ -647,8 +545,10 @@ if __name__ == "__main__":
             loop += 1
             final_groups.append(filtered_groups)
 
+        #for every set of plots in the final grouping of niches
         niche_sums = []
         niche_annotations = []
+        group_loop = 0
         for niche_group in final_groups:
             total_taxa = 0
             for df in niche_group:
@@ -661,12 +561,21 @@ if __name__ == "__main__":
                 taxa_no = df.shape[0]
                 height = taxa_no/total_taxa
                 height_ratios.append(height)
+            
+            df_max = []
+            df_min = []
+            for df in niche_group:
+                df = df.drop(columns=["Scientific_Name", "Counts_Overall", "Niche"])
+                df_max.append(max(df.max()))
+                df_min.append(min(df.min()))
 
             height = total_taxa*0.3
             width = niche_group[0].shape[1] * 0.32
             
             no_subplot = len(niche_group)
             fig, axs = plt.subplots(figsize=(width,height), nrows=no_subplot, gridspec_kw={'height_ratios': height_ratios})
+
+            custom_colors = ['#000000', niche_colours[group_loop]]
 
             df_loop = 0
             for map_df in niche_group:
@@ -687,16 +596,14 @@ if __name__ == "__main__":
                 ax = plt.subplot(no_subplot, 1, df_loop+1)
 
                 for niche in niche_colours:
-                    if niche_name == niche:
-                        custom_colors = ['#000000', niche_colours[niche]]
-                        if niche in niche_shorthand and len(genus) < 3: #if shorthand is needed
-                            shorthand = niche_shorthand[niche]
-                            niche_annotations.append(f'{shorthand} = {niche}')
+                    if niche in niche_shorthand and len(genus) < 3: #if shorthand is needed
+                        shorthand = niche_shorthand[niche]
+                        niche_annotations.append(f'{shorthand} = {niche}')
        
                 # Create a ListedColormap using the custom colors
                 custom_cmap = LinearSegmentedColormap.from_list('niche', custom_colors)
                 #plot = ax.pcolormesh(samples, genus, heatmap, cmap=custom_cmap)
-                im = ax.imshow(heatmap, cmap=custom_cmap)
+                im = ax.imshow(heatmap, vmin=min(df_min), vmax=max(df_max), cmap=custom_cmap)
 
                 #plt.xticks([])
                 #plt.yticks(genus,rotation=0,fontsize='10')
@@ -724,6 +631,7 @@ if __name__ == "__main__":
             nichemaps.append(map)
             buf.close()
             plt.close(fig)
+            group_loop += 1
 
 
         annotation = ', '.join(annotation)
@@ -736,7 +644,6 @@ if __name__ == "__main__":
                                     bac_abs=abs_plots[0], fungi_abs=abs_plots[1], archaea_abs=abs_plots[2], virus_abs=abs_plots[3], protist_abs=abs_plots[4], no_sample=no_sample,
                                     bac_abun_l=abs_legends[0], fungi_abun_l=abs_legends[1], archaea_abun_l=abs_legends[2], virus_abun_l=abs_legends[3], protist_abun_l=abs_legends[4],
                                     bac_rel=rel_plots[0], fungi_rel=rel_plots[1], archaea_rel=rel_plots[2], virus_rel=rel_plots[3], protist_rel=rel_plots[4],
-                                    hcidmap=hcidmap, hcid_height=hcid_height,
                                     zepto_map = heatmaps[0], patho_map = heatmaps[1], oppor_map = heatmaps[2], comme_map = heatmaps[3],
                                     zepto_count = taxa_sums[0], patho_count = taxa_sums[1], oppor_count = taxa_sums[2], comme_count = taxa_sums[3],
                                     all_taxa = all_taxa, nonan_taxa = nonan_taxa, width=width, annotation=annotation,
