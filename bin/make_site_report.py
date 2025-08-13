@@ -11,7 +11,7 @@ import seaborn as sns
 import os
 import argparse
 import json
-import urllib.request
+import scipy.stats as stats
 from natsort import natsorted
 from matplotlib.colors import LinearSegmentedColormap
 
@@ -42,7 +42,7 @@ if __name__ == "__main__":
     parser.add_argument('--site_key', help="JSON file specifying site name to number", required=True)
     parser.add_argument('--final_reports', help="Output directory", required=True)
     parser.add_argument('--template', help="HTMl template", required=True)
-    parser.add_argument('--reference', help="CSV file for dictionary of contaminants", required=True)
+    parser.add_argument('--reference', help="excel file for dictionary of contaminants", required=True)
     #parser.add_argument('--hcids', nargs='+', help="List of CSV file for HCID contaminants", required=True)
     args = parser.parse_args()
 
@@ -64,6 +64,47 @@ if __name__ == "__main__":
 
     datasets, mscape_datasets, samples, mscape_samples, sample_dates, mscape_dates = define_heatmap_datasets(grouped_metadata, site_key)
 
+    exclude_cols = ["Scientific_Name"]
+
+    present_dfs = []
+    diff_loop = 0
+    for needed_samples in mscape_samples:
+        #for dataset in mscape_datasets:
+        count_df, og_df = make_heatmap_df(needed_samples, reports, "count")
+
+        sample_date_df = mscape_dates[diff_loop]
+        date_list = make_date_list(sample_date_df)
+
+        #name_line = ["domain", "scientific_name"] + sample_names[loop] + ["counts_overall"]
+        #ßcount_df.loc[len(count_df)] = name_line
+        #add and sort samples by date
+        count_df.loc[len(count_df)] = date_list
+        row_number = count_df.index.get_loc(count_df[count_df["Scientific_Name"] == "Date"].index[0])
+        count_df.iloc[row_number, 2:-1] = pd.to_datetime(count_df.iloc[row_number, 2:-1], format='%Y-%m-%d')
+        #Sort all samples by date
+        count_df.iloc[row_number, 2:-1] = natsorted(count_df.iloc[row_number, 2:-1])
+
+        #get timestamps line and turn to list
+        timestamp_df = count_df.drop(columns="Counts_Overall")
+        row_number = timestamp_df.index.get_loc(timestamp_df[timestamp_df["Scientific_Name"] == "Date"].index[0])
+        date_df = timestamp_df.iloc[row_number]
+        dates = list(date_df)
+        #remove timestamps
+        count_df = count_df[~count_df.Scientific_Name.str.contains("Date")]
+
+        count_df = count_df.drop(columns=["Domain", "Counts_Overall"])
+
+        include_cols = [col for col in count_df.columns if col not in exclude_cols]
+
+        # Boolean indexing to filter rows showing only genus/family in the rank column
+        filtered_df = count_df[count_df[include_cols].apply(lambda x: filter_multiples(x), axis=1)]
+
+        present_dfs.append(filtered_df)
+        diff_loop += 1
+
+
+
+    #for each individual page
     site_loop = 0
     #for dataset in mscape_datasets:
     for needed_samples in mscape_samples:
@@ -536,7 +577,7 @@ if __name__ == "__main__":
         final_groups = [grouped_niches[0]]
 
         loop = 1
-        while loop < 3:
+        while loop < len(grouped_niches):
             filtered_groups = []
             for group in grouped_niches[loop]:
                 filtered_group = group.loc[~group["Scientific_Name"].astype(str).isin(lab_taxa)]
@@ -638,7 +679,67 @@ if __name__ == "__main__":
 
         annotation = ', '.join(annotation)
         niche_annotations = ', '.join(niche_annotations)
+
+        # Depict site-specific signals
+        # Merge the DataFrames on a specific column
+        all_df = pd.concat(present_dfs, axis = 0, join= "outer")  # Change join to 'outer' for outer join
+        #merge on scientific name - this means that no scientific name is repeated if it's present in different dataframes
+        all_df = all_df.groupby('Scientific_Name', as_index=False).first()
+        all_df.fillna(0, inplace=True)
+
+        new_dfs = []
+        for df in present_dfs:
+            new_df = all_df[df.columns]
+            new_dfs.append(new_df)
+
+        current_df = new_dfs[site_loop]
+        other_dfs = [df for df in new_dfs if df is not current_df]
+
+        current_name = mscape_datasets[site_loop]
+        other_names = [name for name in mscape_datasets if name is not current_name]
+
+        for df in other_dfs:
+            df.set_index("Scientific_Name", inplace=True)
+        current_df.set_index("Scientific_Name", inplace=True)
+
+        all_taxa = list(current_df.index)
+        for df in other_dfs:
+            all_taxa.extend(df.index)
+
+        all_taxa = list(set(all_taxa))
+
+        p_dict = {}
+        for taxa in all_taxa:
+            if taxa in current_df.index: #only look for taxa that are in current_df
+                taxa_p = []
+                current_row = list(current_df.loc[taxa])
+                for df in other_dfs:
+                    if taxa in df.index:
+                        comp_row = list(df.loc[taxa])
+                    # print(np.var(current_row), np.var(comp_row))
+                    # conduct the Welch's t-test
+                    output = stats.ttest_ind(np.array(current_row), np.array(comp_row), equal_var = False)
+                    output_list = list(output)
+                    taxa_p.append(output_list[1])
+                p_dict[taxa] = taxa_p
+
+        p_values = pd.DataFrame(p_dict)
+
+        p_index = []
+        for name in other_names:
+            p_index.append(f'{current_name} - {name}')
+
+        p_values.index = p_index
+
+        p_df = p_values.transpose()
+        p_df = p_df.apply(convert_to_numeric).fillna(0).astype(float)
+
+        sig_df = p_df[(p_df <= 0.05).any(axis=1)]
+
         site_name = mscape_datasets[site_loop]
+        
+        os.makedirs(f'{output_path}dataframes/', exist_ok=True)
+        sig_df.to_csv(f'{output_path}/dataframes/{site_name}_ttest.csv', index=True)
 
         # Render the template with the Base64 string
         template = Template(filename=template_dir)
