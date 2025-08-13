@@ -574,7 +574,6 @@ if __name__ == "__main__":
 
         lab_taxa = list(dict.fromkeys(lab_taxa))
 
-
         final_groups = [grouped_niches[0]]
 
         loop = 1
@@ -587,6 +586,15 @@ if __name__ == "__main__":
             loop += 1
             if len(filtered_groups) > 0:
                 final_groups.append(filtered_groups)
+            else:
+                empty_row = ["None"]
+                dummy_loop = 1
+                dummy_dfs = final_groups[0]
+                while dummy_loop < len(dummy_dfs[0].columns):
+                    empty_row.append(0)
+                    dummy_loop += 1
+                dummy_df = pd.concat([pd.DataFrame([empty_row], columns=dummy_dfs[0].columns), dummy_dfs[0]], ignore_index=True)
+                final_groups.append(dummy_df)
 
         #for every set of plots in the final grouping of niches
         niche_sums = []
@@ -704,14 +712,14 @@ if __name__ == "__main__":
             df.set_index("Scientific_Name", inplace=True)
         current_df.set_index("Scientific_Name", inplace=True)
 
-        all_taxa = list(current_df.index)
+        all_taxa_list = list(current_df.index)
         for df in other_dfs:
-            all_taxa.extend(df.index)
+            all_taxa_list.extend(df.index)
 
-        all_taxa = list(set(all_taxa))
+        all_taxa_list = list(set(all_taxa_list))
 
         p_dict = {}
-        for taxa in all_taxa:
+        for taxa in all_taxa_list:
             if taxa in current_df.index: #only look for taxa that are in current_df
                 taxa_p = []
                 current_row = list(current_df.loc[taxa])
