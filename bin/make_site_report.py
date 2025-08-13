@@ -574,6 +574,7 @@ if __name__ == "__main__":
 
         lab_taxa = list(dict.fromkeys(lab_taxa))
 
+
         final_groups = [grouped_niches[0]]
 
         loop = 1
@@ -584,7 +585,8 @@ if __name__ == "__main__":
                 if len(filtered_group.index) > 0:
                     filtered_groups.append(filtered_group)
             loop += 1
-            final_groups.append(filtered_groups)
+            if len(filtered_groups) > 0:
+                final_groups.append(filtered_groups)
 
         #for every set of plots in the final grouping of niches
         niche_sums = []
