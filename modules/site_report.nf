@@ -8,7 +8,7 @@
 
 process make_site_report {
 
-    container 'community.wave.seqera.io/library/pip_mako_matplotlib_natsort_pruned:784c0b6e8ebdf80f'
+    container 'community.wave.seqera.io/library/pip_mako_matplotlib_natsort_pruned:55548172648d6af5'
 
     input:
     path reports
