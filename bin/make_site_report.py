@@ -614,7 +614,6 @@ if __name__ == "__main__":
                     ax.set_ylabel(niche_shorthand[niche_name], labelpad = 40, rotation=0)
                 else:
                     ax.set_ylabel(niche_name, labelpad = 40, rotation=0)
-                cax = fig.add_axes([ax.get_position().x1+0.1,ax.get_position().y0,0.02,ax.get_position().height])
             
                 if df_loop == (len(niche_group)-1):
                     #cax = fig.add_axes([ax.get_position().x1+0.1,ax.get_position().y0,0.02,ax.get_position().height])
