@@ -43,7 +43,7 @@ if __name__ == "__main__":
     parser.add_argument('--final_reports', help="Output directory", required=True)
     parser.add_argument('--template', help="HTMl template", required=True)
     parser.add_argument('--reference', help="CSV file for dictionary of contaminants", required=True)
-    parser.add_argument('--hcids', nargs='+', help="List of CSV file for HCID contaminants", required=True)
+    #parser.add_argument('--hcids', nargs='+', help="List of CSV file for HCID contaminants", required=True)
     args = parser.parse_args()
 
     reports = args.reports
@@ -616,7 +616,10 @@ if __name__ == "__main__":
                     ax.set_ylabel(niche_name, labelpad = 40, rotation=0)
                 cax = fig.add_axes([ax.get_position().x1+0.1,ax.get_position().y0,0.02,ax.get_position().height])
             
-                cbar = plt.colorbar(im, cax=cax)
+                if df_loop == (len(niche_group)-1):
+                    #cax = fig.add_axes([ax.get_position().x1+0.1,ax.get_position().y0,0.02,ax.get_position().height])
+                    cax = fig.add_axes([ax.get_position().x1+0.1, ax.get_position().y0+0.01, 0.02, 0.75])
+                    cbar = plt.colorbar(im, cax=cax)
 
 
                 df_loop += 1
