@@ -110,7 +110,7 @@ if __name__ == "__main__":
     for needed_samples in mscape_samples:
 
         count_df, og_df = make_heatmap_df(needed_samples, reports, "count")
-        print(count_df.columns)
+        #print(count_df.columns)
         #count_df = count_df.drop(columns=["Taxon_ID"]) #drop taxon id column
 
         sample_date_df = mscape_dates[site_loop]
@@ -337,7 +337,9 @@ if __name__ == "__main__":
         grouped_df = clean_df.groupby(['Pathogenicity'])
 
         set_order = [["pathogenic", "potentially_pathogenic"], ["opportunistic", "potentially_opportunistic"], ["generally_commensal", "commensal"]]
+        default_sets = [["pathogenic"], ["opportunistic"], ["commensal"]]
 
+        set_loop = 0
         for set_type in set_order:
             current_df_list = []
             current_df_names = []
@@ -350,8 +352,22 @@ if __name__ == "__main__":
                         current_df_names.append(name[0])
                         df = df.drop(columns=["Pathogenicity"])
                         current_df_list.append(df)
-            df_names.append(current_df_names)
-            df_list.append(current_df_list)
+            if len(current_df_names) > 0:
+                df_names.append(current_df_names)
+                df_list.append(current_df_list)
+            else:
+                df_names.append(default_sets[set_loop])
+                empty_row = ["None"]
+                dummy_loop = 1
+                while dummy_loop < len(clean_df.columns):
+                    empty_row.append(0)
+                    dummy_loop += 1
+
+                dummy_df = pd.DataFrame(columns=clean_df.columns)
+                dummy_df = pd.concat([pd.DataFrame([empty_row], columns=clean_df.columns), dummy_df], ignore_index=True)
+                dummy_df = dummy_df.drop(columns=["Pathogenicity"])
+                df_list.append([dummy_df])
+            set_loop += 1
 
         df_names = [["zeptometrix"]] + df_names
         df_list = [[zepto_df]] + df_list
@@ -378,7 +394,7 @@ if __name__ == "__main__":
             df_max = []
             df_min = []
             for df in current_df_list:
-                print(df)
+    
                 df = df.drop(columns=["Scientific_Name"])
                 df_max.append(max(df.max()))
                 df_min.append(min(df.min()))
@@ -463,18 +479,6 @@ if __name__ == "__main__":
                 num_map = np.nan_to_num(heatmap)
                 max_count = num_map.max()
 
-                new_labels = []
-                label_loop = 0
-                for element in cbar.ax.yaxis.get_ticklabels():
-                    label_loop += 1
-                    if label_loop == (len(cbar.ax.yaxis.get_ticklabels())):
-                        max_count = int(max_count) + 1
-                        new_labels.append(f"< {max_count}")
-                    else:
-                        label = element.get_text()
-                        new_labels.append(element)
-                
-                cbar.ax.set_yticklabels(new_labels)
 
                 name_loop += 1
 
@@ -579,28 +583,33 @@ if __name__ == "__main__":
         loop = 1
         while loop < len(grouped_niches):
             filtered_groups = []
+            filtered_group = []
             for group in grouped_niches[loop]:
                 filtered_group = group.loc[~group["Scientific_Name"].astype(str).isin(lab_taxa)]
                 if len(filtered_group.index) > 0:
                     filtered_groups.append(filtered_group)
-            loop += 1
             if len(filtered_groups) > 0:
                 final_groups.append(filtered_groups)
             else:
                 empty_row = ["None"]
                 dummy_loop = 1
-                dummy_dfs = final_groups[0]
-                while dummy_loop < len(dummy_dfs[0].columns):
+ 
+                while dummy_loop < len(filtered_group.columns):
                     empty_row.append(0)
                     dummy_loop += 1
-                dummy_df = pd.concat([pd.DataFrame([empty_row], columns=dummy_dfs[0].columns), dummy_dfs[0]], ignore_index=True)
-                final_groups.append(dummy_df)
+                dummy_df = pd.DataFrame(columns=filtered_group.columns)
+                dummy_df = pd.concat([pd.DataFrame([empty_row], columns=filtered_group.columns), filtered_group], ignore_index=True)
+
+
+                final_groups.append([dummy_df])
+            loop += 1
 
         #for every set of plots in the final grouping of niches
         niche_sums = []
         niche_annotations = []
         group_loop = 0
         for niche_group in final_groups:
+            
             total_taxa = 0
             for df in niche_group:
                 taxa_no = df.shape[0]
@@ -729,27 +738,55 @@ if __name__ == "__main__":
                     # print(np.var(current_row), np.var(comp_row))
                     # conduct the Welch's t-test
                     output = stats.ttest_ind(np.array(current_row), np.array(comp_row), equal_var = False)
-                    output_list = list(output)
-                    taxa_p.append(output_list[1])
+                    taxa_p.append(output)
                 p_dict[taxa] = taxa_p
 
         p_values = pd.DataFrame(p_dict)
 
         p_index = []
         for name in other_names:
-            p_index.append(f'{current_name} - {name}')
+            p_index.append(f'{name}')
 
         p_values.index = p_index
 
         p_df = p_values.transpose()
-        p_df = p_df.apply(convert_to_numeric).fillna(0).astype(float)
 
-        sig_df = p_df[(p_df <= 0.05).any(axis=1)]
+        #filter for taxa which have positive significant differences in read count compared to at least one other site
+        def positive_sig(row):
+            pass_taxa = False
+            for site in list(row):
+                if site[0] > 0 and site[1] < 0.05:
+                    pass_taxa = True
+            if pass_taxa:
+                return row
+
+        sig_df = p_df[p_df.apply(lambda row: positive_sig(row) is not None, axis=1)]
 
         site_name = mscape_datasets[site_loop]
         
         os.makedirs(f'{output_path}dataframes/', exist_ok=True)
         sig_df.to_csv(f'{output_path}/dataframes/{site_name}_ttest.csv', index=True)
+
+        smallest_p = []
+        for taxa in sig_df.index:
+            p = []
+            for site in sig_df.loc[taxa]: 
+                p.append(list(site)[1])
+            smallest_p.append(min(p))
+
+        sig_df["smallest_p"] = smallest_p
+                                
+        sig_map = filtered_df[filtered_df.Scientific_Name.isin(sig_df.index)]
+
+        p = []
+        for index, row in sig_map.iterrows():
+            taxa = row["Scientific_Name"]
+            site = sig_df.loc[taxa]
+            p.append(site["smallest_p"])
+                
+        sig_map["p"] = p
+        sig_map = sig_map.sort_values(by="p", ascending=False)
+        sig_map = sig_map.drop(columns=["p"])
 
         # Render the template with the Base64 string
         template = Template(filename=template_dir)
