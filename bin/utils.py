@@ -288,5 +288,5 @@ def make_heatmap_df(needed_samples, reports, df_type):
     return no_rank_df, df
 
 def filter_multiples(x):
-    filtered_x = x[x>=10] #find columns with over or equal to 5 counts
-    return len(filtered_x) >= 5 #filter for rows with >= 5 counts in >=3 columns
+    filtered_x = x[x>=5] #find columns with over or equal to 5 counts
+    return len(filtered_x) >= 3 #filter for rows with >= 5 counts in >=3 columns

@@ -578,8 +578,22 @@ if __name__ == "__main__":
 
         lab_taxa = list(dict.fromkeys(lab_taxa))
 
-        final_groups = [grouped_niches[0]]
+        if len(grouped_niches) > 0:
+            final_groups = [grouped_niches[0]]
+        else:
+            dummy_df = filtered_df.drop(columns=["Domain", "Niche", "Counts_Overall"])
+            empty_row = ["None"]
+            dummy_loop = 1
 
+            while dummy_loop < len(filtered_group.columns):
+                empty_row.append(0)
+                dummy_loop += 1
+            dummy_df = pd.DataFrame(columns=dummy_df.columns)
+            dummy_df = pd.concat([pd.DataFrame([empty_row], columns=dummy_df.columns), dummy_df], ignore_index=True)
+
+            final_groups = [dummy_df]
+
+        #Renove taxa that are present in lab from other niche categories
         loop = 1
         while loop < len(grouped_niches):
             filtered_groups = []
