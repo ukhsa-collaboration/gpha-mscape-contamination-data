@@ -290,3 +290,15 @@ def make_heatmap_df(needed_samples, reports, df_type):
 def filter_multiples(x):
     filtered_x = x[x>=5] #find columns with over or equal to 5 counts
     return len(filtered_x) >= 3 #filter for rows with >= 5 counts in >=3 columns
+
+def make_empty_df(df):
+    empty_row = ["None"]
+    dummy_loop = 1
+    while dummy_loop < len(df.columns):
+        empty_row.append(0)
+        dummy_loop += 1
+
+    dummy_df = pd.DataFrame(columns=df.columns)
+    dummy_df = pd.concat([pd.DataFrame([empty_row], columns=dummy_df.columns), dummy_df], ignore_index=True)
+    
+    return dummy_df

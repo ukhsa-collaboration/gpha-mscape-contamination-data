@@ -15,7 +15,7 @@ import scipy.stats as stats
 from natsort import natsorted
 from matplotlib.colors import LinearSegmentedColormap
 
-from utils import define_heatmap_datasets, make_heatmap_df, make_date_list, convert_to_numeric, filter_multiples
+from utils import define_heatmap_datasets, make_heatmap_df, make_date_list, convert_to_numeric, filter_multiples, make_empty_df
 
 def sort_by_date(count_df, date_list):
     #add and sort samples by date
@@ -259,18 +259,21 @@ if __name__ == "__main__":
         pathogenic_table.set_index("Taxa", inplace=True)
         pathogenic_df = pathogenic_table.transpose()
 
-        non_genus = ['root', 'unclassified']
-        new_df = count_df[~count_df.Scientific_Name.isin(non_genus)]
+        #Get rid of irrelevant taxa
+        unneeded = ['root', 'unclassified']
+        new_df = count_df[~count_df.Scientific_Name.isin(unneeded)]
 
+        # Filter for taxa that are above our threshold
         exclude_cols = ["Domain", "Niche", "Scientific_Name", "Counts_Overall"]
         include_cols = [col for col in new_df.columns if col not in exclude_cols]
+        filtered_df = new_df[new_df[include_cols].apply(lambda x: filter_multiples(x), axis=1)]
 
-
-        # Boolean indexing to filter rows showing only genus/family in the rank column
-        new_df = new_df[new_df[include_cols].apply(lambda x: filter_multiples(x), axis=1)]
-
+        if len(filtered_df.index) == 0:
+            filtered_df = make_empty_df(filtered_df)
+            
+        # add pathogen labels as a separate column to filtered_df
         pathogenicity = []
-        for index, row in new_df.iterrows():
+        for index, row in filtered_df.iterrows():
             genus_name = row["Scientific_Name"]
             
             if genus_name in pathogenic_df.columns:
@@ -279,15 +282,14 @@ if __name__ == "__main__":
             else:
                 pathogenicity.append("NaN")
 
-        new_df["Pathogenicity"] = pathogenicity
+        filtered_df["Pathogenicity"] = pathogenicity
 
-        sorted_df = new_df.sort_values(by="Counts_Overall", ascending=False)
-        sorted_df = sorted_df[(sorted_df["Counts_Overall"] > 0)]
-        filtered_df = sorted_df.drop(columns=["Counts_Overall", "Domain"])
+        #sort by descending counts and sort by pathogenicity for grouping later
+        sorted_df = filtered_df.sort_values(by="Counts_Overall", ascending=False)
+        sorted_df = sorted_df.drop(columns=["Counts_Overall", "Domain"])
+        sorted_df = sorted_df.sort_values(by="Pathogenicity", ascending=False)
 
-        sortfilt_df = filtered_df.sort_values(by="Pathogenicity", ascending=False)
-
-        clean_df = sortfilt_df[~sortfilt_df.Pathogenicity.str.contains("NaN")]
+        clean_df = sorted_df[~sorted_df.Pathogenicity.str.contains("NaN")]
 
         # get zeptometrix contamination from og_df (with all ranks)
         drop_df = og_df.drop(columns=["Taxon_ID", "Rank", "Domain"])
@@ -325,7 +327,7 @@ if __name__ == "__main__":
             zepto_df = pd.concat([pd.DataFrame([empty_row], columns=zepto_df.columns), zepto_df], ignore_index=True)
 
         #Get number of taxa 
-        all_taxa = sortfilt_df.shape[0]
+        all_taxa = sorted_df.shape[0]
         nonan_taxa = clean_df.shape[0] #get the number of taxa recognised through lit review
 
         #remove zeptometrix taxa from clean_df
@@ -357,21 +359,18 @@ if __name__ == "__main__":
                 df_list.append(current_df_list)
             else:
                 df_names.append(default_sets[set_loop])
-                empty_row = ["None"]
-                dummy_loop = 1
-                while dummy_loop < len(clean_df.columns):
-                    empty_row.append(0)
-                    dummy_loop += 1
-
-                dummy_df = pd.DataFrame(columns=clean_df.columns)
-                dummy_df = pd.concat([pd.DataFrame([empty_row], columns=clean_df.columns), dummy_df], ignore_index=True)
-                dummy_df = dummy_df.drop(columns=["Pathogenicity"])
-                df_list.append([dummy_df])
+                empty_df = make_empty_df(clean_df)
+                empty_df = empty_df.drop(columns=["Pathogenicity"])
+                df_list.append([empty_df])
             set_loop += 1
 
         df_names = [["zeptometrix"]] + df_names
         df_list = [[zepto_df]] + df_list
 
+        pathogen_colours = {'zeptometrix': ['#5A1073', 'Z'], 'pathogenic': ['#ff0000', 'P'], 'potentially_pathogenic': ['#ff4d00', 'PP'],
+                            'opportunistic': ['#ffbf00', 'O'], 'potentially_opportunistic': ['#ffde21', 'PO'],
+                            'generally_commensal': ['#9dff00', 'GC'], 'commensal': ['#008000', 'C'], 'NaN': ['#0234d2', 'NaN']}
+        
         #make separate heatmaps for each subset of grouped_df
         annotation = []
         taxa_sums = []
@@ -429,30 +428,7 @@ if __name__ == "__main__":
 
                 current_patho = patho_list[name_loop]
 
-                if current_patho == "zeptometrix":
-                    custom_colors = ['#000000', '#5A1073']
-                    shorthand = "Z"
-                elif current_patho == "pathogenic":
-                    # Custom color list for the colormap (e.g., shades of green, yellow, red)
-                    custom_colors = ['#000000', '#ff0000']
-                    shorthand = "P"
-                elif current_patho == "potentially_pathogenic":
-                    custom_colors = ['#000000', '#ff4d00']
-                    shorthand = "PP"
-                elif current_patho == "opportunistic":
-                    custom_colors = ['#000000', '#ffbf00']
-                    shorthand = "O"
-                elif current_patho == "potentially_opportunistic":
-                    custom_colors = ['#000000', '#ffde21']
-                    shorthand = "PO"
-                elif current_patho == "generally_commensal":
-                    custom_colors = ['#000000', '#9dff00']
-                    shorthand = "GC"
-                elif current_patho == "commensal":
-                    custom_colors = ['#000000', '#008000']
-                    shorthand = "C"
-                elif current_patho == "NaN":
-                    custom_colors = ['#000000', '#0234d2']
+                custom_colors = ['#000000', pathogen_colours[current_patho][0]]
 
                 # Create a ListedColormap using the custom colors
                 custom_cmap = LinearSegmentedColormap.from_list('pathogenicity', custom_colors)
@@ -468,9 +444,9 @@ if __name__ == "__main__":
                 #label the y-axis according to subplot dimensions
                 if len(genus) >= 6:
                     ax.set_ylabel(current_patho, labelpad=40)
-                else:
-                    ax.set_ylabel(shorthand, labelpad=60)
-                    annotation.append(f"{shorthand} = {current_patho}")
+                else: #use shorthand instead of full name and add shorthand to annotation/plot description
+                    ax.set_ylabel(pathogen_colours[current_patho][1], labelpad=60)
+                    annotation.append(f"{pathogen_colours[current_patho][1]} = {current_patho}")
 
                 cax = fig.add_axes([ax.get_position().x1+0.05,ax.get_position().y0,0.03,ax.get_position().height])
                 cbar = plt.colorbar(im, cax=cax)
@@ -478,7 +454,6 @@ if __name__ == "__main__":
                 #Get the max count in esch heatmap matrix
                 num_map = np.nan_to_num(heatmap)
                 max_count = num_map.max()
-
 
                 name_loop += 1
 
@@ -493,15 +468,12 @@ if __name__ == "__main__":
 
             loop += 1
 
-        exclude_cols = ["Domain", "Niche", "Scientific_Name", "Counts_Overall"]
-        include_cols = [col for col in count_df.columns if col not in exclude_cols]
+        # Use previously filtered dataframe
+        filtered_df = filtered_df.drop(columns="Pathogenicity")
 
-        # Boolean indexing to filter rows showing only genus/family in the rank column
-        filtered_df = count_df[count_df[include_cols].apply(lambda x: filter_multiples(x), axis=1)]
-
+        #make heatmaps based on niches
         nichemaps = []
-        filtered_niche = filtered_df.drop(columns=["Domain"])
-        colnames = list(filtered_niche["Scientific_Name"])
+        colnames = list(filtered_df["Scientific_Name"])
 
         filtered_table = niche_table.drop(columns=["Pathogenicity", "Reference"])
         filtered_table.set_index("Taxa", inplace=True)
@@ -528,7 +500,6 @@ if __name__ == "__main__":
 
         #create a dictionary for all niche categories, listing taxa they're found in as values
         niche_dict = {}
-        count_dict = {}
         for taxon in niche_df:
             if taxon in colnames: #if taxon is in site, start looking for its niches from niche_df
                 niche_list = list(niche_df[taxon])
@@ -541,15 +512,14 @@ if __name__ == "__main__":
                         new_niche.append(niche)
                 #niche = [x for x in niche if str(x) != 'nan']
                 for category in new_niche:
-                    needed_line = filtered_niche[filtered_niche["Scientific_Name"] == taxon]
+                    needed_line = filtered_df[filtered_df["Scientific_Name"] == taxon]
                     count = list(needed_line["Counts_Overall"])
                     if category in niche_dict:
                         niche_dict[category].append(taxon)
-                        count_dict[category].extend(count)
                     else:
                         niche_dict[category] = [taxon]
-                        count_dict[category] = count
 
+        #write and rewrite the niche column for our current dataframe for every possible niche, allowing for the same taxa to appear in different columns
         grouped_niches = []
         for niche_group in all_niches: #[lab], [human], [industry]
             site_by_niche = []
@@ -578,26 +548,22 @@ if __name__ == "__main__":
 
         lab_taxa = list(dict.fromkeys(lab_taxa))
 
-        if len(grouped_niches) > 0:
-            final_groups = [grouped_niches[0]]
-        else:
-            dummy_df = filtered_df.drop(columns=["Domain", "Niche", "Counts_Overall"])
-            empty_row = ["None"]
-            dummy_loop = 1
 
-            while dummy_loop < len(filtered_group.columns):
-                empty_row.append(0)
-                dummy_loop += 1
-            dummy_df = pd.DataFrame(columns=dummy_df.columns)
-            dummy_df = pd.concat([pd.DataFrame([empty_row], columns=dummy_df.columns), dummy_df], ignore_index=True)
+        final_groups = [grouped_niches[0]]
+        
+        #if the lab category is empty:
+        if len(final_groups[0]) == 0:
+            smaller_df = filtered_df.drop(columns=["Domain"])
+            empty_df = make_empty_df(smaller_df)
+            empty_df["Niche"] = ""
+            final_groups = [[empty_df]]
 
-            final_groups = [dummy_df]
-
-        #Renove taxa that are present in lab from other niche categories
+       
+        #Remove taxa that are present in lab from other niche categories
         loop = 1
         while loop < len(grouped_niches):
             filtered_groups = []
-            filtered_group = []
+            
             for group in grouped_niches[loop]:
                 filtered_group = group.loc[~group["Scientific_Name"].astype(str).isin(lab_taxa)]
                 if len(filtered_group.index) > 0:
@@ -605,17 +571,9 @@ if __name__ == "__main__":
             if len(filtered_groups) > 0:
                 final_groups.append(filtered_groups)
             else:
-                empty_row = ["None"]
-                dummy_loop = 1
- 
-                while dummy_loop < len(filtered_group.columns):
-                    empty_row.append(0)
-                    dummy_loop += 1
-                dummy_df = pd.DataFrame(columns=filtered_group.columns)
-                dummy_df = pd.concat([pd.DataFrame([empty_row], columns=filtered_group.columns), filtered_group], ignore_index=True)
-
-
-                final_groups.append([dummy_df])
+                empty_df = make_empty_df(final_groups[0][0])
+                empty_df["Niche"] = ""
+                final_groups.append([empty_df])
             loop += 1
 
         #for every set of plots in the final grouping of niches
@@ -791,7 +749,7 @@ if __name__ == "__main__":
         sig_df["smallest_p"] = smallest_p
                                 
         sig_map = filtered_df[filtered_df.Scientific_Name.isin(sig_df.index)]
-
+        sig_map = sig_map.drop(columns=["Domain", "Niche", "Counts_Overall"])
         p = []
         for index, row in sig_map.iterrows():
             taxa = row["Scientific_Name"]
@@ -799,8 +757,49 @@ if __name__ == "__main__":
             p.append(site["smallest_p"])
                 
         sig_map["p"] = p
-        sig_map = sig_map.sort_values(by="p", ascending=False)
+        sig_map = sig_map.sort_values(by="p", ascending=True)
         sig_map = sig_map.drop(columns=["p"])
+
+        #wrangle data for heatmap
+        sig_map.set_index("Scientific_Name", inplace=True)
+
+        taxa = sig_map.index.tolist()
+        samples = sig_map.columns.tolist()
+        matrix = sig_map.to_numpy()
+
+        heatmap = np.reshape(matrix, (len(taxa), len(samples)))
+        heatmap = np.array(heatmap, dtype=np.float64)  # Ensure it's numeric
+        heatmap[heatmap == 0] = 'nan' # or use np.nan
+        
+        #nummap = np.nan_to_num(heatmap) #change all nan to 0
+        #highest = nummap.max() #get highest count
+        sns.set_style("dark")
+        #make plot
+        height = sig_map.shape[0]*0.3
+        width = sig_map.shape[1] * 0.32
+        fig, ax = plt.subplots(figsize=(width, height))
+        im = ax.imshow(heatmap, vmin=0, cmap="magma_r")
+
+        # Minor ticks
+        #ax.grid(color='w', linewidth=1.5)
+        ax.set_xticks(np.arange(-.5, len(samples), 1), minor=True)
+        ax.set_yticks(np.arange(-.5, len(taxa), 1), minor=True)
+        # Gridlines based on minor ticks
+        ax.grid(which='minor', color='w', linestyle='-', linewidth=1.5)
+
+        cax = fig.add_axes([ax.get_position().x1+0.05,ax.get_position().y0,0.02,ax.get_position().height])
+        cbar = plt.colorbar(im, cax=cax)
+        cbar.outline.set_color('black')
+
+        ax.set_xticks([])
+        ax.set_yticks(range(len(taxa)), labels=taxa)
+
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0.1)
+        buf.seek(0)
+        sigmap = base64.b64encode(buf.read()).decode('utf-8')
+        buf.close()
+        plt.close(fig)
 
         # Render the template with the Base64 string
         template = Template(filename=template_dir)
@@ -812,7 +811,8 @@ if __name__ == "__main__":
                                     zepto_count = taxa_sums[0], patho_count = taxa_sums[1], oppor_count = taxa_sums[2], comme_count = taxa_sums[3],
                                     all_taxa = all_taxa, nonan_taxa = nonan_taxa, width=width, annotation=annotation,
                                     lab_map = nichemaps[0], human_map = nichemaps[1], industry_map = nichemaps[2],
-                                    lab_count = niche_sums[0],human_count = niche_sums[1], industry_count = niche_sums[2], niche_annotations=niche_annotations)
+                                    lab_count = niche_sums[0],human_count = niche_sums[1], industry_count = niche_sums[2], niche_annotations=niche_annotations,
+                                    sigmap = sigmap, sig_count = sig_map.shape[0])
 
         # Save the rendered HTML to a file
         with open(f"{output_path}site_reports/{site_name}_report.html", "w") as f:
