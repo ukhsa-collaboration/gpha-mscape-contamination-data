@@ -243,13 +243,12 @@ if __name__ == "__main__":
         abs_plots, abs_legends, abs_axes = make_abundance_plots(absolute_dfs)
         rel_plots, rel_legends, rel_axes = make_abundance_plots(relative_dfs)
 
-        sns.set_style("dark")
 
         #organise mapped_required details for heatmap purposes
 
 
         #Label heatmap by pathogenicity
-        sns.set_style("white")
+        sns.set_style("dark")
         heatmaps = []
 
         #transpose niche_table data and subset for pathogenics
@@ -435,6 +434,13 @@ if __name__ == "__main__":
                 #plot = ax.pcolormesh(samples, genus, heatmap, cmap=custom_cmap, vmax=1000)
                 im = ax.imshow(heatmap, vmin=min(df_min), vmax=max(df_max), cmap=custom_cmap)
 
+                # Minor ticks
+                #ax.grid(color='w', linewidth=1.5)
+                ax.set_xticks(np.arange(-.5, len(samples), 1), minor=True)
+                ax.set_yticks(np.arange(-.5, len(genus), 1), minor=True)
+                # Gridlines based on minor ticks
+                ax.grid(which='minor', color='w', linestyle='-', linewidth=1.5)
+
                 #plt.xticks([])
                 #plt.yticks(genus,rotation=0,fontsize='10')
                 #plt.ylabel(current_patho, labelpad=40)
@@ -492,7 +498,7 @@ if __name__ == "__main__":
             niche_list = list(set(new_niche))
             all_niches.append(niche_list)
 
-        niche_colours = ['#77dd77','#ffc5d3', '#8fd3f4']
+        niche_colours = ["#186818","#cc3659", "#0f7aaf"]
         
         niche_shorthand = {"soft_tissue": 'tissue', "resp_tract": 'resp',
                                 "sterile_water": 'water', "taq_polymerase": 'taq', "lysing_enzymes": 'LE', "pcr_mix": 'PCR',
@@ -607,7 +613,7 @@ if __name__ == "__main__":
             no_subplot = len(niche_group)
             fig, axs = plt.subplots(figsize=(width,height), nrows=no_subplot, gridspec_kw={'height_ratios': height_ratios})
 
-            custom_colors = ['#000000', niche_colours[group_loop]]
+            custom_colors = ["#f8ff9c", niche_colours[group_loop]]
 
             df_loop = 0
             for map_df in niche_group:
@@ -637,6 +643,12 @@ if __name__ == "__main__":
                 #plot = ax.pcolormesh(samples, genus, heatmap, cmap=custom_cmap)
                 im = ax.imshow(heatmap, vmin=min(df_min), vmax=max(df_max), cmap=custom_cmap)
 
+                # Minor ticks
+                #ax.grid(color='w', linewidth=1.5)
+                ax.set_xticks(np.arange(-.5, len(samples), 1), minor=True)
+                ax.set_yticks(np.arange(-.5, len(taxa), 1), minor=True)
+                # Gridlines based on minor ticks
+                ax.grid(which='minor', color='w', linestyle='-', linewidth=1.5)
                 #plt.xticks([])
                 #plt.yticks(genus,rotation=0,fontsize='10')
                 #plt.ylabel(current_patho, labelpad=40)
@@ -700,54 +712,79 @@ if __name__ == "__main__":
         all_taxa_list = list(set(all_taxa_list))
 
         p_dict = {}
+        count_dict = {}
         for taxa in all_taxa_list:
             if taxa in current_df.index: #only look for taxa that are in current_df
                 taxa_p = []
                 current_row = list(current_df.loc[taxa])
+                current_count = sum(current_row)/len(current_row) #get average count for current site
                 for df in other_dfs:
+                    comp_counts = []
                     if taxa in df.index:
                         comp_row = list(df.loc[taxa])
-                    # print(np.var(current_row), np.var(comp_row))
+                        comp_counts.extend(comp_row) #add counts to list of "other" sites
+
                     # conduct the Welch's t-test
                     output = stats.ttest_ind(np.array(current_row), np.array(comp_row), equal_var = False)
                     taxa_p.append(output)
+
                 p_dict[taxa] = taxa_p
 
+                #create dictionary of average counts
+                comp_counts = sum(comp_counts)/len(comp_counts)
+                average_counts = [current_count, comp_counts]
+                count_dict[taxa] = average_counts
+
         p_values = pd.DataFrame(p_dict)
+        average_count = pd.DataFrame(count_dict)
 
         p_index = []
         for name in other_names:
             p_index.append(f'{name}')
 
         p_values.index = p_index
-
         p_df = p_values.transpose()
+
+        average_count.index = [current_name, "other_sites"]
+        average_df = average_count.transpose()
+
+        result_df = pd.concat([p_df, average_df], axis=1)
 
         #filter for taxa which have positive significant differences in read count compared to at least one other site
         def positive_sig(row):
             pass_taxa = False
             for site in list(row):
-                if site[0] > 0 and site[1] < 0.05:
-                    pass_taxa = True
+                if not isinstance(site, float):
+                    if site[0] > 0 and site[1] < 0.05:
+                        pass_taxa = True
             if pass_taxa:
                 return row
 
-        sig_df = p_df[p_df.apply(lambda row: positive_sig(row) is not None, axis=1)]
+        sig_df = result_df[result_df.apply(lambda row: positive_sig(row) is not None, axis=1)]
+        sig_excel = sig_df.drop(columns=average_df.columns)
 
         site_name = mscape_datasets[site_loop]
         
         os.makedirs(f'{output_path}dataframes/', exist_ok=True)
-        sig_df.to_csv(f'{output_path}/dataframes/{site_name}_ttest.csv', index=True)
+        sig_excel.to_csv(f'{output_path}/dataframes/{site_name}_ttest.csv', index=True)
 
         smallest_p = []
         for taxa in sig_df.index:
             p = []
-            for site in sig_df.loc[taxa]: 
-                p.append(list(site)[1])
+            for site in sig_df.loc[taxa]:
+                if not isinstance(site, float):
+                    p.append(list(site)[1])
             smallest_p.append(min(p))
 
         sig_df["smallest_p"] = smallest_p
-                                
+
+        #make table for p-value and average counts
+        cols_to_keep = [current_name, "other_sites", "smallest_p"]
+        sig_table = sig_df[cols_to_keep]
+        sig_table = sig_table.sort_values(by="smallest_p", ascending=True)
+
+        sig_html = sig_table.to_html(classes='table table-stripped')
+
         sig_map = filtered_df[filtered_df.Scientific_Name.isin(sig_df.index)]
         sig_map = sig_map.drop(columns=["Domain", "Niche", "Counts_Overall"])
         p = []
@@ -770,7 +807,7 @@ if __name__ == "__main__":
         heatmap = np.reshape(matrix, (len(taxa), len(samples)))
         heatmap = np.array(heatmap, dtype=np.float64)  # Ensure it's numeric
         heatmap[heatmap == 0] = 'nan' # or use np.nan
-        
+
         #nummap = np.nan_to_num(heatmap) #change all nan to 0
         #highest = nummap.max() #get highest count
         sns.set_style("dark")
@@ -812,7 +849,7 @@ if __name__ == "__main__":
                                     all_taxa = all_taxa, nonan_taxa = nonan_taxa, width=width, annotation=annotation,
                                     lab_map = nichemaps[0], human_map = nichemaps[1], industry_map = nichemaps[2],
                                     lab_count = niche_sums[0],human_count = niche_sums[1], industry_count = niche_sums[2], niche_annotations=niche_annotations,
-                                    sigmap = sigmap, sig_count = sig_map.shape[0])
+                                    sig_table=sig_html, sigmap = sigmap, sig_count = sig_map.shape[0])
 
         # Save the rendered HTML to a file
         with open(f"{output_path}site_reports/{site_name}_report.html", "w") as f:
