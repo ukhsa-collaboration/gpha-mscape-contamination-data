@@ -292,7 +292,7 @@ def filter_multiples(x):
     return len(filtered_x) >= 3 #filter for rows with >= 5 counts in >=3 columns
 
 def make_empty_df(df):
-    empty_row = ["None"]
+    empty_row = [0]
     dummy_loop = 1
     while dummy_loop < len(df.columns):
         empty_row.append(0)
@@ -301,4 +301,8 @@ def make_empty_df(df):
     dummy_df = pd.DataFrame(columns=df.columns)
     dummy_df = pd.concat([pd.DataFrame([empty_row], columns=dummy_df.columns), dummy_df], ignore_index=True)
     
+    for col_type in dummy_df.columns: #label string columns with "none"
+        if col_type in ["Domain", "Scientific_Name", "Niche"]:
+            dummy_df[col_type] = "None"
+
     return dummy_df
