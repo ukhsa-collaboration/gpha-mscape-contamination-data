@@ -476,7 +476,7 @@ if __name__ == "__main__":
 
         # Use previously filtered dataframe
         filtered_df = filtered_df.drop(columns="Pathogenicity")
-
+        print(filtered_df)
         #make heatmaps based on niches
         nichemaps = []
         colnames = list(filtered_df["Scientific_Name"])
@@ -646,7 +646,7 @@ if __name__ == "__main__":
                 # Minor ticks
                 #ax.grid(color='w', linewidth=1.5)
                 ax.set_xticks(np.arange(-.5, len(samples), 1), minor=True)
-                ax.set_yticks(np.arange(-.5, len(taxa), 1), minor=True)
+                ax.set_yticks(np.arange(-.5, len(genus), 1), minor=True)
                 # Gridlines based on minor ticks
                 ax.grid(which='minor', color='w', linestyle='-', linewidth=1.5)
                 #plt.xticks([])
@@ -786,16 +786,22 @@ if __name__ == "__main__":
         sig_html = sig_table.to_html(classes='table table-stripped')
 
         sig_map = filtered_df[filtered_df.Scientific_Name.isin(sig_df.index)]
-        sig_map = sig_map.drop(columns=["Domain", "Niche", "Counts_Overall"])
-        p = []
-        for index, row in sig_map.iterrows():
-            taxa = row["Scientific_Name"]
-            site = sig_df.loc[taxa]
-            p.append(site["smallest_p"])
-                
-        sig_map["p"] = p
-        sig_map = sig_map.sort_values(by="p", ascending=True)
-        sig_map = sig_map.drop(columns=["p"])
+     
+        if len(sig_map.index) > 0:
+            sig_map = sig_map.drop(columns=["Domain", "Niche", "Counts_Overall"])
+
+            p = []
+            for index, row in sig_map.iterrows():
+                taxa = row["Scientific_Name"]
+                site = sig_df.loc[taxa]
+                p.append(site["smallest_p"])
+                    
+            sig_map["p"] = p
+            sig_map = sig_map.sort_values(by="p", ascending=True)
+            sig_map = sig_map.drop(columns=["p"])
+        else:
+            sig_map = make_empty_df(sig_map)
+            sig_map = sig_map.drop(columns=["Domain", "Counts_Overall"])
 
         #wrangle data for heatmap
         sig_map.set_index("Scientific_Name", inplace=True)
