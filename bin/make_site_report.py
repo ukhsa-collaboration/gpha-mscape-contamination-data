@@ -456,7 +456,8 @@ if __name__ == "__main__":
 
                 cax = fig.add_axes([ax.get_position().x1+0.05,ax.get_position().y0,0.03,ax.get_position().height])
                 cbar = plt.colorbar(im, cax=cax)
-                
+                cbar.outline.set_color('black')
+
                 #Get the max count in esch heatmap matrix
                 num_map = np.nan_to_num(heatmap)
                 max_count = num_map.max()
@@ -663,7 +664,7 @@ if __name__ == "__main__":
                     #cax = fig.add_axes([ax.get_position().x1+0.1,ax.get_position().y0,0.02,ax.get_position().height])
                     cax = fig.add_axes([ax.get_position().x1+0.1, ax.get_position().y0+0.01, 0.02, 0.75])
                     cbar = plt.colorbar(im, cax=cax)
-
+                    cbar.outline.set_color('black')
 
                 df_loop += 1
 
@@ -801,7 +802,7 @@ if __name__ == "__main__":
             sig_map = sig_map.drop(columns=["p"])
         else:
             sig_map = make_empty_df(sig_map)
-            sig_map = sig_map.drop(columns=["Domain", "Counts_Overall"])
+            sig_map = sig_map.drop(columns=["Domain", "Niche", "Counts_Overall"])
 
         #wrangle data for heatmap
         sig_map.set_index("Scientific_Name", inplace=True)
@@ -830,8 +831,7 @@ if __name__ == "__main__":
         # Gridlines based on minor ticks
         ax.grid(which='minor', color='w', linestyle='-', linewidth=1.5)
 
-        cax = fig.add_axes([ax.get_position().x1+0.05,ax.get_position().y0,0.02,ax.get_position().height])
-        cbar = plt.colorbar(im, cax=cax)
+        cbar = plt.colorbar(im, ax=ax)
         cbar.outline.set_color('black')
 
         ax.set_xticks([])
