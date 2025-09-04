@@ -560,9 +560,9 @@ if __name__ == "__main__":
         
         #if the lab category is empty:
         if len(final_groups[0]) == 0:
+            filtered_df["Niche"] = "None"
             smaller_df = filtered_df.drop(columns=["Domain"])
             empty_df = make_empty_df(smaller_df)
-            empty_df["Niche"] = ""
             final_groups = [[empty_df]]
 
        
@@ -787,10 +787,10 @@ if __name__ == "__main__":
         sig_html = sig_table.to_html(classes='table table-stripped')
 
         sig_map = filtered_df[filtered_df.Scientific_Name.isin(sig_df.index)]
-     
-        if len(sig_map.index) > 0:
-            sig_map = sig_map.drop(columns=["Domain", "Niche", "Counts_Overall"])
+        sig_map = sig_map.drop(columns=["Domain", "Niche", "Counts_Overall"])
 
+        if len(sig_map.index) > 0:
+            
             p = []
             for index, row in sig_map.iterrows():
                 taxa = row["Scientific_Name"]
@@ -802,7 +802,7 @@ if __name__ == "__main__":
             sig_map = sig_map.drop(columns=["p"])
         else:
             sig_map = make_empty_df(sig_map)
-            sig_map = sig_map.drop(columns=["Domain", "Niche", "Counts_Overall"])
+
 
         #wrangle data for heatmap
         sig_map.set_index("Scientific_Name", inplace=True)
