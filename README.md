@@ -32,7 +32,7 @@ nextflow run main.nf --reports "$files" --metadata "/neg_control_reports/metadat
 ### Input
 ```
 --reports "$files"
---metadata "metadata.csv"
+--metadata "/neg_control_reports/metadata.csv"
 --profile docker 
 --site_key site_key.json
 ```
