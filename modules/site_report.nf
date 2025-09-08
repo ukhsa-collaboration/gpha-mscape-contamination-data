@@ -36,7 +36,7 @@ process make_pcoa_script {
 process get_pcoa_plot {
 
     label 'process_low'
-    container 'community.wave.seqera.io/library/r-ade4_r-ecodist_r-vegan:5d7d5c3d409fc0d1'
+    container 'community.wave.seqera.io/library/r-ade4_r-ecodist_r-permute_r-vegan:a577df6149c191f8'
     input:
     path text_files
     output:
