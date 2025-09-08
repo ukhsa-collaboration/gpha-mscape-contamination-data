@@ -858,6 +858,7 @@ if __name__ == "__main__":
                     permanova = pd.read_csv(plots_dir+"/"+filename, delimiter='\t')
                     permanova.to_csv(f'{output_path}/dataframes/{site_name}_permanova.csv', index=False)
                     permanova_p = list(permanova["Pr(>F)"])[0]
+
                     if permanova_p <= 0.05:
                         if permanova_p <= 0.001:
                             asterisk = "***"
