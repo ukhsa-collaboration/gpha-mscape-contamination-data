@@ -7,6 +7,8 @@
  */
 process make_pcoa_script {
 
+    label 'process_low'
+    label "process_long"
     container 'community.wave.seqera.io/library/pip_mako_matplotlib_natsort_pruned:55548172648d6af5'
 
     input:
@@ -33,6 +35,7 @@ process make_pcoa_script {
 
 process get_pcoa_plot {
 
+    label 'process_low'
     container 'community.wave.seqera.io/library/r-ade4_r-ecodist_r-vegan:5d7d5c3d409fc0d1'
     input:
     path text_files
@@ -51,6 +54,7 @@ process get_pcoa_plot {
 
 process make_site_report {
 
+    label 'process_low'
     container 'community.wave.seqera.io/library/pip_mako_matplotlib_natsort_pruned:55548172648d6af5'
 
     input:
