@@ -36,8 +36,9 @@ if __name__ == "__main__":
 
     reports = args.reports
     metadata = pd.read_csv(args.metadata)
-    output_path = args.r_dir
-    os.makedirs(output_path, exist_ok=True) #make directory path into real directory
+    r_path = args.r_dir
+    os.makedirs(r_path, exist_ok=True) #make directory path into real directory
+
 
     #site name to number
     site_key = {}
@@ -86,15 +87,59 @@ if __name__ == "__main__":
         present_dfs.append(filtered_df)
         diff_loop += 1
     
+    # Merge the DataFrames on a specific column
+    all_df = pd.concat(present_dfs, axis = 0, join= "outer")  # Change join to 'outer' for outer join
+    #merge on scientific name - this means that no scientific name is repeated if it's present in different dataframes
+    all_df = all_df.groupby('Scientific_Name', as_index=False).first()
+    all_df.fillna(0, inplace=True)
+
+    # Sort by count
+    numeric = all_df.drop(columns=['Scientific_Name'])
+    numeric_sums = numeric.sum(axis=1)
+    all_df["counts_overall"] = numeric_sums
+    all_df = all_df.sort_values(by="counts_overall", ascending=False)
+
+    #find unlabeled contaminants and save as csv file
+    niche_table = pd.read_excel('/Users/angelasun/Downloads/contamination-data/bin/contaminant_literature.xlsx')
+    niche_table.fillna("NaN", inplace=True)
+
+    edit_df = pd.DataFrame(columns=niche_table.columns)
+
+    niche_table.set_index("Taxa", inplace=True)
+    nan_rows = niche_table.isna().any(axis=1)
+
+    counts = []
+    for index, row in all_df.iterrows():
+        taxa_name = row["Scientific_Name"]
+        
+        if taxa_name in niche_table.index:
+            niche_list = list(niche_table.loc[taxa_name])
+            pathogenicity = niche_list[0]
+            niches = [x for x in niche_list if x is not pathogenicity]
+            all_niches = [taxa_name] + niche_list
+            if pathogenicity == "NaN" or niches == ["NaN", "NaN", "NaN", "NaN"]:
+                edit_df = pd.concat([pd.DataFrame([all_niches], columns=edit_df.columns), edit_df], ignore_index=True)
+                counts.append(row["counts_overall"])
+        else:
+            niche_list = [taxa_name, "NaN", "NaN", "NaN", "NaN", "NaN"]
+            edit_df = pd.concat([pd.DataFrame([niche_list], columns=edit_df.columns), edit_df], ignore_index=True)
+            counts.append(row["counts_overall"])
+
+    edit_df = edit_df.iloc[::-1]
+    edit_df["Counts_Overall"] = counts
+
+    col_order = [col for col in edit_df.columns if col != "Counts_Overall"] + ["Counts_Overall"]
+    edit_df = edit_df[col_order]
+
+    edit_df.fillna(0, inplace=True)
+    edit_df.to_csv(os.path.join(r_path, "unlabeled_contaminants.csv"), index=False)
+
+    all_df = all_df.drop(columns="counts_overall")
     # Depict site-specific plots
     site_loop = 0
     for dataset_name in mscape_datasets:
-        # Merge the DataFrames on a specific column
-        all_df = pd.concat(present_dfs, axis = 0, join= "outer")  # Change join to 'outer' for outer join
-        #merge on scientific name - this means that no scientific name is repeated if it's present in different dataframes
-        all_df = all_df.groupby('Scientific_Name', as_index=False).first()
-        all_df.fillna(0, inplace=True)
 
+        #make new dfs using information from our previous merged all_df to ensure empty taxa are also accounted for
         new_dfs = []
         for df in present_dfs:
             new_df = all_df[df.columns]
@@ -127,7 +172,7 @@ if __name__ == "__main__":
         pcoa_df = pd.concat([transposed_current, transposed_other], axis=0)
         pcoa_df.fillna(value=0, inplace=True)
 
-        pcoa_df.to_csv(os.path.join(output_path, f"{dataset_name}.pcoa.txt"), sep='\t', index=False)
+        pcoa_df.to_csv(os.path.join(r_path, f"{dataset_name}.pcoa.txt"), sep=',', index=False)
         site_loop += 1
 
 
