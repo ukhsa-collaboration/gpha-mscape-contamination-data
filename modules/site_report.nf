@@ -7,6 +7,8 @@
  */
 process make_pcoa_script {
 
+    label 'process_low'
+    label "process_long"
     container 'community.wave.seqera.io/library/pip_mako_matplotlib_natsort_pruned:55548172648d6af5'
 
     input:
@@ -17,23 +19,45 @@ process make_pcoa_script {
     output:
     path "text_files"
 
+
     script:
     """
     make_pcoa_files.py \
         --reports ${reports.join(' ')} \
         --metadata ${metadata} \
         --site_key ${site_key} \
-        --r_dir text_files
+        --r_dir text_files \
+
     """
 }
 
+process save_contam_sheet {
+
+    label 'process_low'
+
+    input:
+    path text_files
+
+    output:
+    path "*"
+
+    publishDir "${params.outdir}/", mode: 'copy'
+    
+    script:
+    """
+    mkdir to_be_updated
+    cp ${text_files}/unlabeled_contaminants.csv to_be_updated/unlabeled_contaminants.csv
+
+    """
+}
 /*
  * An R script which produces output for shannon's diversity graphs
  */
 
 process get_pcoa_plot {
 
-    container 'community.wave.seqera.io/library/r-ade4_r-ecodist_r-vegan:5d7d5c3d409fc0d1'
+    label 'process_low'
+    container 'community.wave.seqera.io/library/r-ade4_r-ecodist_r-permute_r-vegan:a577df6149c191f8'
     input:
     path text_files
     output:
@@ -51,6 +75,7 @@ process get_pcoa_plot {
 
 process make_site_report {
 
+    label 'process_low'
     container 'community.wave.seqera.io/library/pip_mako_matplotlib_natsort_pruned:55548172648d6af5'
 
     input:
@@ -105,6 +130,7 @@ workflow evaluate_by_site {
     reference = file("$baseDir/bin/contaminant_literature.xlsx")
 
     make_pcoa_script(reports, metadata, site_key)
+    save_contam_sheet(make_pcoa_script.out)
     get_pcoa_plot(make_pcoa_script.out)
     make_site_report(reports, metadata, site_key, template, reference, get_pcoa_plot.out)
     println "Report will be generated in ${params.outdir}"

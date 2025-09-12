@@ -24,7 +24,7 @@ def get_microbial_load(dataset, needed_samples, reports):
     spikein_names = []
     for spike in spikeins:
         spike_list = spikeins[spike]
-        spikein_names.append(spike_list[1])
+        spikein_names.append(spike_list[2])
 
     if isinstance(spikein_names, str):
         spike_df = count_df.loc[count_df["Scientific_Name"] == spikein_names]
@@ -185,214 +185,187 @@ def make_richness_table(reports, grouped_metadata, taxon_level, filter_count, si
     return final_table 
 
 
-def get_heatmap(reports, grouped_metadata, site_key):
+def get_heatmap(reports, grouped_metadata, site_key, condition, hcids):
     
-    datasets, mscape_datasets, samples, mscape_samples, sample_dates, mscape_dates = define_heatmap_datasets(grouped_metadata, site_key)
+    mscape_datasets, mscape_samples, mscape_dates = define_heatmap_datasets(grouped_metadata, site_key)
 
     all_samples = ["Domain", "Scientific_Name", "Taxon_ID", "Rank"]
-    for sample_group in samples:
+    for sample_group in mscape_samples:
         all_samples = all_samples + sample_group         
     
     average_list = []
     og_list = []
 
     loop = 0
-    for dataset in datasets:
-        needed_samples = samples[loop] #our current set of sample names
-        perc_df, og_df = make_heatmap_df(needed_samples, reports, "perc")
+    for dataset in mscape_datasets:
+        needed_samples = mscape_samples[loop] #our current set of sample names
+        perc_df, og_df = make_heatmap_df(needed_samples, reports, condition)
 
-        sample_date_df = sample_dates[loop]
+        sample_date_df = mscape_dates[loop]
         date_list = make_date_list(sample_date_df)
 
-        perc_df = perc_df.rename(columns={c: f"{dataset}_"+c for c in perc_df.columns if c not in ['Domain', 'Scientific_Name', 'Perc_Seqs_Overall']})
+        if condition == "perc":
+            average = "Perc_Seqs_Overall"
+        else:
+            average = "Counts_Overall"
+        perc_df = perc_df.rename(columns={c: f"{dataset}_"+c for c in perc_df.columns if c not in ['Domain', 'Scientific_Name', average]})
         perc_df.loc[len(perc_df)] = date_list
 
         row_number = perc_df.index.get_loc(perc_df[perc_df["Scientific_Name"] == "Date"].index[0])
         perc_df.iloc[row_number, 2:-1] = pd.to_datetime(perc_df.iloc[row_number, 2:-1], format='%Y-%m-%d')
-        
+        #Sort all samples by date
+        perc_df.iloc[row_number, 2:-1] = natsorted(perc_df.iloc[row_number, 2:-1])
+
         #Change all "average percentage" columns to their respective dataset names to avoid clashes when merging
-        perc_df[dataset] = perc_df["Perc_Seqs_Overall"]
-        perc_df = perc_df.drop(columns=["Perc_Seqs_Overall"])
+        perc_df[dataset] = perc_df[average]
+        perc_df = perc_df.drop(columns=[average])
         average_list.append(perc_df)
 
         og_list.append(og_df)
         loop += 1
 
-    #First define the merged dataframe by the starting dataframe
-    loop_count = 0
-    merge_df = average_list[0]
-    og_merge_df = og_list[0]
-    #Then merge all other dataframes to the pre-existing dataframe
-    for df in average_list:
-        loop_count += 1
-        if loop_count < len(datasets):
-            current_df = average_list[loop_count]
-            merge_df = merge_df.merge(current_df, on=['Domain', "Scientific_Name"], how="outer")
-            current_og_df = og_list[loop_count]
-            og_merge_df = og_merge_df.merge(current_og_df, on=["Scientific_Name", "Rank", "Taxon_ID", "Domain"], how="outer")
-    
-    merge_df.fillna(value=0, inplace=True)
-    og_merge_df.fillna(value=0, inplace=True)
 
-    # Rearrange column 'Scientific Name' to the first position
-    wordy_columns = ['Scientific_Name', 'Rank', 'Domain', 'Taxon_ID']
-    # check if columns are not in the wordy_columns list
-    column_order = ['Domain'] + ['Scientific_Name'] + ["Taxon_ID"] + ['Rank'] + [col for col in og_merge_df.columns if col not in wordy_columns]
-    og_merge_df = og_merge_df[column_order]
-    og_merge_df.columns = all_samples
+    # Merge the DataFrames on a specific column
+    merge_df = pd.concat(average_list, axis = 0, join= "outer")  # Change join to 'outer' for outer join
+    #merge on scientific name - this means that no scientific name is repeated if it's present in different dataframes
+    merge_df = merge_df.groupby(['Domain', 'Scientific_Name'], as_index=False).first()
+    merge_df.fillna(0, inplace=True)
 
-    og_merge_df.to_csv(f'{output_path}/dataframes/percentage_df.csv', index=False)
+    if condition == "perc":
+        og_merge_df = pd.concat(og_list, axis = 0, join= "outer")  
+        og_merge_df = og_merge_df.groupby(['Domain', 'Scientific_Name', "Taxon_ID", "Rank"], as_index=False).first()
+        og_merge_df.fillna(0, inplace=True)
+        og_merge_df.columns = all_samples #return column headings to purely sample names
 
-    publics = "public"
-    no_pub_df = merge_df.loc[:, ~merge_df.columns.str.contains(publics, case=False)]
+        og_merge_df.to_csv(f'{output_path}/dataframes/percentage_df.csv', index=False)
 
     #get list of dates
-    timestamp_df = no_pub_df.drop(columns=mscape_datasets)
+    timestamp_df = merge_df.drop(columns=mscape_datasets)
     row_number = timestamp_df.index.get_loc(timestamp_df[timestamp_df["Scientific_Name"] == "Date"].index[0])
     date_df = timestamp_df.iloc[row_number]
    
     all_dates = list(date_df)
+    merge_df = merge_df[~merge_df.Scientific_Name.str.contains("Date")]
 
-    # Select columns to sum ('Scientific Name')
-    columns_to_sum = no_pub_df[mscape_datasets]
+    if condition == "perc":
+        # Select columns to sum ('Scientific Name')
+        columns_to_sum = merge_df[mscape_datasets]
 
-    # Calculate the sum of values in each row
-    column_sums = columns_to_sum.sum(axis=1)
-    no_pub_df['Average'] = column_sums/len(mscape_datasets)
+        # Calculate the sum of values in each row
+        column_sums = columns_to_sum.sum(axis=1)
+        merge_df['Average'] = column_sums/len(mscape_datasets)
 
-    # Calculate the max of values in each row
-    # merge_df['Max'] = columns_to_sum.max(axis=1)
+        # Calculate the max of values in each row
+        # merge_df['Max'] = columns_to_sum.max(axis=1)
 
-    sorted_df = no_pub_df.sort_values(by="Average", ascending=False)
-    top_df = sorted_df.head(21)
+        sorted_df = merge_df.sort_values(by="Average", ascending=False)
+        top_df = sorted_df.head(20)
 
-    top_df = top_df[~top_df.Scientific_Name.str.contains("Date")]
+        total_df = top_df.drop(columns=mscape_datasets)
+        total_df = total_df.drop(columns=["Average"])
 
-    total_df = top_df.drop(columns=mscape_datasets)
-    total_df = total_df.drop(columns=["Average"])
+        total_df = total_df.sort_values(by="Domain", ascending=True)
 
-    total_df = total_df.sort_values(by="Domain", ascending=True)
+        #save heatmap df
+        save_labelled_df(total_df, all_dates, output_path, condition)
 
-    #save heatmap df
-    save_labelled_df(total_df, all_dates, output_path, "perc")
-
-    #Change name of sample columns to sample total count
-    #total_df = total_df.rename(columns={c: c.split("[")[0].replace("]", "") for c in total_df.columns if c not in ['Scientific_Name', 'Domain']})
-
-    #Split dataframes and make a subdataframe per dataset
-    sorted_mscapes = split_dfs(mscape_datasets, total_df)
+        #Split dataframes and make a subdataframe per dataset
+        sorted_mscapes = split_dfs(mscape_datasets, total_df)   
+        return sorted_mscapes, mscape_datasets
     
-    return sorted_mscapes, mscape_datasets
+    elif condition == 'thresh':
+        classified_count = merge_df.loc[merge_df["Scientific_Name"].isin(["root", "unclassified"])]
+        classified_count = classified_count.drop(columns=mscape_datasets)
 
-def get_thresh_heatmap(reports, grouped_metadata, site_key):
-    
-    datasets, mscape_datasets, samples, mscape_samples, sample_dates, mscape_dates = define_heatmap_datasets(grouped_metadata, site_key)
-    
-    average_list = []
-    
-    loop = 0
-    for dataset in datasets:
-        needed_samples = samples[loop] #our current set of sample names
+        # Rearrange column 'Scientific Name' to the first position
+        wordy_columns = ['Scientific_Name', 'Domain']
+        wordy_columns.extend(mscape_datasets)
+
+        # check if columns are not in the wordy_columns list or "counts_overall" (denoted by mscape_datasets)
+        numeric_columns = [col for col in merge_df.columns if col not in wordy_columns]
         
-        count_df, og_df = make_heatmap_df(needed_samples, reports, "thresh")
+        bacteria_df = merge_df.loc[merge_df["Domain"] == "Bacteria"]
+        bacteria_df = bacteria_df[(bacteria_df[numeric_columns] >= 500).any(axis=1)]
 
-        sample_date_df = sample_dates[loop]
-        date_list = make_date_list(sample_date_df)
+        other_domains = ["Archaea", "Eukaryota", "Viruses", "Fungi", "Protists"]
+        other_df = merge_df.loc[merge_df["Domain"].isin(other_domains)]
+        other_df = other_df[(other_df[numeric_columns] >= 50).any(axis=1)]
 
-        count_df = count_df.rename(columns={c: f"{dataset}_"+c for c in count_df.columns if c not in ['Scientific_Name', 'Counts_Overall', 'Domain']})
+        thresh_df = pd.concat([bacteria_df,other_df], axis=0, join="outer")
+        thresh_df = thresh_df.groupby(['Domain', 'Scientific_Name'], as_index=False).first()
         
-        #name_line = ["domain", "scientific_name"] + sample_names[loop] + ["counts_overall"]
-        #ßcount_df.loc[len(count_df)] = name_line
-       
-        #add and sort samples by date
-        count_df.loc[len(count_df)] = date_list
-        row_number = count_df.index.get_loc(count_df[count_df["Scientific_Name"] == "Date"].index[0])
-        count_df.iloc[row_number, 2:-1] = pd.to_datetime(count_df.iloc[row_number, 2:-1], format='%Y-%m-%d')
-        #Sort all samples by date
-        count_df.iloc[row_number, 2:-1] = natsorted(count_df.iloc[row_number, 2:-1])
-        #Change all "average percentage" columns to their respective dataset names to avoid clashes when merging
-        count_df[dataset] = count_df["Counts_Overall"]
-        count_df = count_df.drop(columns=["Counts_Overall"])
-        
-        average_list.append(count_df)
+        # Select columns to sum ('Scientific Name')
+        columns_to_sum = thresh_df[mscape_datasets]
+        # Calculate the sum of values in each row
+        column_sums = columns_to_sum.sum(axis=1)
+        thresh_df['Count_Sum'] = column_sums
 
-        loop += 1
+        # Calculate the max of values in each row
+        # merge_df['Max'] = columns_to_sum.max(axis=1)
 
-    #First define the merged dataframe by the starting dataframe
-    loop_count = 0
-    merge_df = average_list[0]
-    #Then merge all other dataframes to the pre-existing dataframe
-    for df in average_list:
-        loop_count += 1
-        if loop_count < len(datasets):
-            current_df = average_list[loop_count]
-            merge_df = merge_df.merge(current_df, on=["Scientific_Name", "Domain"], how="outer")
+        sorted_df = thresh_df.sort_values(by="Count_Sum", ascending=False)
+        total_df = sorted_df.drop(columns=mscape_datasets)
+        total_df = total_df.sort_values(by="Domain", ascending=True)
+        total_df = total_df.drop(columns=["Count_Sum"])
+
+        save_labelled_df(total_df, all_dates, output_path, "count")
+
+        #Change name of sample columns to sample total count
+        #total_df = total_df.rename(columns={c: c.split("[")[0].replace("]", "") for c in total_df.columns if c not in ['Scientific_Name', 'Domain']})
     
-    merge_df.fillna(value=0, inplace=True)
-
-    publics = "public"
-    no_pub_df = merge_df.loc[:, ~merge_df.columns.str.contains(publics, case=False)]
+        top_df = sorted_df.head(20)
+        top_df = top_df.sort_values(by="Domain", ascending=True)
+        top_df = top_df.drop(columns=["Count_Sum"])
+        top_df = top_df.drop(columns=mscape_datasets)
+        #top_df = top_df.rename(columns={c: c.split("[")[0].replace("]", "") for c in top_df.columns if c not in ['Scientific_Name', 'Domain']})
     
-    #remove timestamps
-    timestamp_df = no_pub_df.drop(columns=mscape_datasets)
-    row_number = timestamp_df.index.get_loc(timestamp_df[timestamp_df["Scientific_Name"] == "Date"].index[0])
-    date_df = timestamp_df.iloc[row_number]
-   
-    all_dates = list(date_df)
- 
-    no_pub_df = no_pub_df[~no_pub_df.Scientific_Name.str.contains("Date")]
+        #Split dataframes and make a subdataframe per dataset
+        total_mscapes = split_dfs(mscape_datasets, total_df)
+        top_mscapes = split_dfs(mscape_datasets, top_df)
+        class_mscapes = split_dfs(mscape_datasets, classified_count)
+
+        return top_mscapes, total_mscapes, class_mscapes
     
-    classified_count = no_pub_df.loc[no_pub_df["Scientific_Name"].isin(["root", "unclassified"])]
-    classified_count = classified_count.drop(columns=mscape_datasets)
+    elif condition == "count":
+        #keep count_df column order for listing samples
+        hcid_df = pd.DataFrame(columns=merge_df.columns) 
 
-    # Rearrange column 'Scientific Name' to the first position
-    wordy_columns = ['Scientific_Name', 'Domain']
-    wordy_columns.extend(mscape_datasets)
+        #find all taxa with counts above threshold (min_count)
+        tables = []
+        for table in hcids:
+            sample_id = table.split("_hcid")[0] #unique id
+            hcid_table = pd.read_csv(table)
+            
+            if sample_id in hcid_df.columns:
 
-    # check if columns are not in the wordy_columns list or "counts_overall" (denoted by mscape_datasets)
-    numeric_columns = [col for col in no_pub_df.columns if col not in wordy_columns]
-    
-    bacteria_df = no_pub_df.loc[no_pub_df["Domain"] == "Bacteria"]
-    bacteria_df = bacteria_df[(bacteria_df[numeric_columns] >= 500).any(axis=1)]
+                hcid_table[sample_id] = hcid_table["mapped_count"]
+                needed_columns = ["name", sample_id]
+                sub_table = hcid_table[needed_columns]
 
-    other_domains = ["Archaea", "Eukaryota", "Viruses", "Fungi", "Protists"]
-    other_df = no_pub_df.loc[no_pub_df["Domain"].isin(other_domains)]
-    other_df = other_df[(other_df[numeric_columns] >= 50).any(axis=1)]
+                tables.append(sub_table)
+            else:
+                hcid_df["Scientific_Name"] = hcid_table["name"]
 
-    thresh_df = pd.concat([bacteria_df,other_df], axis=0, join="outer")
-    thresh_df = thresh_df.groupby(['Domain', 'Scientific_Name'], as_index=False).first()
-    
-    # Select columns to sum ('Scientific Name')
-    columns_to_sum = thresh_df[mscape_datasets]
-    # Calculate the sum of values in each row
-    column_sums = columns_to_sum.sum(axis=1)
-    thresh_df['Count_Sum'] = column_sums
+        if len(tables) > 0:
+            # Merge the DataFrames on a specific column
+            merged_table = pd.concat(tables, axis = 0, join= "outer")  # Change join to 'outer' for outer join
+            #merge on hcid name - this means that no scientific name is repeated if it's present in different dataframes
+            merged_table = merged_table.groupby('name', as_index=False).first()
 
-    # Calculate the max of values in each row
-    # merge_df['Max'] = columns_to_sum.max(axis=1)
+            #move taxa names over to hcid_df
+            hcid_df["Scientific_Name"] = merged_table["name"]
 
-    sorted_df = thresh_df.sort_values(by="Count_Sum", ascending=False)
-    total_df = sorted_df.drop(columns=mscape_datasets)
-    total_df = total_df.sort_values(by="Domain", ascending=True)
-    total_df = total_df.drop(columns=["Count_Sum"])
+            #replace hcid_df blank columns with merged_table columns if there are counts 
+            for sample in hcid_df.columns:
+                if sample in list(merged_table.columns):
+                    hcid_df[sample] = merged_table[sample]
 
-    save_labelled_df(total_df, all_dates, output_path, "count")
+        hcid_df.fillna(0, inplace=True)
+        hcid_mscapes = split_dfs(mscape_datasets, hcid_df)
+        return hcid_mscapes
 
-    #Change name of sample columns to sample total count
-    #total_df = total_df.rename(columns={c: c.split("[")[0].replace("]", "") for c in total_df.columns if c not in ['Scientific_Name', 'Domain']})
-   
-    top_df = sorted_df.head(20)
-    top_df = top_df.sort_values(by="Domain", ascending=True)
-    top_df = top_df.drop(columns=["Count_Sum"])
-    top_df = top_df.drop(columns=mscape_datasets)
-    #top_df = top_df.rename(columns={c: c.split("[")[0].replace("]", "") for c in top_df.columns if c not in ['Scientific_Name', 'Domain']})
-   
-    #Split dataframes and make a subdataframe per dataset
-    total_mscapes = split_dfs(mscape_datasets, total_df)
-    top_mscapes = split_dfs(mscape_datasets, top_df)
-    class_mscapes = split_dfs(mscape_datasets, classified_count)
 
-    return top_mscapes, total_mscapes, class_mscapes, mscape_datasets
+
 
 
 if __name__ == "__main__":
@@ -409,7 +382,7 @@ if __name__ == "__main__":
     metadata = pd.read_csv(args.metadata)
     plots_dir = args.plots_dir # Import R plots
     palette = pd.read_csv(f'{plots_dir}/colour_palette.txt', delimiter='\t')
-
+    hcids = tbc
     output_path = args.final_reports
     os.makedirs(output_path, exist_ok=True) #make directory path into real directory
 
@@ -570,9 +543,9 @@ if __name__ == "__main__":
     #make bar plots for total read counts (for heatmaps)
     sns.set_style("white")
     #heatmap function
-    top_mscape_perc, mscape_names = get_heatmap(reports, grouped_metadata, site_key)
-    top_mscape_count, total_mscape_count, class_counts, mscape_datasets = get_thresh_heatmap(reports, grouped_metadata, site_key)
-
+    top_mscape_perc, mscape_names = get_heatmap(reports, grouped_metadata, site_key, "perc", hcids)
+    top_mscape_count, total_mscape_count, class_counts = get_heatmap(reports, grouped_metadata, site_key, "thresh", hcids)
+    hcid_heatmap = get_heatmap(reports, grouped_metadata, site_key, "thresh", hcids)
     stacked_class = []
     
     def make_stacked_class(class_counts, mscape_names, bar_type):
@@ -690,6 +663,7 @@ if __name__ == "__main__":
     make_stacked_class(class_counts, mscape_names, "absolute")
     make_stacked_class(class_counts, mscape_names, "relative")
 
+    sns.set_style("dark")
     heatmap_list = []
     #make heatmaps
     def plot_heatmaps(dataframes, map_type):
@@ -737,26 +711,38 @@ if __name__ == "__main__":
             else:
                 plot = ax.pcolormesh(samples, genus, heatmap, cmap="magma_r")
         
-            
+            # Minor ticks
+            #ax.grid(color='w', linewidth=1.5)
+            ax.set_xticks(np.arange(-.5, len(samples), 1), minor=True)
+            ax.set_yticks(np.arange(-.5, len(genus), 1), minor=True)
+            # Gridlines based on minor ticks
+            ax.grid(which='minor', color='w', linestyle='-', linewidth=1.5)
+
             plt.xticks([])
 
             if loop == 0:
                 plt.yticks(genus,rotation=0,fontsize='10')
-                plt.xlabel(mscape_datasets[loop], fontweight='bold', horizontalalignment='center', rotation=90)
+                plt.xlabel(mscape_names[loop], fontweight='bold', horizontalalignment='center', rotation=90)
 
                 # Second X-axis
                 domain_dict = pd.DataFrame(domain_list, columns=["x"]).groupby('x').size().to_dict()
 
+                #Define the distances between each secondary y-axis tick
                 ytick_limits = [-0.5]
                 ytick_names = []
                 current_count = 0
+                ytick_loop = 0
                 for domain in domain_dict:
+                    ytick_loop += 1
                     count = domain_dict[domain]
 
                     if map_type == "perc" or map_type == "top count":
                         ratio = (count * 0.97) + current_count
                     else:
-                        ratio = (count) + current_count
+                        if ytick_loop == len(domain_dict):
+                            ratio = (count) + current_count - 0.5
+                        else:
+                            ratio = (count) + current_count
 
                     ytick_limits.append(ratio)
                     ytick_names.append(domain)
@@ -778,25 +764,29 @@ if __name__ == "__main__":
                 # label the classes:
                 sec = ax.secondary_yaxis(location=-3)
                 sec.set_yticks(ytick_distance, labels=ytick_names)
-                sec.tick_params('y', length=0)
+                sec.tick_params('y', length=0, colors="k", grid_color = "k")
 
                 # lines between the classes:
                 sec2 = ax.secondary_yaxis(location=-3)
-                sec2.set_yticks(ytick_limits, labels=[])
-                sec2.tick_params('y', length=10, width=1, direction="in")
+                sec2.set_yticks(ytick_limits, labels=[], minor=False)
+                sec2.tick_params('y', which='major', length=10, width=1, direction="in", colors="k", grid_color = "k")
+
+                sec.spines["left"].set_visible(True)
+                sec.spines["left"].set_color("k")
+                sec.spines["left"].set_linewidth(1.5)
 
                 if map_type == "perc" or map_type == "top count":
                     ax.set_ylim(-0.5, 19.4)
-                else:
-                    ax.set_ylim(-0.5, len(genus))
+                #else:
+                    #ax.set_ylim(-0.5, len(genus)*0.97)
 
             elif loop < (no_mscape-1):
                 plt.yticks([])      
-                plt.xlabel(mscape_datasets[loop], fontweight='bold', horizontalalignment='center', rotation=90)
+                plt.xlabel(mscape_names[loop], fontweight='bold', horizontalalignment='center', rotation=90)
             elif loop == (no_mscape-1):
                 plt.yticks([])
                 fig.colorbar(plot, ax=ax, aspect=30)
-                plt.xlabel(mscape_datasets[loop], fontweight='bold', horizontalalignment='center', rotation=90)
+                plt.xlabel(mscape_names[loop], fontweight='bold', horizontalalignment='center', rotation=90)
             loop += 1
         plt.subplots_adjust(wspace=0.02, hspace=0)
 

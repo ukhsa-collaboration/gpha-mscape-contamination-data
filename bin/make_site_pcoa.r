@@ -18,7 +18,7 @@ for (labeled_file in labeled_files) {
   name <- tail(name_in_list[[1]], 3)[1]
 
   # Read file as a dataframe
-  labeled_df <- read.table(labeled_file, header=TRUE)
+  labeled_df <- read.table(labeled_file, sep=",", header=TRUE)
   unlabeled <- subset(labeled_df, select=-c(site))
 
   # Calculate a distance matrix

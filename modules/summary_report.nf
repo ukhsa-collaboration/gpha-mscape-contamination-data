@@ -6,7 +6,7 @@
  * A Python script which parses the output of the previous script
  */
 process make_shannon_script {
-
+    label 'process_low'
     label "process_long"
     container 'community.wave.seqera.io/library/pip_numpy_pandas:426ad974eac1c1db'
 
@@ -31,6 +31,7 @@ process make_shannon_script {
 
 process get_shannon_plot {
 
+    label 'process_low'
     container 'community.wave.seqera.io/library/r-argparse_r-crayon_r-dplyr_r-ggplot2_r-vegan:eb552a73894bf74c'
     input:
     path text_files
@@ -48,7 +49,8 @@ process get_shannon_plot {
  */
 
 process make_summary_report {
-
+    
+    label 'process_low'
     container 'community.wave.seqera.io/library/pip_mako_matplotlib_natsort_pruned:44e99f335376fa3b'
 
     input:

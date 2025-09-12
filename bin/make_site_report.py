@@ -40,7 +40,7 @@ if __name__ == "__main__":
     parser.add_argument('--reports', nargs='+', help="List of text files", required=True)
     parser.add_argument('--metadata', help="CSV file path", required=True)
     parser.add_argument('--site_key', help="JSON file specifying site name to number", required=True)
-    parser.add_argument('--plots_dir', help="Shannon plots directory", required=True)
+    parser.add_argument('--plots_dir', help="pcoa plots directory", required=True)
     parser.add_argument('--final_reports', help="Output directory", required=True)
     parser.add_argument('--template', help="HTMl template", required=True)
     parser.add_argument('--reference', help="excel file for dictionary of contaminants", required=True)
@@ -64,7 +64,7 @@ if __name__ == "__main__":
 
     grouped_metadata = metadata.groupby(['site', 'control_type_details'])
 
-    datasets, mscape_datasets, samples, mscape_samples, sample_dates, mscape_dates = define_heatmap_datasets(grouped_metadata, site_key)
+    mscape_datasets, mscape_samples, mscape_dates = define_heatmap_datasets(grouped_metadata, site_key)
 
     exclude_cols = ["Scientific_Name"]
 
@@ -858,8 +858,14 @@ if __name__ == "__main__":
                     permanova = pd.read_csv(plots_dir+"/"+filename, delimiter='\t')
                     permanova.to_csv(f'{output_path}/dataframes/{site_name}_permanova.csv', index=False)
                     permanova_p = list(permanova["Pr(>F)"])[0]
-                    if permanova_p < 0.05:
-                        permanova_annotation = f"A PERMANOVA test showed that there is a statistically significant difference between the two datasets, with a <strong>p-value of {permanova_p}</strong>."
+                    if permanova_p <= 0.05:
+                        if permanova_p <= 0.001:
+                            asterisk = "***"
+                        elif permanova_p <= 0.01:
+                            asterisk = "**"
+                        else:
+                            asterisk = "*"
+                        permanova_annotation = f"A PERMANOVA test showed that there is a statistically significant difference between the two datasets, with a <strong>p-value of {permanova_p}{asterisk}</strong>."
                     else:
                         permanova_annotation = f"A PERMANOVA test showed that there is no statistically significant difference between the two datasets, with a p-value of {permanova_p}."
 
