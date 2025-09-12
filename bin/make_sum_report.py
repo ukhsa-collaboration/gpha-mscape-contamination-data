@@ -24,7 +24,7 @@ def get_microbial_load(dataset, needed_samples, reports):
     spikein_names = []
     for spike in spikeins:
         spike_list = spikeins[spike]
-        spikein_names.append(spike_list[1])
+        spikein_names.append(spike_list[2])
 
     if isinstance(spikein_names, str):
         spike_df = count_df.loc[count_df["Scientific_Name"] == spikein_names]
@@ -690,6 +690,7 @@ if __name__ == "__main__":
     make_stacked_class(class_counts, mscape_names, "absolute")
     make_stacked_class(class_counts, mscape_names, "relative")
 
+    sns.set_style("dark")
     heatmap_list = []
     #make heatmaps
     def plot_heatmaps(dataframes, map_type):
@@ -737,7 +738,13 @@ if __name__ == "__main__":
             else:
                 plot = ax.pcolormesh(samples, genus, heatmap, cmap="magma_r")
         
-            
+            # Minor ticks
+            #ax.grid(color='w', linewidth=1.5)
+            ax.set_xticks(np.arange(-.5, len(samples), 1), minor=True)
+            ax.set_yticks(np.arange(-.5, len(genus), 1), minor=True)
+            # Gridlines based on minor ticks
+            ax.grid(which='minor', color='w', linestyle='-', linewidth=1.5)
+
             plt.xticks([])
 
             if loop == 0:
@@ -747,16 +754,22 @@ if __name__ == "__main__":
                 # Second X-axis
                 domain_dict = pd.DataFrame(domain_list, columns=["x"]).groupby('x').size().to_dict()
 
+                #Define the distances between each secondary y-axis tick
                 ytick_limits = [-0.5]
                 ytick_names = []
                 current_count = 0
+                ytick_loop = 0
                 for domain in domain_dict:
+                    ytick_loop += 1
                     count = domain_dict[domain]
 
                     if map_type == "perc" or map_type == "top count":
                         ratio = (count * 0.97) + current_count
                     else:
-                        ratio = (count) + current_count
+                        if ytick_loop == len(domain_dict):
+                            ratio = (count) + current_count - 0.5
+                        else:
+                            ratio = (count) + current_count
 
                     ytick_limits.append(ratio)
                     ytick_names.append(domain)
@@ -778,17 +791,21 @@ if __name__ == "__main__":
                 # label the classes:
                 sec = ax.secondary_yaxis(location=-3)
                 sec.set_yticks(ytick_distance, labels=ytick_names)
-                sec.tick_params('y', length=0)
+                sec.tick_params('y', length=0, colors="k", grid_color = "k")
 
                 # lines between the classes:
                 sec2 = ax.secondary_yaxis(location=-3)
-                sec2.set_yticks(ytick_limits, labels=[])
-                sec2.tick_params('y', length=10, width=1, direction="in")
+                sec2.set_yticks(ytick_limits, labels=[], minor=False)
+                sec2.tick_params('y', which='major', length=10, width=1, direction="in", colors="k", grid_color = "k")
+
+                sec.spines["left"].set_visible(True)
+                sec.spines["left"].set_color("k")
+                sec.spines["left"].set_linewidth(1.5)
 
                 if map_type == "perc" or map_type == "top count":
                     ax.set_ylim(-0.5, 19.4)
-                else:
-                    ax.set_ylim(-0.5, len(genus))
+                #else:
+                    #ax.set_ylim(-0.5, len(genus)*0.97)
 
             elif loop < (no_mscape-1):
                 plt.yticks([])      
