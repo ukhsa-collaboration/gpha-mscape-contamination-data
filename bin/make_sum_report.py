@@ -373,7 +373,7 @@ if __name__ == "__main__":
     parser.add_argument('--reports', nargs='+', help="List of text files", required=True)
     parser.add_argument('--metadata', help="CSV file path", required=True)
     parser.add_argument('--site_key', help="JSON file specifying site name to number", required=True)
-    parser.add_argument('--hcids', help="List of hcid csv files", required=True)
+    parser.add_argument('--hcids', nargs='+', help="List of hcid csv files", required=True)
     parser.add_argument('--plots_dir', help="Shannon plots directory", required=True)
     parser.add_argument('--final_reports', help="Output directory", required=True)
     parser.add_argument('--template', help="HTMl template", required=True)

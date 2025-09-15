@@ -15,6 +15,7 @@ process make_pcoa_script {
     path reports
     path metadata
     path site_key
+    path reference
 
     output:
     path "text_files"
@@ -26,7 +27,7 @@ process make_pcoa_script {
         --reports ${reports.join(' ')} \
         --metadata ${metadata} \
         --site_key ${site_key} \
-        --reference ${reference}
+        --reference ${reference} \
         --r_dir text_files \
 
     """
@@ -130,7 +131,7 @@ workflow evaluate_by_site {
     template = file("$baseDir/bin/site_report_template.html")
     reference = file("$baseDir/bin/contaminant_literature.xlsx")
 
-    make_pcoa_script(reports, metadata, site_key)
+    make_pcoa_script(reports, metadata, site_key, reference)
     save_contam_sheet(make_pcoa_script.out)
     get_pcoa_plot(make_pcoa_script.out)
     make_site_report(reports, metadata, site_key, template, reference, get_pcoa_plot.out)
