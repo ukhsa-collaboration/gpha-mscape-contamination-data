@@ -185,7 +185,7 @@ def make_richness_table(reports, grouped_metadata, taxon_level, filter_count, si
     return final_table 
 
 
-def get_heatmap(reports, grouped_metadata, site_key, condition, hcids):
+def get_heatmap(reports, grouped_metadata, site_key, condition):
     
     mscape_datasets, mscape_samples, mscape_dates = define_heatmap_datasets(grouped_metadata, site_key)
 
@@ -329,7 +329,7 @@ def get_heatmap(reports, grouped_metadata, site_key, condition, hcids):
     elif condition == "count":
         #keep count_df column order for listing samples
         hcid_df = pd.DataFrame(columns=merge_df.columns) 
-
+        hcids = ""
         #find all taxa with counts above threshold (min_count)
         tables = []
         for table in hcids:
@@ -382,7 +382,7 @@ if __name__ == "__main__":
     metadata = pd.read_csv(args.metadata)
     plots_dir = args.plots_dir # Import R plots
     palette = pd.read_csv(f'{plots_dir}/colour_palette.txt', delimiter='\t')
-    hcids = tbc
+    #hcids = tbc
     output_path = args.final_reports
     os.makedirs(output_path, exist_ok=True) #make directory path into real directory
 
@@ -543,9 +543,9 @@ if __name__ == "__main__":
     #make bar plots for total read counts (for heatmaps)
     sns.set_style("white")
     #heatmap function
-    top_mscape_perc, mscape_names = get_heatmap(reports, grouped_metadata, site_key, "perc", hcids)
-    top_mscape_count, total_mscape_count, class_counts = get_heatmap(reports, grouped_metadata, site_key, "thresh", hcids)
-    hcid_heatmap = get_heatmap(reports, grouped_metadata, site_key, "thresh", hcids)
+    top_mscape_perc, mscape_names = get_heatmap(reports, grouped_metadata, site_key, "perc")
+    top_mscape_count, total_mscape_count, class_counts = get_heatmap(reports, grouped_metadata, site_key, "thresh")
+    #hcid_heatmap = get_heatmap(reports, grouped_metadata, site_key, "thresh", hcids)
     stacked_class = []
     
     def make_stacked_class(class_counts, mscape_names, bar_type):
