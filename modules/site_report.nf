@@ -26,6 +26,7 @@ process make_pcoa_script {
         --reports ${reports.join(' ')} \
         --metadata ${metadata} \
         --site_key ${site_key} \
+        --reference ${reference}
         --r_dir text_files \
 
     """

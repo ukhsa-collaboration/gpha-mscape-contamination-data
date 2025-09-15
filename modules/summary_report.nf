@@ -3,6 +3,26 @@
 //take input as --reports and--metadata
 
 /*
+ * A python script which produces output for making the html report
+ */
+
+process rename {
+
+    container 'community.wave.seqera.io/library/pip_numpy_pandas:426ad974eac1c1db'
+
+    input:
+    tuple val(unique_id), path(hcid_counts)
+
+    output:
+    path "${unique_id}_hcid_counts.csv", emit: renamed_hcids
+
+    script:
+    """
+    mv ${hcid_counts} "${unique_id}_hcid_counts.csv"
+    """
+}
+
+/*
  * A Python script which parses the output of the previous script
  */
 process make_shannon_script {
@@ -49,7 +69,7 @@ process get_shannon_plot {
  */
 
 process make_summary_report {
-    
+
     label 'process_low'
     container 'community.wave.seqera.io/library/pip_mako_matplotlib_natsort_pruned:44e99f335376fa3b'
 
@@ -57,6 +77,7 @@ process make_summary_report {
     path reports
     path metadata
     path site_key
+    path hcids
     path template
     path plots
 
@@ -72,6 +93,7 @@ process make_summary_report {
       --metadata ${metadata} \
       --site_key ${site_key} \
       --plots_dir ${plots}/ \
+      --hcids ${hcids.join(' ')} \
       --final_report summary_reports/ \
       --template ${template}
     """
@@ -95,10 +117,27 @@ workflow evaluate_negative_controls {
 
     site_key = file(params.site_key, type: "file", checkIfExists:true)
 
+    hcid_sample_list = params.hcids?.split('\n') as List
+    Channel.from(hcid_sample_list)
+    .map { full_path_str ->
+        def file_path = file(full_path_str)
+        def unique_id = file_path.getBaseName()
+        def hcid_counts = file("${file_path}/hcid.counts.csv")
+        return [unique_id, hcid_counts]
+    }
+    .set { hcid_sample_ch }
+
+    hcid_sample_ch.view()
+    rename(hcid_sample_ch)
+    rename.out.renamed_hcids
+       .flatten()
+       .collect()
+       .set { hcids }
+
     template = file("$baseDir/bin/summary_report_template.html")
 
     make_shannon_script(reports, metadata, site_key)
     get_shannon_plot(make_shannon_script.out)
-    make_summary_report(reports, metadata, site_key, template, get_shannon_plot.out)
+    make_summary_report(reports, metadata, site_key, hcids, template, get_shannon_plot.out)
     println "Report will be generated in ${params.outdir}"
 }

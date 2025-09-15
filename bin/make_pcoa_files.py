@@ -31,6 +31,7 @@ if __name__ == "__main__":
     parser.add_argument('--reports', nargs='+', help="List of text files", required=True)
     parser.add_argument('--metadata', help="CSV file path", required=True)
     parser.add_argument('--site_key', help="JSON file specifying site name to number", required=True)
+    parser.add_argument('--reference', help="excel file for dictionary of contaminants", required=True)
     parser.add_argument('--r_dir', help="directory for plots to be made in R code", required=True)
     args = parser.parse_args()
 
@@ -100,7 +101,7 @@ if __name__ == "__main__":
     all_df = all_df.sort_values(by="counts_overall", ascending=False)
 
     #find unlabeled contaminants and save as csv file
-    niche_table = pd.read_excel('/Users/angelasun/Downloads/contamination-data/bin/contaminant_literature.xlsx')
+    niche_table = pd.read_excel(args.reference)
     niche_table.fillna("NaN", inplace=True)
 
     edit_df = pd.DataFrame(columns=niche_table.columns)
