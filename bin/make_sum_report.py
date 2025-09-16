@@ -2,6 +2,7 @@
 
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 from matplotlib.patches import Patch
 import io
 import base64
@@ -13,7 +14,7 @@ import argparse
 from natsort import natsorted
 import json
 
-from utils import spikeins, get_label, make_count_and_perc_dfs, define_datasets, define_heatmap_datasets, make_heatmap_df, make_date_list, split_dfs, save_labelled_df
+from utils import spikeins, convert_to_numeric, make_count_and_perc_dfs, define_datasets, define_heatmap_datasets, make_heatmap_df, make_date_list, split_dfs, save_labelled_df
 
 #Merge all taxon count dataframes together to get all microbe type count data per dataset
 def get_microbial_load(dataset, needed_samples, reports):
@@ -329,28 +330,38 @@ def get_heatmap(reports, grouped_metadata, site_key, condition, hcids):
     elif condition == "count":
         #keep count_df column order for listing samples
         hcid_df = pd.DataFrame(columns=merge_df.columns) 
-
+        hcid_df = hcid_df.drop(columns=mscape_datasets)
         #find all taxa with counts above threshold (min_count)
         tables = []
         for table in hcids:
             sample_id = table.split("_hcid")[0] #unique id
             hcid_table = pd.read_csv(table)
             
-            if sample_id in hcid_df.columns:
+            for site_id_name in hcid_df.columns:
+                if site_id_name not in ["Domain", "Scientific_Name"]:
 
-                hcid_table[sample_id] = hcid_table["mapped_count"]
-                needed_columns = ["name", sample_id]
-                sub_table = hcid_table[needed_columns]
+                    site_name = site_id_name.split("_")[0]
+                    id_name_list = site_id_name.split("_")[1:]
+                    id_name = '_'.join(id_name_list)
 
-                tables.append(sub_table)
+                    if sample_id == id_name:
+
+                        hcid_table[f'{site_name}_{sample_id}'] = hcid_table["mapped_count"]
+                        needed_columns = ["name", f'{site_name}_{sample_id}']
+                        sub_table = hcid_table[needed_columns]
+                       
+                        tables.append(sub_table)
+        print(tables)
+        if len(tables) == 0:
+            hcid_df["Scientific_Name"] = hcid_table["name"]
+        elif len(tables) > 0:
+            if len(tables) == 1:
+                merged_table = tables[0]
             else:
-                hcid_df["Scientific_Name"] = hcid_table["name"]
-
-        if len(tables) > 0:
-            # Merge the DataFrames on a specific column
-            merged_table = pd.concat(tables, axis = 0, join= "outer")  # Change join to 'outer' for outer join
-            #merge on hcid name - this means that no scientific name is repeated if it's present in different dataframes
-            merged_table = merged_table.groupby('name', as_index=False).first()
+                # Merge the DataFrames on a specific column
+                merged_table = pd.concat(tables, axis = 0, join= "outer")  # Change join to 'outer' for outer join
+                #merge on hcid name - this means that no scientific name is repeated if it's present in different dataframes
+                merged_table = merged_table.groupby('name', as_index=False).first()
 
             #move taxa names over to hcid_df
             hcid_df["Scientific_Name"] = merged_table["name"]
@@ -362,6 +373,7 @@ def get_heatmap(reports, grouped_metadata, site_key, condition, hcids):
 
         hcid_df.fillna(0, inplace=True)
         hcid_mscapes = split_dfs(mscape_datasets, hcid_df)
+        
         return hcid_mscapes
 
 
@@ -546,7 +558,8 @@ if __name__ == "__main__":
     #heatmap function
     top_mscape_perc, mscape_names = get_heatmap(reports, grouped_metadata, site_key, "perc", hcids)
     top_mscape_count, total_mscape_count, class_counts = get_heatmap(reports, grouped_metadata, site_key, "thresh", hcids)
-    hcid_heatmap = get_heatmap(reports, grouped_metadata, site_key, "thresh", hcids)
+    hcid_count = get_heatmap(reports, grouped_metadata, site_key, "count", hcids)
+
     stacked_class = []
     
     def make_stacked_class(class_counts, mscape_names, bar_type):
@@ -665,13 +678,16 @@ if __name__ == "__main__":
     make_stacked_class(class_counts, mscape_names, "relative")
 
     sns.set_style("dark")
+  
     heatmap_list = []
+    hcid_list = []
     #make heatmaps
     def plot_heatmaps(dataframes, map_type):
         total_samples = 0
         for df in dataframes:
             df.set_index('Scientific_Name', inplace=True)
-            df = df.drop(columns=["Domain"])
+            if "Domain" in df.columns:
+                df = df.drop(columns=["Domain"])
             samples = df.columns.tolist()
             total_samples = total_samples + len(samples)
 
@@ -680,6 +696,14 @@ if __name__ == "__main__":
             samples = df.columns.tolist()
             width = len(samples)/total_samples
             width_ratios.append(width)
+
+        df_max = []
+        df_min = []
+        
+        for df in dataframes:
+            df = df.drop(columns=["Domain"])
+            df_max.append(max(df.max()))
+            df_min.append(min(df.min()))
 
         no_mscape = len(dataframes)
 
@@ -690,6 +714,7 @@ if __name__ == "__main__":
             height = height * 0.3
             fig, ax = plt.subplots(figsize=(18, height), ncols=no_mscape, gridspec_kw={'width_ratios': width_ratios})
 
+
         loop = 0
         for df in dataframes:
             df.replace(0, np.nan, inplace=True)
@@ -697,84 +722,109 @@ if __name__ == "__main__":
             df = df.drop(columns=["Domain"])
             
 
-            genus = df.index.tolist()
+            taxa = df.index.tolist()
             samples = df.columns.tolist()
             matrix = df.to_numpy()
 
-            heatmap = np.reshape(matrix, (len(genus), len(samples)))
+            heatmap = np.reshape(matrix, (len(taxa), len(samples)))
             heatmap = np.array(heatmap, dtype=np.float64)  # Ensure it's numeric
 
-            ax = plt.subplot(1, no_mscape, loop+1)  
+            ax = plt.subplot(1, no_mscape, loop+1)
+
 
             if map_type == "perc":
-                plot = ax.pcolormesh(samples, genus, heatmap, vmin=0, vmax=100, cmap="magma_r")
-                
+                plot = ax.pcolormesh(samples, taxa, heatmap, vmin=0, vmax=100, cmap="magma_r")
+            elif map_type == "thresh" :
+                plot = ax.pcolormesh(samples, taxa, heatmap, vmin=min(df_min), vmax=max(df_max), cmap="magma_r")
+            else: #hcids
+                plot = ax.pcolormesh(samples, taxa, heatmap, vmin=min(df_min), vmax=max(df_max), cmap="Reds")
+    
+
+            #for hcid heatmap, add sample_id to x-axis, and total_counts to y-axis if there are contaminants in its column
+            if map_type == "hcid":
+                df = df.replace("NaN", 0)
+                df = df.apply(convert_to_numeric)
+                #only keep x-labels with counts
+                xlabels = []
+                for sample in df:
+                    sample_count = df[sample].sum()
+                    if int(sample_count) > 0:
+                        xlabels.append(sample)
+                    else:
+                        xlabels.append("")
+                ax.set_xticks(range(len(samples)),labels=xlabels, rotation=90)
+
+                df["total"] = df.sum(axis=1)
+                total = list(df["total"])
+                total = [int(i) for i in total]
+                hcid_list.append(total)
+
             else:
-                plot = ax.pcolormesh(samples, genus, heatmap, cmap="magma_r")
-        
+                plt.xticks([])
+
             # Minor ticks
             #ax.grid(color='w', linewidth=1.5)
             ax.set_xticks(np.arange(-.5, len(samples), 1), minor=True)
-            ax.set_yticks(np.arange(-.5, len(genus), 1), minor=True)
+            ax.set_yticks(np.arange(-.5, len(taxa), 1), minor=True)
             # Gridlines based on minor ticks
             ax.grid(which='minor', color='w', linestyle='-', linewidth=1.5)
 
-            plt.xticks([])
-
             if loop == 0:
-                plt.yticks(genus,rotation=0,fontsize='10')
+                plt.yticks(taxa,rotation=0,fontsize='10')
                 plt.xlabel(mscape_names[loop], fontweight='bold', horizontalalignment='center', rotation=90)
 
-                # Second X-axis
-                domain_dict = pd.DataFrame(domain_list, columns=["x"]).groupby('x').size().to_dict()
+                if map_type != "hcid":
+                    # Second X-axis
+                    domain_dict = pd.DataFrame(domain_list, columns=["x"]).groupby('x').size().to_dict()
 
-                #Define the distances between each secondary y-axis tick
-                ytick_limits = [-0.5]
-                ytick_names = []
-                current_count = 0
-                ytick_loop = 0
-                for domain in domain_dict:
-                    ytick_loop += 1
-                    count = domain_dict[domain]
+                    #Define the distances between each secondary y-axis tick
+                    ytick_limits = [-0.5]
+                    ytick_names = []
+                    current_count = 0
+                    ytick_loop = 0
+                    for domain in domain_dict:
+                        ytick_loop += 1
+                        count = domain_dict[domain]
 
-                    if map_type == "perc" or map_type == "top count":
-                        ratio = (count * 0.97) + current_count
-                    else:
-                        if ytick_loop == len(domain_dict):
-                            ratio = (count) + current_count - 0.5
+                        if map_type == "perc" or map_type == "top count":
+                            ratio = (count * 0.97) + current_count
                         else:
-                            ratio = (count) + current_count
+                            if ytick_loop == len(domain_dict):
+                                ratio = (count) + current_count - 0.5
+                            else:
+                                ratio = (count) + current_count
 
-                    ytick_limits.append(ratio)
-                    ytick_names.append(domain)
-                    current_count = ratio
+                        ytick_limits.append(ratio)
+                        ytick_names.append(domain)
+                        current_count = ratio
 
 
-                ytick_distance = []
-                last_point = 0
-                for limit in ytick_limits:
-                    if limit == -0.5:
-                        last_point = -0.5
-                    else:
-                        current_point = limit - last_point
-                        halfway = current_point/2
-                        label = last_point + halfway
-                        ytick_distance.append(label)
-                        last_point = limit
-            
-                # label the classes:
-                sec = ax.secondary_yaxis(location=-3)
-                sec.set_yticks(ytick_distance, labels=ytick_names)
-                sec.tick_params('y', length=0, colors="k", grid_color = "k")
+                    ytick_distance = []
+                    last_point = 0
+                    for limit in ytick_limits:
+                        if limit == -0.5:
+                            last_point = -0.5
+                        else:
+                            current_point = limit - last_point
+                            halfway = current_point/2
+                            label = last_point + halfway
+                            ytick_distance.append(label)
+                            last_point = limit
+                
+                    # label the classes:
+                    sec = ax.secondary_yaxis(location=-3)
+                    sec.set_yticks(ytick_distance, labels=ytick_names)
+                    sec.tick_params('y', length=0, colors="k", grid_color = "k")
 
-                # lines between the classes:
-                sec2 = ax.secondary_yaxis(location=-3)
-                sec2.set_yticks(ytick_limits, labels=[], minor=False)
-                sec2.tick_params('y', which='major', length=10, width=1, direction="in", colors="k", grid_color = "k")
+                    # lines between the classes:
+                    sec2 = ax.secondary_yaxis(location=-3)
+                    sec2.set_yticks(ytick_limits, labels=[], minor=False)
+                    sec2.tick_params('y', which='major', length=10, width=1, direction="in", colors="k", grid_color = "k")
 
-                sec.spines["left"].set_visible(True)
-                sec.spines["left"].set_color("k")
-                sec.spines["left"].set_linewidth(1.5)
+                    sec.spines["left"].set_visible(True)
+                    sec.spines["left"].set_color("k")
+                    sec.spines["left"].set_linewidth(1.5)
+                    
 
                 if map_type == "perc" or map_type == "top count":
                     ax.set_ylim(-0.5, 19.4)
@@ -785,11 +835,22 @@ if __name__ == "__main__":
                 plt.yticks([])      
                 plt.xlabel(mscape_names[loop], fontweight='bold', horizontalalignment='center', rotation=90)
             elif loop == (no_mscape-1):
+                total_hcid = [sum(x) for x in zip(*hcid_list)]
+
+                if sum(total_hcid) > 0:
+                    sec_y = ax.secondary_yaxis(location=1)
+                    sec_y.set_yticks(range(len(taxa)), labels=total_hcid)
+                    sec_y.tick_params('y', length=8)
+
                 plt.yticks([])
-                fig.colorbar(plot, ax=ax, aspect=30)
                 plt.xlabel(mscape_names[loop], fontweight='bold', horizontalalignment='center', rotation=90)
+                cax = fig.add_axes([ax.get_position().x1+0.05,ax.get_position().y0,0.02,ax.get_position().height])
+                cbar = plt.colorbar(plot, cax=cax)
+                cbar.outline.set_color('black')
             loop += 1
+
         plt.subplots_adjust(wspace=0.02, hspace=0)
+     
 
         # Save the figure as a Base64 string
         buf = io.BytesIO()
@@ -804,9 +865,12 @@ if __name__ == "__main__":
     heatmap_list.append(plot_heatmaps(top_mscape_perc, "perc"))
     heatmap_list.append(plot_heatmaps(top_mscape_count, "top count"))
     heatmap_list.append(plot_heatmaps(total_mscape_count, "total count"))
+    heatmap_list.append(plot_heatmaps(hcid_count, "hcid"))
 
     total_map_height = (total_mscape_count[0].shape[0])*22.5
     genera_count = total_mscape_count[0].shape[0]
+
+    hcid_height = (hcid_count[0].shape[0])*22.5
 
     template_dir = args.template
     # Render the template with the Base64 string
@@ -827,7 +891,8 @@ if __name__ == "__main__":
                                 rna_diversity=rna_diversity, rna_evenness=rna_evenness,
 
                                 absolute_class=stacked_class[0], relative_class=stacked_class[1],
-                                top_perc_heatmap=heatmap_list[0], top_count_heatmap=heatmap_list[1], total_count_heatmap=heatmap_list[2], total_map_height=total_map_height, genera_count=genera_count)
+                                top_perc_heatmap=heatmap_list[0], top_count_heatmap=heatmap_list[1], total_count_heatmap=heatmap_list[2], hcid_heatmap = heatmap_list[3], 
+                                total_map_height=total_map_height, genera_count=genera_count, hcid_height=hcid_height)
 
     #os.makedirs(f'{output_path}/', exist_ok=True)
     print(output_path)
