@@ -36,7 +36,8 @@ process make_pcoa_script {
 process save_contam_sheet {
 
     label 'process_low'
-
+    container 'community.wave.seqera.io/library/pip_mako_matplotlib_natsort_pruned:55548172648d6af5'
+    
     input:
     path text_files
 
