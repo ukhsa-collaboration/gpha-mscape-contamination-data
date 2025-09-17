@@ -10,7 +10,8 @@ For the summary report, we perform the following analyses:
 - A comparison of taxa richness in each site on a species, genus, and family level
 - A comparison of the proportion of classified reads to unclassified reads for every sample on both an absolute scale and relative scale
 - Sorting for the top 20 contaminants by percentage of reads, and the top contaminants by read count (that meet the threshold of bacteria > 500 or other clades > 50)
-    - Plotted as a series of heatmaps, and arranged by date of sampling (x-axis) and total read count (y-axis).
+    - Plotted as a series of heatmaps, and arranged by date of sampling (x-axis) and total read count (y-axis)
+- A heatmap displaying potential read counts for High Consequence Infectious Diseases (HCIDs), if any
 
 For the site report, we perform the following analyses:
 - Sorting for the top 10 most common contaminants across samples by percentage of reads within each sample
@@ -27,7 +28,8 @@ All spike-ins are removed from analyses.
 An example command would be:
 ```
 files=$(cat /neg_control_reports/all_controls_list.txt )
-nextflow run main.nf --reports "$files" --metadata "/neg_control_reports/metadata.csv"  --profile docker --site_key site_key.json
+hcid_files=$(cat /neg_control_reports/hcid_list.txt )
+nextflow run main.nf --reports "$files" --metadata "/neg_control_reports/metadata.csv"  --hcids "$hcid_files" --profile docker --site_key site_key.json
 ```
 ### Input
 ```
