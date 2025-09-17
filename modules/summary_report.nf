@@ -3,27 +3,7 @@
 //take input as --reports and--metadata
 
 /*
- * A python script which produces output for making the html report
- */
-
-process rename {
-
-    container 'community.wave.seqera.io/library/pip_numpy_pandas:426ad974eac1c1db'
-
-    input:
-    tuple val(unique_id), path(hcid_counts)
-
-    output:
-    path "${unique_id}_hcid_counts.csv", emit: renamed_hcids
-
-    script:
-    """
-    mv ${hcid_counts} "${unique_id}_hcid_counts.csv"
-    """
-}
-
-/*
- * A Python script which parses the output of the previous script
+ * A python script which makes text files for R plots
  */
 process make_shannon_script {
     label 'process_low'
@@ -118,22 +98,14 @@ workflow evaluate_negative_controls {
     site_key = file(params.site_key, type: "file", checkIfExists:true)
 
     hcid_sample_list = params.hcids?.split('\n') as List
-    Channel.from(hcid_sample_list)
-    .map { full_path_str ->
-        def file_path = file(full_path_str)
-        def unique_id = file_path.getBaseName()
-        def hcid_counts = file("${file_path}/hcid.counts.csv")
-        return [unique_id, hcid_counts]
-    }
-    .set { hcid_sample_ch }
-
-    hcid_sample_ch.view()
-    rename(hcid_sample_ch)
-    rename.out.renamed_hcids
+    
+    Channel
+       .fromPath(hcid_sample_list)
        .flatten()
        .collect()
        .set { hcids }
-
+    //hcids.view()
+    
     template = file("$baseDir/bin/summary_report_template.html")
 
     make_shannon_script(reports, metadata, site_key)

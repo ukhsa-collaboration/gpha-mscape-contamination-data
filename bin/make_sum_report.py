@@ -678,7 +678,8 @@ if __name__ == "__main__":
     make_stacked_class(class_counts, mscape_names, "relative")
 
     sns.set_style("dark")
-  
+    
+    hcid_display = "display: none"
     heatmap_list = []
     hcid_list = []
     #make heatmaps
@@ -841,6 +842,8 @@ if __name__ == "__main__":
                     sec_y = ax.secondary_yaxis(location=1)
                     sec_y.set_yticks(range(len(taxa)), labels=total_hcid)
                     sec_y.tick_params('y', length=8)
+                    hcid_display = "display: block"
+
 
                 plt.yticks([])
                 plt.xlabel(mscape_names[loop], fontweight='bold', horizontalalignment='center', rotation=90)
@@ -892,7 +895,7 @@ if __name__ == "__main__":
 
                                 absolute_class=stacked_class[0], relative_class=stacked_class[1],
                                 top_perc_heatmap=heatmap_list[0], top_count_heatmap=heatmap_list[1], total_count_heatmap=heatmap_list[2], hcid_heatmap = heatmap_list[3], 
-                                total_map_height=total_map_height, genera_count=genera_count, hcid_height=hcid_height)
+                                total_map_height=total_map_height, genera_count=genera_count, hcid_height=hcid_height, hcid_display=hcid_display)
 
     #os.makedirs(f'{output_path}/', exist_ok=True)
     print(output_path)
