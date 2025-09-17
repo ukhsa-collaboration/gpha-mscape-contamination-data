@@ -64,7 +64,7 @@ if __name__ == "__main__":
 
     grouped_metadata = metadata.groupby(['site', 'control_type_details'])
 
-    datasets, mscape_datasets, samples, mscape_samples, sample_dates, mscape_dates = define_heatmap_datasets(grouped_metadata, site_key)
+    mscape_datasets, mscape_samples, mscape_dates = define_heatmap_datasets(grouped_metadata, site_key)
 
     exclude_cols = ["Scientific_Name"]
 

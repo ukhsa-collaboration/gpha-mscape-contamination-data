@@ -31,6 +31,7 @@ if __name__ == "__main__":
     parser.add_argument('--reports', nargs='+', help="List of text files", required=True)
     parser.add_argument('--metadata', help="CSV file path", required=True)
     parser.add_argument('--site_key', help="JSON file specifying site name to number", required=True)
+    parser.add_argument('--reference', help="excel file for dictionary of contaminants", required=True)
     parser.add_argument('--r_dir', help="directory for plots to be made in R code", required=True)
     args = parser.parse_args()
 
@@ -47,7 +48,7 @@ if __name__ == "__main__":
 
     grouped_metadata = metadata.groupby(['site', 'control_type_details'])
 
-    datasets, mscape_datasets, samples, mscape_samples, sample_dates, mscape_dates = define_heatmap_datasets(grouped_metadata, site_key)
+    mscape_datasets, mscape_samples, mscape_dates = define_heatmap_datasets(grouped_metadata, site_key)
 
     exclude_cols = ["Scientific_Name"]
 
@@ -100,7 +101,11 @@ if __name__ == "__main__":
     all_df = all_df.sort_values(by="counts_overall", ascending=False)
 
     #find unlabeled contaminants and save as csv file
+<<<<<<< HEAD
     niche_table = pd.read_excel('/Users/angelasun/Downloads/contamination-data/bin/contaminant_literature.xlsx')
+=======
+    niche_table = pd.read_excel(args.reference)
+>>>>>>> dev
     niche_table.fillna("NaN", inplace=True)
 
     edit_df = pd.DataFrame(columns=niche_table.columns)
@@ -131,8 +136,14 @@ if __name__ == "__main__":
     col_order = [col for col in edit_df.columns if col != "Counts_Overall"] + ["Counts_Overall"]
     edit_df = edit_df[col_order]
 
+<<<<<<< HEAD
     edit_df.fillna(0, inplace=True)
     edit_df.to_csv(os.path.join(r_path, "unlabeled_contaminants.csv"), index=False)
+=======
+    edit_df = edit_df.replace('NaN', '', regex=True)
+    edit_df["All taxa here are either missing a pathogenicity label, or missing entries in all 3 niche labels (Lab, Human, and Industry). Please update them in bin/contaminant_literature.xlsx accordingly. If there are multiple entries in one category, please make sure to put no spaces between the commas when listing them."] = ''
+    edit_df.to_csv(os.path.join(r_path, "unlabeled_contaminants.csv"), index=False, na_rep='')
+>>>>>>> dev
 
     all_df = all_df.drop(columns="counts_overall")
     # Depict site-specific plots

@@ -15,6 +15,7 @@ process make_pcoa_script {
     path reports
     path metadata
     path site_key
+    path reference
 
     output:
     path "text_files"
@@ -26,6 +27,7 @@ process make_pcoa_script {
         --reports ${reports.join(' ')} \
         --metadata ${metadata} \
         --site_key ${site_key} \
+        --reference ${reference} \
         --r_dir text_files \
 
     """
@@ -34,14 +36,14 @@ process make_pcoa_script {
 process save_contam_sheet {
 
     label 'process_low'
+    container 'community.wave.seqera.io/library/pip_mako_matplotlib_natsort_pruned:55548172648d6af5'
+    publishDir "${params.outdir}/", mode: 'copy'
 
     input:
     path text_files
 
     output:
     path "*"
-
-    publishDir "${params.outdir}/", mode: 'copy'
     
     script:
     """
@@ -77,7 +79,8 @@ process make_site_report {
 
     label 'process_low'
     container 'community.wave.seqera.io/library/pip_mako_matplotlib_natsort_pruned:55548172648d6af5'
-
+    publishDir "${params.outdir}/", mode: 'copy' // Publish final report to local directory specified in params.config
+    
     input:
     path reports
     path metadata
@@ -88,8 +91,6 @@ process make_site_report {
 
     output:
     path "site_reports/"
-
-    publishDir "${params.outdir}/", mode: 'copy' // Publish final report to local directory specified in params.config
 
     script:
     """
@@ -129,7 +130,8 @@ workflow evaluate_by_site {
     template = file("$baseDir/bin/site_report_template.html")
     reference = file("$baseDir/bin/contaminant_literature.xlsx")
 
-    make_pcoa_script(reports, metadata, site_key)
+    make_pcoa_script(reports, metadata, site_key, reference)
+
     save_contam_sheet(make_pcoa_script.out)
     get_pcoa_plot(make_pcoa_script.out)
     make_site_report(reports, metadata, site_key, template, reference, get_pcoa_plot.out)

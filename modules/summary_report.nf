@@ -3,7 +3,7 @@
 //take input as --reports and--metadata
 
 /*
- * A Python script which parses the output of the previous script
+ * A python script which makes text files for R plots
  */
 process make_shannon_script {
     label 'process_low'
@@ -49,21 +49,21 @@ process get_shannon_plot {
  */
 
 process make_summary_report {
-    
+
     label 'process_low'
     container 'community.wave.seqera.io/library/pip_mako_matplotlib_natsort_pruned:44e99f335376fa3b'
+    publishDir "${params.outdir}/", mode: 'copy' // Publish final report to local directory specified in params.config
 
     input:
     path reports
     path metadata
     path site_key
+    path hcids
     path template
     path plots
 
     output:
     path "summary_reports/"
-
-    publishDir "${params.outdir}/", mode: 'copy' // Publish final report to local directory specified in params.config
 
     script:
     """
@@ -72,6 +72,7 @@ process make_summary_report {
       --metadata ${metadata} \
       --site_key ${site_key} \
       --plots_dir ${plots}/ \
+      --hcids ${hcids.join(' ')} \
       --final_report summary_reports/ \
       --template ${template}
     """
@@ -95,10 +96,19 @@ workflow evaluate_negative_controls {
 
     site_key = file(params.site_key, type: "file", checkIfExists:true)
 
+    hcid_sample_list = params.hcids?.split('\n') as List
+    
+    Channel
+       .fromPath(hcid_sample_list)
+       .flatten()
+       .collect()
+       .set { hcids }
+    //hcids.view()
+    
     template = file("$baseDir/bin/summary_report_template.html")
 
     make_shannon_script(reports, metadata, site_key)
     get_shannon_plot(make_shannon_script.out)
-    make_summary_report(reports, metadata, site_key, template, get_shannon_plot.out)
+    make_summary_report(reports, metadata, site_key, hcids, template, get_shannon_plot.out)
     println "Report will be generated in ${params.outdir}"
 }
