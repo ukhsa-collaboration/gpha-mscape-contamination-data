@@ -102,7 +102,6 @@ if __name__ == "__main__":
 
     #find unlabeled contaminants and save as csv file
     niche_table = pd.read_excel(args.reference)
-
     niche_table.fillna("NaN", inplace=True)
 
     edit_df = pd.DataFrame(columns=niche_table.columns)
@@ -134,7 +133,7 @@ if __name__ == "__main__":
     edit_df = edit_df[col_order]
 
     edit_df = edit_df.replace('NaN', '', regex=True)
-    edit_df["All taxa here are either missing a pathogenicity label, or missing entries in all 3 niche labels (Lab, Human, and Industry). Please update them in bin/contaminant_literature.xlsx accordingly. If there are multiple entries in one category, please make sure to put no spaces between the commas when listing them."] = ''
+    edit_df["All taxa here are present in the samples, and either missing a pathogenicity label, or missing entries in all 3 niche labels (Lab, Human, and Industry). Please update them in bin/contaminant_literature.xlsx accordingly. If there are multiple entries in one category, please make sure to put no spaces between the commas when listing them."] = ''
     edit_df.to_csv(os.path.join(r_path, "unlabeled_contaminants.csv"), index=False, na_rep='')
 
     all_df = all_df.drop(columns="counts_overall")

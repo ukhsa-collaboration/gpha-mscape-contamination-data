@@ -273,7 +273,7 @@ tr:hover {background-color: #b7d9fa;}
 <script>
 function toggleElements(showElement, hideElements) {
     document.querySelectorAll(hideElements).forEach(el => el.style.display = "none");
-    document.querySelector(showElement).style.display = "block";
+    document.querySelector(showElement).style.display = "inline-block";
 }
 </script>
 
@@ -480,7 +480,7 @@ function clickFunction(str) {
 </div>
 
 <p style="padding-bottom: 0;"><strong>${annotation}</strong></p>
-<p><strong>A non-exhaustive list of contaminants grouped by pathogenicity, as indicated by existing literature*</strong>. Taxa have been filtered for those appearing in more than 3 samples with over 5 reads. White spaces indicate where 0 counts have been found. Note: only ${nonan_taxa}/${all_taxa} taxa over the threshold have been cross-referenced with literature so far and represented here. *References can be found on github.com/aq-sun/contamination-data.</p>
+<p><strong>A non-exhaustive list of contaminants with known pathogenicity, as indicated by existing literature*</strong>. Taxa have been filtered for those appearing in more than 3 samples with over 5 reads. White spaces indicate where 0 counts have been found. Note: only ${nonan_taxa}/${all_taxa} taxa over the threshold have been cross-referenced with literature so far and represented here. *References can be found on github.com/aq-sun/contamination-data.</p>
 
 <h3>Possible sources of contamination</h3>
 <button onclick="toggleElements('.lab', '.niche')">Lab Environment</button>
@@ -504,7 +504,7 @@ function clickFunction(str) {
 </div>
 
 <p style="padding-bottom: 0;"><strong>${niche_annotations}</strong></p>
-<p><strong>A non-exhaustive list of contaminants grouped by niche, as indicated by existing literature*</strong>. Taxa have been filtered for those appearing in more than 3 samples with over 5 reads. When taxa overlap between lab environment and other niches, we assume that the cause of their contamination is the lab environment and remove them from the other plots. White spaces indicate where 0 counts have been found. Note: only ${nonan_taxa}/${all_taxa} taxa over the threshold have been cross-referenced with literature so far and represented here. *References can be found on github.com/aq-sun/contamination-data.</p>
+<p><strong>A non-exhaustive list of contaminants known by niche, as indicated by existing literature*</strong>. Taxa have been filtered for those appearing in more than 3 samples with over 5 reads. When taxa overlap between lab environment and other niches, we assume that the cause of their contamination is the lab environment and remove them from the other plots. White spaces indicate where 0 counts have been found. Note: only ${nonan_taxa}/${all_taxa} taxa over the threshold have been cross-referenced with literature so far and represented here. *References can be found on github.com/aq-sun/contamination-data.</p>
 
 
 <h3>Site-specific signals</h3>
@@ -520,7 +520,7 @@ function clickFunction(str) {
     <p><strong>Number of reads for all taxa that have a significantly higher count in ${site_name} than at least one other site, after fitting Welch's t-test.</strong> Taxa have been sorted in ascending order to show taxa with the smallest p-value first.</p>
 </div>
 
-<h3>PCoA</h3>
+<h3>Principal Coordinates Analysis (PCoA)</h3>
 <img src="data:image/png;base64,${pcoa}" height=600 width=600
         alt="PcoA plot depicting a reduced-dimension similarity matrix between the samples of this site and all other sites."/>
         <p><strong>PcoA plot depicting a similarity matrix between the samples in ${site_name} and all other sites.</strong> ${permanova_annotation}</p>

@@ -635,12 +635,7 @@ if __name__ == "__main__":
                 heatmap = np.array(heatmap, dtype=np.float64)  # Ensure it's numeric
 
                 ax = plt.subplot(no_subplot, 1, df_loop+1)
-
-                for niche in niche_colours:
-                    if niche in niche_shorthand and len(genus) < 3: #if shorthand is needed
-                        shorthand = niche_shorthand[niche]
-                        niche_annotations.append(f'{shorthand} = {niche}')
-       
+    
                 # Create a ListedColormap using the custom colors
                 custom_cmap = LinearSegmentedColormap.from_list('niche', custom_colors)
                 #plot = ax.pcolormesh(samples, genus, heatmap, cmap=custom_cmap)
@@ -659,6 +654,7 @@ if __name__ == "__main__":
                 ax.set_yticks(range(len(genus)), labels=genus)
                 if niche_name in niche_shorthand and len(genus) < 3:
                     ax.set_ylabel(niche_shorthand[niche_name], labelpad = 40, rotation=0)
+                    niche_annotations.append(f'{niche_shorthand[niche_name]} = {niche_name}')
                 else:
                     ax.set_ylabel(niche_name, labelpad = 40, rotation=0)
             

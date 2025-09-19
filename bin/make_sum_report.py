@@ -331,8 +331,9 @@ def get_heatmap(reports, grouped_metadata, site_key, condition, hcids):
         #keep count_df column order for listing samples
         hcid_df = pd.DataFrame(columns=merge_df.columns) 
         hcid_df = hcid_df.drop(columns=mscape_datasets)
-        #find all taxa with counts above threshold (min_count)
+        #find all taxa with hcid counts 
         tables = []
+        hcid_min = []
         for table in hcids:
             sample_id = table.split("_hcid")[0] #unique id
             hcid_table = pd.read_csv(table)
@@ -345,13 +346,13 @@ def get_heatmap(reports, grouped_metadata, site_key, condition, hcids):
                     id_name = '_'.join(id_name_list)
 
                     if sample_id == id_name:
-
+                        hcid_min.append(hcid_table["min_count"])
                         hcid_table[f'{site_name}_{sample_id}'] = hcid_table["mapped_count"]
                         needed_columns = ["name", f'{site_name}_{sample_id}']
                         sub_table = hcid_table[needed_columns]
                        
                         tables.append(sub_table)
-        print(tables)
+        
         if len(tables) == 0:
             hcid_df["Scientific_Name"] = hcid_table["name"]
         elif len(tables) > 0:
@@ -680,7 +681,6 @@ if __name__ == "__main__":
     sns.set_style("dark")
     
     hcid_display = "display: none"
-
     heatmap_list = []
     hcid_list = []
     #make heatmaps
@@ -736,10 +736,10 @@ if __name__ == "__main__":
 
             if map_type == "perc":
                 plot = ax.pcolormesh(samples, taxa, heatmap, vmin=0, vmax=100, cmap="magma_r")
-            elif map_type == "thresh" :
-                plot = ax.pcolormesh(samples, taxa, heatmap, vmin=min(df_min), vmax=max(df_max), cmap="magma_r")
-            else: #hcids
+            elif map_type == "hcid" :
                 plot = ax.pcolormesh(samples, taxa, heatmap, vmin=min(df_min), vmax=max(df_max), cmap="Reds")
+            else: #total count and top count
+                plot = ax.pcolormesh(samples, taxa, heatmap, vmin=min(df_min), vmax=max(df_max), cmap="magma_r")
     
 
             #for hcid heatmap, add sample_id to x-axis, and total_counts to y-axis if there are contaminants in its column
@@ -771,7 +771,6 @@ if __name__ == "__main__":
             # Gridlines based on minor ticks
             ax.grid(which='minor', color='w', linestyle='-', linewidth=1.5)
 
-
             if loop == 0:
                 plt.yticks(taxa,rotation=0,fontsize='10')
                 plt.xlabel(mscape_names[loop], fontweight='bold', horizontalalignment='center', rotation=90)
@@ -800,6 +799,7 @@ if __name__ == "__main__":
                         ytick_limits.append(ratio)
                         ytick_names.append(domain)
                         current_count = ratio
+
 
                     ytick_distance = []
                     last_point = 0
