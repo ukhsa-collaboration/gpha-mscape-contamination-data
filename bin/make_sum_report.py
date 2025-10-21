@@ -345,12 +345,14 @@ def get_heatmap(reports, grouped_metadata, site_key, condition, hcids):
                     id_name_list = site_id_name.split("_")[1:]
                     id_name = '_'.join(id_name_list)
 
-                    if sample_id == id_name:
+                    print("Here", sample_id, id_name)
+                    if id_name in sample_id:
+                        print(f'{id_name} is indeed in {sample_id}...')
                         hcid_min.append(hcid_table["min_count"])
                         hcid_table[f'{site_name}_{sample_id}'] = hcid_table["mapped_count"]
                         needed_columns = ["name", f'{site_name}_{sample_id}']
                         sub_table = hcid_table[needed_columns]
-                       
+                        print(sub_table)
                         tables.append(sub_table)
         
         if len(tables) == 0:
