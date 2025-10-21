@@ -330,8 +330,13 @@ function toggleElements(showElement, hideElements) {
 
 <div class="fungi abun" style="display: none">
     <div id="abundance">
-        <img src="data:image/png;base64,${fungi_abs}" height="500" width="${no_sample}*150"
+        <img id="fungi_abundance" src="data:image/png;base64,${fungi_abs}" height="500"
         alt="Embedded Bar Graph depicting the total read count found for all fungi in each dataset.">
+        <script>
+        const samples = ${no_sample};
+        const width = samples * 10;
+        document.getElementById("fungi_abundance").setAttribute("width", width);
+        </script>
         <div id="legend">
             <img src="data:image/png;base64,${fungi_abun_l}"
             alt="Embedded Bar Graph depicting the total read count found for all fungi in each dataset.">
