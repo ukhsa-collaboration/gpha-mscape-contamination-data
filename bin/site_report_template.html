@@ -319,7 +319,7 @@ function toggleElements(showElement, hideElements) {
 
 <div class="bacteria abun", style="display: inline-block"> 
     <div id="abundance", style="display: inline-block">
-        <img src="data:image/png;base64,${bac_abs}" height="500" width="${no_sample}*150"
+        <img src="data:image/png;base64,${bac_abs}" height="500" width="${no_sample*150}"
         alt="Embedded Bar Graph depicting the total read count found for all bacteria in each dataset.">
         <div id="legend">
             <img src="data:image/png;base64,${bac_abun_l}"
@@ -330,13 +330,8 @@ function toggleElements(showElement, hideElements) {
 
 <div class="fungi abun" style="display: none">
     <div id="abundance">
-        <img id="fungi_abundance" src="data:image/png;base64,${fungi_abs}" height="500"
+        <img src="data:image/png;base64,${fungi_abs}" height="500" width="${no_sample*150}"
         alt="Embedded Bar Graph depicting the total read count found for all fungi in each dataset.">
-        <script>
-        const samples = ${no_sample};
-        const width = samples * 10;
-        document.getElementById("fungi_abundance").setAttribute("width", width);
-        </script>
         <div id="legend">
             <img src="data:image/png;base64,${fungi_abun_l}"
             alt="Embedded Bar Graph depicting the total read count found for all fungi in each dataset.">
@@ -346,7 +341,7 @@ function toggleElements(showElement, hideElements) {
 
 <div class="archaea abun" style="display: none">
     <div id="abundance">
-        <img src="data:image/png;base64,${archaea_abs}" height="500" width="${no_sample}*150"
+        <img src="data:image/png;base64,${archaea_abs}" height="500" width="${no_sample*150}"
         alt="Embedded Bar Graph depicting the total read count found for all archaea in each dataset.">
         <div id="legend">
             <img src="data:image/png;base64,${archaea_abun_l}"
@@ -357,7 +352,7 @@ function toggleElements(showElement, hideElements) {
 
 <div class="virus abun" style="display: none">
     <div id="abundance">
-        <img src="data:image/png;base64,${virus_abs}" height="500" width="${no_sample}*150"
+        <img src="data:image/png;base64,${virus_abs}" height="500" width="${no_sample*150}"
         alt="Embedded Bar Graph depicting the total read count found for all viruses in each dataset.">
         <div id="legend">
             <img src="data:image/png;base64,${virus_abun_l}"
@@ -368,7 +363,7 @@ function toggleElements(showElement, hideElements) {
 
 <div class="protist abun" style="display: none">
     <div id="abundance">
-        <img src="data:image/png;base64,${protist_abs}" height="500" width="${no_sample}*150"
+        <img src="data:image/png;base64,${protist_abs}" height="500" width="${no_sample*150}"
         alt="Embedded Bar Graph depicting the total read count found for all protists in each dataset.">
         <div id="legend">
             <img src="data:image/png;base64,${protist_abun_l}"
@@ -379,7 +374,7 @@ function toggleElements(showElement, hideElements) {
 
 <div class="relbacteria abun", style="display: none"> 
     <div id="abundance", style="display: inline-block">
-        <img src="data:image/png;base64,${bac_rel}" height="500" width="${no_sample}*150"
+        <img src="data:image/png;base64,${bac_rel}" height="500" width="${no_sample*150}"
         alt="Embedded Bar Graph depicting the average read count found for all bacteria in each dataset.">
         <div id="legend">
             <img src="data:image/png;base64,${bac_abun_l}"
@@ -390,7 +385,7 @@ function toggleElements(showElement, hideElements) {
 
 <div class="relfungi abun" style="display: none">
     <div id="abundance">
-        <img src="data:image/png;base64,${fungi_rel}" height="500" width="${no_sample}*150"
+        <img src="data:image/png;base64,${fungi_rel}" height="500" width="${no_sample*150}"
         alt="Embedded Bar Graph depicting the average read count found for all fungi in each dataset.">
         <div id="legend">
             <img src="data:image/png;base64,${fungi_abun_l}"
@@ -401,7 +396,7 @@ function toggleElements(showElement, hideElements) {
 
 <div class="relarchaea abun" style="display: none">
     <div id="abundance">
-        <img src="data:image/png;base64,${archaea_rel}" height="500" width="${no_sample}*150"
+        <img src="data:image/png;base64,${archaea_rel}" height="500" width="${no_sample*150}"
         alt="Embedded Bar Graph depicting the average read count found for all archaea in each dataset.">
         <div id="legend">
             <img src="data:image/png;base64,${archaea_abun_l}" 
@@ -412,7 +407,7 @@ function toggleElements(showElement, hideElements) {
 
 <div class="relvirus abun" style="display: none">
     <div id="abundance">
-        <img src="data:image/png;base64,${virus_rel}" height="500" width="${no_sample}*150"
+        <img src="data:image/png;base64,${virus_rel}" height="500" width="${no_sample*150}"
         alt="Embedded Bar Graph depicting the average read count found for all viruses in each dataset.">
         <div id="legend">
             <img src="data:image/png;base64,${virus_abun_l}"
@@ -423,7 +418,7 @@ function toggleElements(showElement, hideElements) {
 
 <div class="relprotist abun" style="display: none">
     <div id="abundance">
-        <img src="data:image/png;base64,${protist_rel}" height="500" width="${no_sample}*150" left="800" 
+        <img src="data:image/png;base64,${protist_rel}" height="500" width="${no_sample*150}" left="800"
         alt="Embedded Bar Graph depicting the average read count found for all protists in each dataset.">
         <div id="legend">
             <img src="data:image/png;base64,${protist_abun_l}" 
@@ -463,24 +458,24 @@ function clickFunction(str) {
 <button onclick="toggleElements('.comme', '.map')">Generally Commensal | Commensal</button>
 
 <div class="zepto map" style="display: inline-block">
-    <img src="data:image/png;base64,${zepto_map}" height="${zepto_count}*5" width="${width}*64"
+    <img src="data:image/png;base64,${zepto_map}" height="${zepto_count*5}" width="${width*64}"
     alt="Embedded heatmap depicting the read count found for zeptomatrix control taxa.">
 
     <p>Taxa also present in the ZeptoMetrix Respiratory Panel for positive controls.</p>
 </div>
 
 <div class="patho map" style="display: none">
-    <img src="data:image/png;base64,${patho_map}" height="${patho_count}*5" width="${width}*64"
+    <img src="data:image/png;base64,${patho_map}" height="${patho_count*5}" width="${width*64}"
     alt="Embedded heatmap depicting the read count found for pathogenic/potentially pathogenic contaminant taxa.">
 </div>
 
 <div class="oppor map" style="display: none">
-    <img src="data:image/png;base64,${oppor_map}" height="${oppor_count}*5" width="${width}*64"
+    <img src="data:image/png;base64,${oppor_map}" height="${oppor_count*5}" width="${width*64}"
     alt="Embedded heatmap depicting the read count found for opportunistic/potentially opportunistic contaminant taxa.">
 </div>
 
 <div class="comme map" style="display: none">
-    <img src="data:image/png;base64,${comme_map}" height="${comme_count}*5" width="${width}*64"
+    <img src="data:image/png;base64,${comme_map}" height="${comme_count*5}" width="${width*64}"
     alt="Embedded heatmap depicting the read count found for generally_commensal/commensal contaminant taxa.">
 </div>
 
@@ -493,18 +488,18 @@ function clickFunction(str) {
 <button onclick="toggleElements('.industry', '.niche')">Industry</button>
 <br>
 <div class="lab niche" style="display: block">
-    <img src="data:image/png;base64,${lab_map}" height="${lab_count}*5" width="${width}*64"
+    <img src="data:image/png;base64,${lab_map}" height="${lab_count*5}" width="${width*64}"
     alt="Embedded heatmap depicting the read count found for contaminant taxa also present in the laboratory.">
 </div>
 
 <div class="human niche" style="display: none">
-    <img src="data:image/png;base64,${human_map}" height="${human_count}*5" width="${width}*64"
+    <img src="data:image/png;base64,${human_map}" height="${human_count*5}" width="${width*64}"
     alt="Embedded heatmap depicting the read count found for contaminant taxa also present on the human body.">
 </div>
 
 <div class="industry niche" style="display: none">
     <p>Previously found as industrial reagent contaminants in literature.</p>
-    <img src="data:image/png;base64,${industry_map}" height="${industry_count}*5" width="${width}*64"
+    <img src="data:image/png;base64,${industry_map}" height="${industry_count*5}" width="${width*64}"
     alt="Embedded heatmap depicting the read count found for contaminant taxa that have also been present in industry.">
 </div>
 
@@ -520,7 +515,7 @@ function clickFunction(str) {
     <p><strong>Average counts for all taxa that have a significantly higher count in ${site_name} than at least one other site, after fitting Welch's t-test.</strong> Comparison between the site ${site_name} and all other sites. The p-value indicates the smallest p-value between ${site_name} and at least one other site.</p>
 </div>
 <div class="heatmap signal" style="display: none">
-    <div id="vertical-scroll"><img src="data:image/png;base64,${sigmap}" height="${sig_count}*5" width="${width}*64"
+    <div id="vertical-scroll"><img src="data:image/png;base64,${sigmap}" height="${sig_count*5}" width="${width*64}"
         alt="Heatmap depicting every taxa that is statistically significant in having a higher presence in this current site compared to at least one other site."/></div>
     <p><strong>Number of reads for all taxa that have a significantly higher count in ${site_name} than at least one other site, after fitting Welch's t-test.</strong> Taxa have been sorted in ascending order to show taxa with the smallest p-value first.</p>
 </div>
