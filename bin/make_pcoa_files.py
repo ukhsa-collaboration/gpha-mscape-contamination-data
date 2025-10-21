@@ -175,7 +175,8 @@ if __name__ == "__main__":
         pcoa_df.fillna(value=0, inplace=True)
 
         # Sum columns
-        columns_to_sum = pcoa_df.drop(columns=['Scientific_Name', 'site'])
+        print(pcoa_df)
+        columns_to_sum = pcoa_df.drop(columns='site')
         column_sums = columns_to_sum.sum(axis=1)
         pcoa_df["Counts_Overall"] = column_sums
         pcoa_df = pcoa_df[~pcoa_df["Counts_Overall"].astype(float).isin([0])]
