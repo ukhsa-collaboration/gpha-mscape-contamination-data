@@ -320,7 +320,7 @@ function toggleElements(showElement, hideElements) {
 <div class="bacteria abun", style="display: inline-block"> 
     <div id="abundance", style="display: inline-block">
         <img src="data:image/png;base64,${bac_abs}"
-             title="Bacteria abundances for ${site} from ${no_samples} samples."
+             title="Bacteria abundances for ${site_name} from ${no_sample} samples."
              alt="Embedded Bar Graph depicting the total read count found for all bacteria in each dataset.">
         <div id="legend">
             <img src="data:image/png;base64,${bac_abun_l}"
@@ -332,7 +332,7 @@ function toggleElements(showElement, hideElements) {
 <div class="fungi abun" style="display: none">
     <div id="abundance">
         <img src="data:image/png;base64,${fungi_abs}"
-             title="Fungi abundances for ${site} from ${no_samples} samples."
+             title="Fungi abundances for ${site_name} from ${no_sample} samples."
              alt="Embedded Bar Graph depicting the total read count found for all fungi in each dataset.">
         <div id="legend">
             <img src="data:image/png;base64,${fungi_abun_l}"
@@ -344,7 +344,7 @@ function toggleElements(showElement, hideElements) {
 <div class="archaea abun" style="display: none">
     <div id="abundance">
         <img src="data:image/png;base64,${archaea_abs}"
-             title="Archaea abundances for ${site} from ${no_samples} samples."
+             title="Archaea abundances for ${site_name} from ${no_sample} samples."
              alt="Embedded Bar Graph depicting the total read count found for all archaea in each dataset.">
         <div id="legend">
             <img src="data:image/png;base64,${archaea_abun_l}"
@@ -356,7 +356,7 @@ function toggleElements(showElement, hideElements) {
 <div class="virus abun" style="display: none">
     <div id="abundance">
         <img src="data:image/png;base64,${virus_abs}"
-             title="Virus abundances for ${site} from ${no_samples} samples."
+             title="Virus abundances for ${site_name} from ${no_sample} samples."
              alt="Embedded Bar Graph depicting the total read count found for all viruses in each dataset.">
         <div id="legend">
             <img src="data:image/png;base64,${virus_abun_l}"
@@ -368,7 +368,7 @@ function toggleElements(showElement, hideElements) {
 <div class="protist abun" style="display: none">
     <div id="abundance">
         <img src="data:image/png;base64,${protist_abs}"
-             title="Protist abundances for ${site} from ${no_samples} samples."
+             title="Protist abundances for ${site_name} from ${no_sample} samples."
              alt="Embedded Bar Graph depicting the total read count found for all protists in each dataset.">
         <div id="legend">
             <img src="data:image/png;base64,${protist_abun_l}"
@@ -380,7 +380,7 @@ function toggleElements(showElement, hideElements) {
 <div class="relbacteria abun", style="display: none"> 
     <div id="abundance", style="display: inline-block">
         <img src="data:image/png;base64,${bac_rel}"
-             title="Bacteria relative abundances for ${site} from ${no_samples} samples."
+             title="Bacteria relative abundances for ${site_name} from ${no_sample} samples."
              alt="Embedded Bar Graph depicting the average read count found for all bacteria in each dataset.">
         <div id="legend">
             <img src="data:image/png;base64,${bac_abun_l}"
@@ -392,7 +392,7 @@ function toggleElements(showElement, hideElements) {
 <div class="relfungi abun" style="display: none">
     <div id="abundance">
         <img src="data:image/png;base64,${fungi_rel}"
-             title="Fungi relative abundances for ${site} from ${no_samples} samples."
+             title="Fungi relative abundances for ${site_name} from ${no_sample} samples."
              alt="Embedded Bar Graph depicting the average read count found for all fungi in each dataset.">
         <div id="legend">
             <img src="data:image/png;base64,${fungi_abun_l}"
@@ -404,7 +404,7 @@ function toggleElements(showElement, hideElements) {
 <div class="relarchaea abun" style="display: none">
     <div id="abundance">
         <img src="data:image/png;base64,${archaea_rel}"
-             title="Archaea relative abundances for ${site} from ${no_samples} samples."
+             title="Archaea relative abundances for ${site_name} from ${no_sample} samples."
              alt="Embedded Bar Graph depicting the average read count found for all archaea in each dataset.">
         <div id="legend">
             <img src="data:image/png;base64,${archaea_abun_l}" 
@@ -416,7 +416,7 @@ function toggleElements(showElement, hideElements) {
 <div class="relvirus abun" style="display: none">
     <div id="abundance">
         <img src="data:image/png;base64,${virus_rel}"
-             title="Virus relative abundances for ${site} from ${no_samples} samples."
+             title="Virus relative abundances for ${site_name} from ${no_sample} samples."
              alt="Embedded Bar Graph depicting the average read count found for all viruses in each dataset.">
         <div id="legend">
             <img src="data:image/png;base64,${virus_abun_l}"
@@ -428,7 +428,7 @@ function toggleElements(showElement, hideElements) {
 <div class="relprotist abun" style="display: none">
     <div id="abundance">
         <img src="data:image/png;base64,${protist_rel}" left="800"
-             title="Protist relative abundances for ${site} from ${no_samples} samples."
+             title="Protist relative abundances for ${site_name} from ${no_sample} samples."
              alt="Embedded Bar Graph depicting the average read count found for all protists in each dataset.">
         <div id="legend">
             <img src="data:image/png;base64,${protist_abun_l}" 
@@ -469,7 +469,7 @@ function clickFunction(str) {
 
 <div class="zepto map" style="display: inline-block">
     <img src="data:image/png;base64,${zepto_map}"
-         title="Zeptometrix control taxa for ${no_samples} from ${site}"
+         title="Zeptometrix control taxa for ${no_sample} from ${site_name}"
          alt="Embedded heatmap depicting the read count found for zeptomatrix control taxa.">
 
     <p>Taxa also present in the ZeptoMetrix Respiratory Panel for positive controls.</p>
@@ -477,19 +477,19 @@ function clickFunction(str) {
 
 <div class="patho map" style="display: none">
     <img src="data:image/png;base64,${patho_map}"
-         title="Pathogenic taxa for ${no_samples} from ${site}"
+         title="Pathogenic taxa for ${no_sample} from ${site_name}"
          alt="Embedded heatmap depicting the read count found for pathogenic/potentially pathogenic contaminant taxa.">
 </div>
 
 <div class="oppor map" style="display: none">
     <img src="data:image/png;base64,${oppor_map}"
-         title="Opportunistic pathogen taxa for ${no_samples} from ${site}"
+         title="Opportunistic pathogen taxa for ${no_sample} from ${site_name}"
          alt="Embedded heatmap depicting the read count found for opportunistic/potentially opportunistic contaminant taxa.">
 </div>
 
 <div class="comme map" style="display: none">
     <img src="data:image/png;base64,${comme_map}"
-         title="Commensal taxa for ${no_samples} from ${site}"
+         title="Commensal taxa for ${no_sample} from ${site_name}"
          alt="Embedded heatmap depicting the read count found for generally_commensal/commensal contaminant taxa.">
 </div>
 
@@ -503,20 +503,20 @@ function clickFunction(str) {
 <br>
 <div class="lab niche" style="display: block">
     <img src="data:image/png;base64,${lab_map}"
-         title="Laboratory niche taxa for ${no_samples} from ${site}"
+         title="Laboratory niche taxa for ${no_sample} from ${site_name}"
          alt="Embedded heatmap depicting the read count found for contaminant taxa also present in the laboratory.">
 </div>
 
 <div class="human niche" style="display: none">
     <img src="data:image/png;base64,${human_map}"
-         title="Human niche taxa for ${no_samples} from ${site}"
+         title="Human niche taxa for ${no_sample} from ${site_name}"
          alt="Embedded heatmap depicting the read count found for contaminant taxa also present on the human body.">
 </div>
 
 <div class="industry niche" style="display: none">
     <p>Previously found as industrial reagent contaminants in literature.</p>
     <img src="data:image/png;base64,${industry_map}"
-         title="Industry niche taxa for ${no_samples} from ${site}"
+         title="Industry niche taxa for ${no_sample} from ${site_name}"
          alt="Embedded heatmap depicting the read count found for contaminant taxa that have also been present in industry.">
 </div>
 
@@ -534,14 +534,14 @@ function clickFunction(str) {
 <div class="heatmap signal" style="display: none">
     <div id="vertical-scroll">
         <img src="data:image/png;base64,${sigmap}"
-             title="Heatmap for statistically significant taxa for ${site} from ${no_samples} samples compared to other sites."
+             title="Heatmap for statistically significant taxa for ${site_name} from ${no_sample} samples compared to other sites."
              alt="Heatmap depicting every taxa that is statistically significant in having a higher presence in this current site compared to at least one other site."/></div>
     <p><strong>Number of reads for all taxa that have a significantly higher count in ${site_name} than at least one other site, after fitting Welch's t-test.</strong> Taxa have been sorted in ascending order to show taxa with the smallest p-value first.</p>
 </div>
 
 <h3>Principal Coordinates Analysis (PCoA)</h3>
 <img src="data:image/png;base64,${pcoa}" height=600 width=600
-     title="PCoA for ${site} from ${no_samples} samples compared to other sites."
+     title="PCoA for ${site_name} from ${no_sample} samples compared to other sites."
      alt="PcoA plot depicting a reduced-dimension similarity matrix between the samples of this site and all other sites."/>
     <p><strong>PcoA plot depicting a similarity matrix between the samples in ${site_name} and all other sites.</strong> ${permanova_annotation}</p>
 <br>
