@@ -335,7 +335,7 @@ def get_heatmap(reports, grouped_metadata, site_key, condition, hcids):
         tables = []
         hcid_min = []
         for table in hcids:
-            sample_id = table.split("_hcid")[0] #unique id
+            sample_id = table.split(".hcid")[0] #unique id
             hcid_table = pd.read_csv(table)
             
             for site_id_name in hcid_df.columns:
@@ -344,15 +344,12 @@ def get_heatmap(reports, grouped_metadata, site_key, condition, hcids):
                     site_name = site_id_name.split("_")[0]
                     id_name_list = site_id_name.split("_")[1:]
                     id_name = '_'.join(id_name_list)
-
-                    print("Here", sample_id, id_name)
+                    
                     if id_name in sample_id:
-                        print(f'{id_name} is indeed in {sample_id}...')
                         hcid_min.append(hcid_table["min_count"])
                         hcid_table[f'{site_name}_{sample_id}'] = hcid_table["mapped_count"]
                         needed_columns = ["name", f'{site_name}_{sample_id}']
                         sub_table = hcid_table[needed_columns]
-                        print(sub_table)
                         tables.append(sub_table)
         
         if len(tables) == 0:
@@ -378,9 +375,6 @@ def get_heatmap(reports, grouped_metadata, site_key, condition, hcids):
         hcid_mscapes = split_dfs(mscape_datasets, hcid_df)
         
         return hcid_mscapes
-
-
-
 
 
 if __name__ == "__main__":
@@ -748,15 +742,18 @@ if __name__ == "__main__":
             if map_type == "hcid":
                 df = df.replace("NaN", 0)
                 df = df.apply(convert_to_numeric)
-                #only keep x-labels with counts
-                xlabels = []
-                for sample in df:
-                    sample_count = df[sample].sum()
-                    if int(sample_count) > 0:
-                        xlabels.append(sample)
-                    else:
-                        xlabels.append("")
-                ax.set_xticks(range(len(samples)),labels=xlabels, rotation=90)
+                plt.xticks([])
+                # only keep x-labels with counts
+#                 xlabels = []
+#                 for sample in df:
+#                     sample_count = df[sample].sum()
+#                     if int(sample_count) > 0:
+#                         xlabels.append(sample)
+#                     else:
+#                         xlabels.append("")
+ 
+                
+#                 ax.set_xticks(range(len(samples)),labels=xlabels, rotation=90)
 
                 df["total"] = df.sum(axis=1)
                 total = list(df["total"])
@@ -765,7 +762,7 @@ if __name__ == "__main__":
 
             else:
                 plt.xticks([])
-
+            
             # Minor ticks
             #ax.grid(color='w', linewidth=1.5)
             ax.set_xticks(np.arange(-.5, len(samples), 1), minor=True)
