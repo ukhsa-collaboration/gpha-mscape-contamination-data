@@ -843,27 +843,39 @@ if __name__ == "__main__":
         buf.close()
         plt.close(fig)
 
+        
         #PCOA plot from R (in html code)
-        for filename in os.listdir(plots_dir):
+        plots_to_add = os.listdir(plots_dir)
+        if len(plots_to_add) == 0:
+            # If there are no plots to add to the report, initiate an empty plot with some text to display instead:
+            # Create a new figure
+            pcoa = plt.figure()
+            ax = fig.add_subplot(111)  # add one row, one column, index 1
+            ax.axis('off')
+            ax.text(0.5, 0.5, 'Plot not available', fontsize=16, ha='center', va='center')  # Add centered text
 
-            if site_name in filename:
-                if filename.endswith(".png"):
-                    with open(plots_dir + filename, "rb") as image_file:
-                        pcoa = base64.b64encode(image_file.read()).decode('utf-8')
-                if filename.endswith(".txt"):
-                    permanova = pd.read_csv(plots_dir+"/"+filename, delimiter='\t')
-                    permanova.to_csv(f'{output_path}/dataframes/{site_name}_permanova.csv', index=False)
-                    permanova_p = list(permanova["Pr(>F)"])[0]
-                    if permanova_p <= 0.05:
-                        if permanova_p <= 0.001:
-                            asterisk = "***"
-                        elif permanova_p <= 0.01:
-                            asterisk = "**"
+            permanova_annotation = "PERMANOVA test was not run due to lack of species counts for this site." 
+        else:
+            for filename in os.listdir(plots_dir):
+
+                if site_name in filename:
+                    if filename.endswith(".png"):
+                        with open(plots_dir + filename, "rb") as image_file:
+                            pcoa = base64.b64encode(image_file.read()).decode('utf-8')
+                    if filename.endswith(".txt"):
+                        permanova = pd.read_csv(plots_dir+"/"+filename, delimiter='\t')
+                        permanova.to_csv(f'{output_path}/dataframes/{site_name}_permanova.csv', index=False)
+                        permanova_p = list(permanova["Pr(>F)"])[0]
+                        if permanova_p <= 0.05:
+                            if permanova_p <= 0.001:
+                                asterisk = "***"
+                            elif permanova_p <= 0.01:
+                                asterisk = "**"
+                            else:
+                                asterisk = "*"
+                            permanova_annotation = f"A PERMANOVA test showed that there is a statistically significant difference between the two datasets, with a <strong>p-value of {permanova_p}{asterisk}</strong>."
                         else:
-                            asterisk = "*"
-                        permanova_annotation = f"A PERMANOVA test showed that there is a statistically significant difference between the two datasets, with a <strong>p-value of {permanova_p}{asterisk}</strong>."
-                    else:
-                        permanova_annotation = f"A PERMANOVA test showed that there is no statistically significant difference between the two datasets, with a p-value of {permanova_p}."
+                            permanova_annotation = f"A PERMANOVA test showed that there is no statistically significant difference between the two datasets, with a p-value of {permanova_p}."
 
         # Render the template with the Base64 string
         template = Template(filename=template_dir)
