@@ -186,14 +186,36 @@ def make_richness_table(reports, grouped_metadata, taxon_level, filter_count, si
     return final_table 
 
 
-def get_heatmap(reports, grouped_metadata, site_key, condition, hcids):
+def get_heatmap(reports: list, grouped_metadata, site_key: dict, condition: str, hcids: list):
+    """
+    Produce the dataframes required for the different heat maps, including top 20 taxa, all taxa and HCIDs. 
     
+    :params reports: List of kraken report file paths. 
+    :params grouped_metadata: Pandas GroupBy object of site and control type details. 
+    :params site_key: key to anonymise sites using json file. 
+    :params condition: Condition to return the heatmap counts - should be "count", "perc", "thresh".
+    :params hcids: list of hcid file paths. 
+    
+    Returns: 2 or 3 lists or dataframes. 
+    If 'perc' is given, it returns:
+        sorted_mscapes - list of dataframes, where each dataframe has the percentages of top 20 microbes per site, 
+        mscape_datasets - list of the sites. 
+    If 'thresh' is given, it returns:
+        top_mscapes - list of dataframes, where each dataframe has the counts of the top 20 microbes about a given threshold per site.
+        total_mscapes - same as top_mscapes but everything, not limited to 20. 
+        class_microbes - list of dataframes, one per site, containing counts of root and unclassified.
+    If 'count' is given, it returns:
+        hcid_mscapes - list of dataframes, one per site containing count of hcids. 
+    """
+    # Get sites, samples and dates
     mscape_datasets, mscape_samples, mscape_dates = define_heatmap_datasets(grouped_metadata, site_key)
-
+    
+    # Append samples to the columns needed
     all_samples = ["Domain", "Scientific_Name", "Taxon_ID", "Rank"]
     for sample_group in mscape_samples:
         all_samples = all_samples + sample_group         
     
+    # For each site, get the kraken assigned taxa as percentage and as total counts in a df and append to list to concat together later.
     average_list = []
     og_list = []
 
@@ -209,15 +231,17 @@ def get_heatmap(reports, grouped_metadata, site_key, condition, hcids):
             average = "Perc_Seqs_Overall"
         else:
             average = "Counts_Overall"
+        
+        # Rename columns and add date
         perc_df = perc_df.rename(columns={c: f"{dataset}_"+c for c in perc_df.columns if c not in ['Domain', 'Scientific_Name', average]})
         perc_df.loc[len(perc_df)] = date_list
 
         row_number = perc_df.index.get_loc(perc_df[perc_df["Scientific_Name"] == "Date"].index[0])
         perc_df.iloc[row_number, 2:-1] = pd.to_datetime(perc_df.iloc[row_number, 2:-1], format='%Y-%m-%d')
-        #Sort all samples by date
+        # Sort all samples by date
         perc_df.iloc[row_number, 2:-1] = natsorted(perc_df.iloc[row_number, 2:-1])
 
-        #Change all "average percentage" columns to their respective dataset names to avoid clashes when merging
+        # Change all "average percentage" columns to their respective dataset names to avoid clashes when merging
         perc_df[dataset] = perc_df[average]
         perc_df = perc_df.drop(columns=[average])
         average_list.append(perc_df)
@@ -228,7 +252,7 @@ def get_heatmap(reports, grouped_metadata, site_key, condition, hcids):
 
     # Merge the DataFrames on a specific column
     merge_df = pd.concat(average_list, axis = 0, join= "outer")  # Change join to 'outer' for outer join
-    #merge on scientific name - this means that no scientific name is repeated if it's present in different dataframes
+    # Merge on scientific name - this means that no scientific name is repeated if it's present in different dataframes
     merge_df = merge_df.groupby(['Domain', 'Scientific_Name'], as_index=False).first()
     merge_df.fillna(0, inplace=True)
 
@@ -240,7 +264,7 @@ def get_heatmap(reports, grouped_metadata, site_key, condition, hcids):
 
         og_merge_df.to_csv(f'{output_path}/dataframes/percentage_df.csv', index=False)
 
-    #get list of dates
+    # Get list of dates
     timestamp_df = merge_df.drop(columns=mscape_datasets)
     row_number = timestamp_df.index.get_loc(timestamp_df[timestamp_df["Scientific_Name"] == "Date"].index[0])
     date_df = timestamp_df.iloc[row_number]
@@ -267,10 +291,10 @@ def get_heatmap(reports, grouped_metadata, site_key, condition, hcids):
 
         total_df = total_df.sort_values(by="Domain", ascending=True)
 
-        #save heatmap df
+        # save heatmap df
         save_labelled_df(total_df, all_dates, output_path, condition)
 
-        #Split dataframes and make a subdataframe per dataset
+        # Split dataframes and make a subdataframe per dataset
         sorted_mscapes = split_dfs(mscape_datasets, total_df)   
         return sorted_mscapes, mscape_datasets
     
@@ -311,16 +335,16 @@ def get_heatmap(reports, grouped_metadata, site_key, condition, hcids):
 
         save_labelled_df(total_df, all_dates, output_path, "count")
 
-        #Change name of sample columns to sample total count
-        #total_df = total_df.rename(columns={c: c.split("[")[0].replace("]", "") for c in total_df.columns if c not in ['Scientific_Name', 'Domain']})
+        # Change name of sample columns to sample total count
+        # total_df = total_df.rename(columns={c: c.split("[")[0].replace("]", "") for c in total_df.columns if c not in ['Scientific_Name', 'Domain']})
     
         top_df = sorted_df.head(20)
         top_df = top_df.sort_values(by="Domain", ascending=True)
         top_df = top_df.drop(columns=["Count_Sum"])
         top_df = top_df.drop(columns=mscape_datasets)
-        #top_df = top_df.rename(columns={c: c.split("[")[0].replace("]", "") for c in top_df.columns if c not in ['Scientific_Name', 'Domain']})
+        # top_df = top_df.rename(columns={c: c.split("[")[0].replace("]", "") for c in top_df.columns if c not in ['Scientific_Name', 'Domain']})
     
-        #Split dataframes and make a subdataframe per dataset
+        # Split dataframes and make a subdataframe per dataset
         total_mscapes = split_dfs(mscape_datasets, total_df)
         top_mscapes = split_dfs(mscape_datasets, top_df)
         class_mscapes = split_dfs(mscape_datasets, classified_count)
@@ -328,10 +352,10 @@ def get_heatmap(reports, grouped_metadata, site_key, condition, hcids):
         return top_mscapes, total_mscapes, class_mscapes
     
     elif condition == "count":
-        #keep count_df column order for listing samples
+        # keep count_df column order for listing samples
         hcid_df = pd.DataFrame(columns=merge_df.columns) 
         hcid_df = hcid_df.drop(columns=mscape_datasets)
-        #find all taxa with hcid counts 
+        # find all taxa with hcid counts 
         tables = []
         hcid_min = []
         for table in hcids:
@@ -360,13 +384,13 @@ def get_heatmap(reports, grouped_metadata, site_key, condition, hcids):
             else:
                 # Merge the DataFrames on a specific column
                 merged_table = pd.concat(tables, axis = 0, join= "outer")  # Change join to 'outer' for outer join
-                #merge on hcid name - this means that no scientific name is repeated if it's present in different dataframes
+                # merge on hcid name - this means that no scientific name is repeated if it's present in different dataframes
                 merged_table = merged_table.groupby('name', as_index=False).first()
 
-            #move taxa names over to hcid_df
+            # move taxa names over to hcid_df
             hcid_df["Scientific_Name"] = merged_table["name"]
 
-            #replace hcid_df blank columns with merged_table columns if there are counts 
+            # replace hcid_df blank columns with merged_table columns if there are counts 
             for sample in hcid_df.columns:
                 if sample in list(merged_table.columns):
                     hcid_df[sample] = merged_table[sample]
