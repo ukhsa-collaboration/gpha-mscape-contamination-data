@@ -7,7 +7,6 @@
 
     <meta name="description" content="">
     <meta name="author" content="">
-    <link rel="icon" href="https://raw.githubusercontent.com/artic-network/scylla/main/docs/mscape.svg">
 
 <title>Summary Report</title>
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css" integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
@@ -205,11 +204,10 @@ button:hover {
     <a href="#" id="toTopBtn" class="cd-top text-replace js-cd-top cd-top--is-visible cd-top--fade-out" data-abc="true"></a>
     <header>
         <div class="col-sm-8" style="text-align: left;">
-            <img class="mscape-logo" src="https://raw.githubusercontent.com/artic-network/scylla/main/docs/mscape.svg" vertical-align="left" width="30" height="30"></img>
             mSCAPE | <small>metagenomics Surveillance Collaboraton and Analysis Programme</small>
         </div>
         <div class="col-sm-4" style="text-align: right;">
-            Negative Controls | <small>Summary report</small>
+            Negative Controls | Summary report
         </div>
         <br>
         <hr>
@@ -220,7 +218,7 @@ button:hover {
 
 <h1>Summary Report</h1>
 <p class="lead">Data provided by mSCAPE.</p>
-<p class="description">This report summarises contamination found in negative control samples, comparing mSCAPE to publicly available datasets. Each public dataset is denoted by its study's BioProject accession number, in addition to certain metadata. Reads were classified against Kraken2 using epi2me-labs/wf-metagenomics provided by Oxford Nanopore Technologies. Kraken is known to have a high false positive rate. Results should be interpreted with caution. </p>
+<p class="description">This report summarises contamination found in negative control samples. Only clinical data is included, and sites are anonymised. Reads were classified against Kraken2 using the <a href="https://github.com/artic-network/scylla">Scylla pipeline</a>. Kraken is known to have a high false positive rate and results should thus be interpreted with caution. </p>
 
 <h3>Read counts per average single sample </h3>
 <script>
@@ -239,33 +237,39 @@ function toggleElements(showElement, hideElements) {
 <br>
 <br>
 <div class="all load">
-<img src="data:image/png;base64,${all_load}" height="500" width="700"
-alt="Embedded Bar Graph depicting the average read count found for all microorganisms in each dataset.">
+    <img src="data:image/png;base64,${all_load}" height="500" width="700"
+     title="Bar Graph depicting the average read count for negative control samples per site found for all microorganisms."
+     alt="Embedded Bar Graph depicting the average read count found for all microorganisms in each dataset.">
 </div>
 
 <div class="bacteria load", style="display: none">
-<img src="data:image/png;base64,${bac_load}" height="500" width="700"
-alt="Embedded Bar Graph depicting the average read count found for all bacteria in each dataset.">
+    <img src="data:image/png;base64,${bac_load}" height="500" width="700"
+         title="Bar Graph depicting the average read count found for all bacteria for each site."
+         alt="Embedded Bar Graph depicting the average read count found for all bacteria in each dataset.">
 </div>
 
 <div class="fungi load" style="display: none">
-<img src="data:image/png;base64,${fungi_load}" height="500" width="700"
-alt="Embedded Bar Graph depicting the average read count found for all fungi in each dataset.">
+    <img src="data:image/png;base64,${fungi_load}" height="500" width="700"
+         title="Bar Graph depicting the average read count found for all fungi for each site."
+         alt="Embedded Bar Graph depicting the average read count found for all fungi in each dataset.">
 </div>
 
 <div class="virus load" style="display: none">
-<img src="data:image/png;base64,${virus_load}" height="500" width="700"
-alt="Embedded Bar Graph depicting the average read count found for all viruses in each dataset.">
+    <img src="data:image/png;base64,${virus_load}" height="500" width="700"
+         title="Bar Graph depicting the average read count found for all viruses for each site."
+         alt="Embedded Bar Graph depicting the average read count found for all viruses in each dataset.">
 </div>
 
 <div class="archaea load" style="display: none">
-<img src="data:image/png;base64,${archaea_load}" height="500" width="700"
-alt="Embedded Bar Graph depicting the average read count found for all archaea in each dataset.">
+    <img src="data:image/png;base64,${archaea_load}" height="500" width="700"
+         title="Bar Graph depicting the average read count found for all archaea in each dataset."
+         alt="Embedded Bar Graph depicting the average read count found for all archaea in each dataset.">
 </div>
 
 <div class="protist load" style="display: none">
-<img src="data:image/png;base64,${protist_load}" height="500" width="700"
-alt="Embedded Bar Graph depicting the average read count found for all protists in each dataset.">
+    <img src="data:image/png;base64,${protist_load}" height="500" width="700"
+         title="Bar Graph depicting the average read count found for all protists for each site."
+         alt="Embedded Bar Graph depicting the average read count found for all protists in each dataset.">
 </div>
 
 <p class="ont_ref" style="text-align: left;"><strong>The average number of reads found in samples of each dataset, displayed on a log scale.</strong> mSCAPE datasets are in bold. Spike-ins have been excluded.</p>
@@ -278,21 +282,21 @@ alt="Embedded Bar Graph depicting the average read count found for all protists 
 <br>
 <br>
 <div class="total shannon">
-<img src="data:image/png;base64,${total_diversity}" height="480" width="480" alt="Boxplot depicting Shannon's Diversity Index for 11 datasets."/>
-<img src="data:image/png;base64,${total_evenness}" height="480" width="600" style="display: inline-block" alt="Boxplot depicting Shannon's Diversity Index for 11 datasets."/>
+    <img src="data:image/png;base64,${total_diversity}" height="480" width="480" alt="Boxplot depicting Shannon's Diversity Index for 11 datasets."/>
+    <img src="data:image/png;base64,${total_evenness}" height="480" width="600" style="display: inline-block" alt="Boxplot depicting Shannon's Diversity Index for 11 datasets."/>
 </div>
 
 <div class="dna shannon" style="display: none">
-<img src="data:image/png;base64,${dna_diversity}" height="480" width="480" alt="Boxplot depicting Shannon's Diversity Index for 11 datasets."/>
-<img src="data:image/png;base64,${dna_evenness}" height="480" width="600" style="display: inline-block" alt="Boxplot depicting Shannon's Diversity Index for 11 datasets."/>
+    <img src="data:image/png;base64,${dna_diversity}" height="480" width="480" alt="Boxplot depicting Shannon's Diversity Index for 11 datasets."/>
+    <img src="data:image/png;base64,${dna_evenness}" height="480" width="600" style="display: inline-block" alt="Boxplot depicting Shannon's Diversity Index for 11 datasets."/>
 </div>
 
 <div class="rna shannon" style="display: none">
-<img src="data:image/png;base64,${rna_diversity}" height="480" width="480" alt="Boxplot depicting Shannon's Diversity Index for 11 datasets."/>
-<img src="data:image/png;base64,${rna_evenness}" height="480" width="600" style="display: inline-block" alt="Boxplot depicting Shannon's Diversity Index for 11 datasets."/>
+    <img src="data:image/png;base64,${rna_diversity}" height="480" width="480" alt="Boxplot depicting Shannon's Diversity Index for 11 datasets."/>
+    <img src="data:image/png;base64,${rna_evenness}" height="480" width="600" style="display: inline-block" alt="Boxplot depicting Shannon's Diversity Index for 11 datasets."/>
 </div>
 
-<p class="ont_ref" style="text-align: left;"><strong>Shannon&#39; Diversity and Evenness index for samples in each dataset </strong>, calculated using genus-level abundance tables, and produced using vegan and ggplot2 packages in R. All values fall on a log scale due to Shannon's index calculations (H=&minus;&Sigma;[(pi)&times;log(pi)]). Lower diversity may indiciate lower levels of contamination. Evenness was calculated by dividing Diversity by richness (number of microbial genuses).</p>
+<p class="ont_ref" style="text-align: left;"><strong>Shannon's Diversity and Evenness index for samples in each dataset </strong>, calculated using genus-level abundance tables, and produced using vegan and ggplot2 packages in R. All values fall on a log scale due to Shannon's index calculations (H=&minus;&Sigma;[(pi)&times;log(pi)]). Lower diversity may indiciate lower levels of contamination. Evenness was calculated by dividing Diversity by richness (number of microbial genuses).</p>
 
 <h3>Number of microbial taxa (richness) </h3>
 
@@ -420,14 +424,13 @@ function clickFunction(str) {
         <hr>
         <div class="row">
             <div class="col-sm-5" style="text-align: left;">
-                <small class="text-muted">Developed by the ARTIC.network, funded by Wellcome</small>
+                <small class="text-muted">Produced for mSCAPE based on original development by the ARTIC.network, funded by Wellcome (<a href="https://github.com/aq-sun/contamination-data">GitHub</a>)</small>
                 <br>
-                <img class="artic_no_rings" src="https://raw.githubusercontent.com/artic-network/scylla/main/docs/artic_no_rings.svg" vertical-align="left" width="50" height="50"></img>
-                <img class="wt" src="https://raw.githubusercontent.com/artic-network/scylla/main/docs/wellcome-logo-black.png" vertical-align="left" width="50" height="50"></img>
             </div>
 
             <div class="col-sm-11" style="text-align: right;">
-                 | <small class="text-muted">Summary report</small> <br><small class="text-muted">GNU General Public License v3.0</small>
+                 | <small class="text-muted">Summary report</small> <br>
+                <small class="text-muted">© Crown copyright; available under the terms of the <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence version/3/"> Open Government 3.0 </a> licence</small>
             </div>
             <br>
             <br>
