@@ -51,23 +51,25 @@ process get_shannon_plot {
  
 process renameHcids {
 
-    container 'alpine:latest'
-    
-    stageAs( filePattern: String, value: Path )
+    container 'ubuntu:rolling'
 
     input: 
-    tuple val(newName), path(s3file)
+    tuple val(climbid), path(s3file)
     
     output:
-    path("${newName}"), emit: renamedHcids
+    path("${climbid}.hcid.counts.csv"), emit: renamedHcids
     
         
     script:
     """
     echo "Work dir contents before rename:"
     ls
-    #echo "Renaming ${s3file} ${newName}..."
-    #mv ${s3file} ${newName}
+    if [ ${s3file} != ${climbid}.hcid.counts.csv ]; then
+        echo "Renaming ${s3file} ${climbid}.hcid.counts.csv..."
+        mv ${s3file} ${climbid}.hcid.counts.csv;
+    else
+        echo "hcid file is already named appropriately."
+    fi
     """
     
 }    
