@@ -13,9 +13,11 @@ import argparse
 import json
 import scipy.stats as stats
 from natsort import natsorted
+from datetime import datetime
 from matplotlib.colors import LinearSegmentedColormap
 
 from utils import define_heatmap_datasets, make_heatmap_df, make_date_list, convert_to_numeric, filter_multiples, make_empty_df
+from version import VERSION
 
 def sort_by_date(count_df, date_list):
     #add and sort samples by date
@@ -56,6 +58,9 @@ if __name__ == "__main__":
     output_path = args.final_reports
     os.makedirs(output_path, exist_ok=True) #make directory path into real directory
     os.makedirs(f'{output_path}site_reports/', exist_ok=True)
+    
+    # Get report generation date:
+    gen_date = datetime.now().strftime('%Y-%m-%d %H:%M')
 
     #site name to number
     site_key = {}
@@ -879,17 +884,50 @@ if __name__ == "__main__":
 
         # Render the template with the Base64 string
         template = Template(filename=template_dir)
-        html_content = template.render(site_name = site_name,
-                                    bac_abs=abs_plots[0], fungi_abs=abs_plots[1], archaea_abs=abs_plots[2], virus_abs=abs_plots[3], protist_abs=abs_plots[4], no_sample=no_sample,
-                                    bac_abun_l=abs_legends[0], fungi_abun_l=abs_legends[1], archaea_abun_l=abs_legends[2], virus_abun_l=abs_legends[3], protist_abun_l=abs_legends[4],
-                                    bac_rel=rel_plots[0], fungi_rel=rel_plots[1], archaea_rel=rel_plots[2], virus_rel=rel_plots[3], protist_rel=rel_plots[4],
-                                    zepto_map = heatmaps[0], patho_map = heatmaps[1], oppor_map = heatmaps[2], comme_map = heatmaps[3],
-                                    zepto_count = taxa_sums[0], patho_count = taxa_sums[1], oppor_count = taxa_sums[2], comme_count = taxa_sums[3],
-                                    all_taxa = all_taxa, nonan_taxa = nonan_taxa, width=width, annotation=annotation,
-                                    lab_map = nichemaps[0], human_map = nichemaps[1], industry_map = nichemaps[2],
-                                    lab_count = niche_sums[0],human_count = niche_sums[1], industry_count = niche_sums[2], niche_annotations=niche_annotations,
-                                    sig_table=sig_html, sigmap = sigmap, sig_count = sig_map.shape[0],
-                                    pcoa=pcoa, permanova_annotation=permanova_annotation)
+        html_content = template.render(site_name=site_name,
+                                       version=VERSION,
+                                       gen_date=gen_date,
+                                       bac_abs=abs_plots[0], 
+                                       fungi_abs=abs_plots[1], 
+                                       archaea_abs=abs_plots[2], 
+                                       virus_abs=abs_plots[3], 
+                                       protist_abs=abs_plots[4], 
+                                       no_sample=no_sample,
+                                       bac_abun_l=abs_legends[0], 
+                                       fungi_abun_l=abs_legends[1], 
+                                       archaea_abun_l=abs_legends[2], 
+                                       virus_abun_l=abs_legends[3], 
+                                       protist_abun_l=abs_legends[4],
+                                       bac_rel=rel_plots[0], 
+                                       fungi_rel=rel_plots[1], 
+                                       archaea_rel=rel_plots[2], 
+                                       virus_rel=rel_plots[3], 
+                                       protist_rel=rel_plots[4],
+                                       zepto_map = heatmaps[0], 
+                                       patho_map = heatmaps[1], 
+                                       oppor_map = heatmaps[2], 
+                                       comme_map = heatmaps[3],
+                                       zepto_count = taxa_sums[0], 
+                                       patho_count = taxa_sums[1], 
+                                       oppor_count = taxa_sums[2], 
+                                       comme_count = taxa_sums[3],
+                                       all_taxa = all_taxa, 
+                                       nonan_taxa = nonan_taxa, 
+                                       width=width, 
+                                       annotation=annotation,
+                                       lab_map = nichemaps[0], 
+                                       human_map = nichemaps[1], 
+                                       industry_map = nichemaps[2],
+                                       lab_count = niche_sums[0],
+                                       human_count = niche_sums[1], 
+                                       industry_count = niche_sums[2], 
+                                       niche_annotations=niche_annotations,
+                                       sig_table=sig_html, 
+                                       sigmap = sigmap, 
+                                       sig_count = sig_map.shape[0],
+                                       pcoa=pcoa, 
+                                       permanova_annotation=permanova_annotation
+                                      )
 
         # Save the rendered HTML to a file
         with open(f"{output_path}site_reports/{site_name}_report.html", "w") as f:
