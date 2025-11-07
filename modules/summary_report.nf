@@ -2,6 +2,7 @@
 
 //take input as --reports and--metadata
 
+
 /*
  * A python script which makes text files for R plots
  */
@@ -43,6 +44,35 @@ process get_shannon_plot {
     make_r_plots.R ${text_files}/ plots/
     """
 }
+
+/*
+ * A process to rename the hcid files
+ */
+ 
+process renameHcids {
+
+    container 'ubuntu:latest'
+
+    input: 
+    tuple val(climbid), path(s3file)
+    
+    output:
+    path("${climbid}.hcid.counts.csv"), emit: renamedHcids
+            
+    script:
+    """
+    echo "Work dir contents before rename:"
+    ls
+    if [ ${s3file} != ${climbid}.hcid.counts.csv ]; then
+        echo "Renaming ${s3file} ${climbid}.hcid.counts.csv..."
+        mv ${s3file} ${climbid}.hcid.counts.csv;
+    else
+        echo "hcid file is already named appropriately."
+    fi
+    """
+    
+}    
+    
 
 /*
  * A python script which produces output for making the html report
@@ -99,16 +129,31 @@ workflow evaluate_negative_controls {
     hcid_sample_list = params.hcids?.split('\n') as List
     
     Channel
-       .fromPath(hcid_sample_list)
-       .flatten()
-       .collect()
-       .set { hcids }
-    //hcids.view()
+       .fromPath(hcid_sample_list, checkIfExists: true)
+       .view { println "DEBUG: channel emits -> $it" }
+       .map { file ->
+           def climbid = file.parent.name
+           //def filename = file.name
+           //def newName = filename.contains(parent) ? filename : "${parent}.${filename}"
+           tuple(climbid, file)
+       }
+       .set { hcidsToRename }
+ 
+       //.flatten()
+       //.collect()
+       
+    //hcidsToRename.view { println "Input tuple: $it" }
+       
+    renameHcids(hcidsToRename)
     
+    renameHcids.out.renamedHcids
+        .collect()
+        .set { all_renamed_hcid_files }
+       
     template = file("$baseDir/bin/summary_report_template.html")
 
     make_shannon_script(reports, metadata, site_key)
     get_shannon_plot(make_shannon_script.out)
-    make_summary_report(reports, metadata, site_key, hcids, template, get_shannon_plot.out)
+    make_summary_report(reports, metadata, site_key, all_renamed_hcid_files, template, get_shannon_plot.out)
     println "Report will be generated in ${params.outdir}"
 }
