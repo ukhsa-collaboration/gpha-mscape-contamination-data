@@ -51,15 +51,14 @@ process get_shannon_plot {
  
 process renameHcids {
 
-    container 'ubuntu:rolling'
+    container 'ubuntu:latest'
 
     input: 
     tuple val(climbid), path(s3file)
     
     output:
     path("${climbid}.hcid.counts.csv"), emit: renamedHcids
-    
-        
+            
     script:
     """
     echo "Work dir contents before rename:"
@@ -128,7 +127,6 @@ workflow evaluate_negative_controls {
     site_key = file(params.site_key, type: "file", checkIfExists:true)
 
     hcid_sample_list = params.hcids?.split('\n') as List
-    println hcid_sample_list
     
     Channel
        .fromPath(hcid_sample_list, checkIfExists: true)
@@ -144,7 +142,7 @@ workflow evaluate_negative_controls {
        //.flatten()
        //.collect()
        
-    hcidsToRename.view { println "Input tuple: $it" }
+    //hcidsToRename.view { println "Input tuple: $it" }
        
     renameHcids(hcidsToRename)
     
