@@ -7,7 +7,6 @@
 
     <meta name="description" content="">
     <meta name="author" content="">
-    <link rel="icon" href="https://raw.githubusercontent.com/artic-network/scylla/main/docs/mscape.svg">
 
 <title>${site_name} Report</title>
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css" integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
@@ -252,11 +251,14 @@ tr:hover {background-color: #b7d9fa;}
     <a href="#" id="toTopBtn" class="cd-top text-replace js-cd-top cd-top--is-visible cd-top--fade-out" data-abc="true"></a>
     <header>
         <div class="col-sm-8" style="text-align: left;">
-            <img class="mscape-logo" src="https://raw.githubusercontent.com/artic-network/scylla/main/docs/mscape.svg" vertical-align="left" width="30" height="30"></img>
             mSCAPE | <small>metagenomics Surveillance Collaboraton and Analysis Programme</small>
         </div>
         <div class="col-sm-4" style="text-align: right;">
-            Negative Controls | <small>Summary report</small>
+            Negative Controls | Site ${site_name} report 
+            <br>
+            Version: ${version}
+            <br>
+            Date of Generation: ${gen_date}
         </div>
         <br>
         <hr>
@@ -267,7 +269,7 @@ tr:hover {background-color: #b7d9fa;}
 
 <h1>${site_name} Report</h1>
 <p class="lead">Data provided by mSCAPE.</p>
-<p class="description">This report summarises contamination found in negative control samples in ${site_name}. Reads were classified against Kraken2 using epi2me-labs/wf-metagenomics provided by Oxford Nanopore Technologies. Kraken is known to have a high false positive rate. Results should be interpreted with caution. </p>
+<p class="description">This report summarises contamination found in negative control samples from ${site_name}. Reads were classified against Kraken2 using the <a href="https://github.com/artic-network/scylla">Scylla pipeline</a>. Kraken is known to have a high false positive rate and results should thus be interpreted with caution.</p>
 
 <h3>Read abundance by microbial clade</h3>
 <script>
@@ -553,14 +555,12 @@ function clickFunction(str) {
         <hr>
         <div class="row">
             <div class="col-sm-5" style="text-align: left;">
-                <small class="text-muted">Developed by the ARTIC.network, funded by Wellcome</small>
+                <small class="text-muted">Produced for mSCAPE, based on original development by colleagues at The University of Edinburgh (<a href="https://github.com/aq-sun/contamination-data">GitHub</a>)</small>
                 <br>
-                <img class="artic_no_rings" src="https://raw.githubusercontent.com/artic-network/scylla/main/docs/artic_no_rings.svg" vertical-align="left" width="50" height="50"></img>
-                <img class="wt" src="https://raw.githubusercontent.com/artic-network/scylla/main/docs/wellcome-logo-black.png" vertical-align="left" width="50" height="50"></img>
             </div>
 
             <div class="col-sm-11" style="text-align: right;">
-                 | <small class="text-muted">Site report</small> <br><small class="text-muted">GNU General Public License v3.0</small>
+                 | <small class="text-muted">© Crown copyright; available under the terms of the <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence version/3/"> Open Government 3.0 </a> licence</small>
             </div>
             <br>
             <br>

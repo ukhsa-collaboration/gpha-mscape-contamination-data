@@ -12,8 +12,10 @@ import seaborn as sns
 import os
 import argparse
 from natsort import natsorted
+from datetime import datetime
 import json
 
+from version import VERSION
 from utils import spikeins, convert_to_numeric, make_count_and_perc_dfs, define_datasets, define_heatmap_datasets, make_heatmap_df, make_date_list, split_dfs, save_labelled_df
 
 #Merge all taxon count dataframes together to get all microbe type count data per dataset
@@ -419,6 +421,9 @@ if __name__ == "__main__":
     hcids = args.hcids
     output_path = args.final_reports
     os.makedirs(output_path, exist_ok=True) #make directory path into real directory
+    
+    # Get report generation date:
+    gen_date = datetime.now().strftime('%Y-%m-%d %H:%M')
 
     sns.set_style("whitegrid")
     all_directories = []
@@ -902,24 +907,37 @@ if __name__ == "__main__":
     template_dir = args.template
     # Render the template with the Base64 string
     template = Template(filename=template_dir)
-    html_content = template.render(all_load=load_list[0],
-                                bac_load=load_list[1], 
-                                fungi_load=load_list[2],
-                                virus_load=load_list[3],
-                                archaea_load=load_list[4],
-                                protist_load=load_list[5],
-
-                                filter_count=filter_count,
-                                all_family_richness=all_bac_tables[0], all_genus_richness=all_bac_tables[1], all_species_richness=all_bac_tables[2],
-                                f_family_richness=filtered_bac_tables[0], f_genus_richness=filtered_bac_tables[1], f_species_richness=filtered_bac_tables[2],
-                                
-                                total_diversity=total_diversity, total_evenness=total_evenness,
-                                dna_diversity=dna_diversity, dna_evenness=dna_evenness,
-                                rna_diversity=rna_diversity, rna_evenness=rna_evenness,
-
-                                absolute_class=stacked_class[0], relative_class=stacked_class[1],
-                                top_perc_heatmap=heatmap_list[0], top_count_heatmap=heatmap_list[1], total_count_heatmap=heatmap_list[2], hcid_heatmap = heatmap_list[3], 
-                                total_map_height=total_map_height, genera_count=genera_count, hcid_height=hcid_height, hcid_display=hcid_display)
+    html_content = template.render(version=VERSION,
+                                   gen_date = gen_date,
+                                   all_load=load_list[0],
+                                   bac_load=load_list[1], 
+                                   fungi_load=load_list[2],
+                                   virus_load=load_list[3],
+                                   archaea_load=load_list[4],
+                                   protist_load=load_list[5],
+                                   filter_count=filter_count,
+                                   all_family_richness=all_bac_tables[0], 
+                                   all_genus_richness=all_bac_tables[1], 
+                                   all_species_richness=all_bac_tables[2],
+                                   f_family_richness=filtered_bac_tables[0], 
+                                   f_genus_richness=filtered_bac_tables[1], 
+                                   f_species_richness=filtered_bac_tables[2],
+                                   total_diversity=total_diversity, 
+                                   total_evenness=total_evenness,
+                                   dna_diversity=dna_diversity,
+                                   dna_evenness=dna_evenness,
+                                   rna_diversity=rna_diversity, 
+                                   rna_evenness=rna_evenness,
+                                   absolute_class=stacked_class[0], 
+                                   relative_class=stacked_class[1],
+                                   top_perc_heatmap=heatmap_list[0], 
+                                   top_count_heatmap=heatmap_list[1], 
+                                   total_count_heatmap=heatmap_list[2], 
+                                   hcid_heatmap = heatmap_list[3], 
+                                   total_map_height=total_map_height, 
+                                   genera_count=genera_count, 
+                                   hcid_height=hcid_height, 
+                                   hcid_display=hcid_display)
 
     #os.makedirs(f'{output_path}/', exist_ok=True)
     print(output_path)
