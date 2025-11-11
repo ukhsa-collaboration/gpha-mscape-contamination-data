@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.figure
 
 spikeins = {
         12242:["Virgaviridae","Tobamovirus","Tobacco_mosaic_virus"]
@@ -288,3 +290,38 @@ def make_empty_df(df):
             dummy_df[col_type] = "None"
 
     return dummy_df
+
+
+def make_empty_plot() -> tuple[matplotlib.figure.Figure, str]:
+    """
+    Make empty plot that says "Plot not available" and return permanova annotation string.
+    (Has been interactively tested)
+    Returns: tuple of plot and string.
+    """
+    # Create a new figure
+    fig = plt.figure()
+    ax = fig.add_subplot(111)  # add one row, one column, index 1
+    ax.axis('off')
+    ax.text(0.5, 0.5, 'Plot not available', fontsize=16, ha='center', va='center')  # Add centered text
+
+    permanova_annotation = "PERMANOVA test was not run due to lack of species counts for this site." 
+    return fig, permanova_annotation
+
+
+# def encode_plot_base64(plot: matplotlib.figure.Figure, bbox: str =None) -> str:
+#     """
+#     Encode matplotlib Figure in base 64 using IO buffer.
+#     :params plot: Figure object. 
+#     :params bbox:
+#     """
+#     buf = io.BytesIO()
+#     if bbox:
+#         plot.savefig(buf, format='png', bbox_inches=bbox)
+#     else:
+#         plot.savefig(buf, format='png')
+#     buf.seek(0)
+#     encoded_plot = base64.b64encode(buf.read()).decode('utf-8')
+#     buf.close()
+#         return encoded_plot
+
+                       
