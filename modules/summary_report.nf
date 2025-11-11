@@ -9,7 +9,7 @@
 process make_shannon_script {
     label 'process_low'
     label "process_long"
-    container 'community.wave.seqera.io/library/pip_numpy_pandas:426ad974eac1c1db'
+    container 'community.wave.seqera.io/library/pip_matplotlib_numpy_pandas:6f2c12869dc48a8c'
 
     input:
     path reports
@@ -130,7 +130,7 @@ workflow evaluate_negative_controls {
     
     Channel
        .fromPath(hcid_sample_list, checkIfExists: true)
-       .view { println "DEBUG: channel emits -> $it" }
+       //.view { println "DEBUG: channel emits -> $it" }
        .map { file ->
            def climbid = file.parent.name
            //def filename = file.name
